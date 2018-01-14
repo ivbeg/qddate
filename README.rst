@@ -89,7 +89,7 @@ Popular Formats
     >>> import qddate
     >>> parser = qddate.DateParser()
     >>> parser.parse('2012-12-15')
-    datetime.datetime(2012, 12, 12, 0, 0)
+    datetime.datetime(2012, 12, 15, 0, 0)
     >>> parser.parse(u'Fri, 12 Dec 2014 10:55:50')
     datetime.datetime(2014, 12, 12, 10, 55, 50)
     >>> parser.parse(u'пятница, июля 17, 2015')  # Russian (17 July 2015)

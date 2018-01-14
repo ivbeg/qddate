@@ -24,7 +24,7 @@ script: tox
 addons:
   apt:
     packages:
-      - language-pack-fr
+      - language-pack-ru
 
 after_success:
     - codecov
