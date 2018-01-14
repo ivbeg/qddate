@@ -129,3 +129,8 @@ to pyparsing. Looking at `dateparser <https://github.com/scrapinghub/dateparser>
 to return to this code and to clean it up and to share it publicly. I've used same documentation and code style approach
 and reused build scripts and documentation generation style from dateutil.
 Many thanks to ScrapingHub team!
+
+
+.. image:: https://badges.gitter.im/qddate/Lobby.svg
+   :alt: Join the chat at https://gitter.im/qddate/Lobby
+   :target: https://gitter.im/qddate/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
