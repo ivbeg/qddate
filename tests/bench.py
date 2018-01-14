@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-s
-from qdparser import DateParser
+from qddate import DateParser
 import dateparser
 import datetime
 from pprint import pprint

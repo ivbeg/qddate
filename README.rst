@@ -122,3 +122,10 @@ Supported languages
 * Russian
 * Spanish
 
+Thanks
+======
+I wrote this date parsing code at 2008 year and later only updated it several times, migrating from regular expressions
+to pyparsing. Looking at `dateparser <https://github.com/scrapinghub/dateparser>` clean code and documentation motivated me
+to return to this code and to clean it up and to share it publicly. I've used same documentation and code style approach
+and reused build scripts and documentation generation style from dateutil.
+Many thanks to ScrapingHub team!
