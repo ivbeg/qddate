@@ -1,0 +1,200 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>qddate package &#8212; qddate 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qddate 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="qddate-package">
+<h1>qddate package<a class="headerlink" href="#qddate-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qddate.patterns.html">qddate.patterns package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns.base">qddate.patterns.base module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns.bg">qddate.patterns.bg module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns.cz">qddate.patterns.cz module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns.de">qddate.patterns.de module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns.es">qddate.patterns.es module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns.fr">qddate.patterns.fr module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns.it">qddate.patterns.it module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns.pt">qddate.patterns.pt module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns.ru">qddate.patterns.ru module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qddate.patterns.html#module-qddate.patterns">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-qddate.dirty">
+<span id="qddate-dirty-module"></span><h2>qddate.dirty module<a class="headerlink" href="#module-qddate.dirty" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="qddate.dirty.matchPrefix">
+<code class="sig-prename descclassname">qddate.dirty.</code><code class="sig-name descname">matchPrefix</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qddate/dirty.html#matchPrefix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qddate.dirty.matchPrefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is silver bullet, cornerstone and magic wand of speed of this algorithm
+it filters patterns using manually selected rules. Yes, yes, it’s “dirty” code and it could be beautified in
+many ways but this library intended to be fast, not beautiful. Without matching is x1.3 slower so let it be.
+:param text: text with date to match
+:return: list of patterns to run against</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-qddate.qdparser">
+<span id="qddate-qdparser-module"></span><h2>qddate.qdparser module<a class="headerlink" href="#module-qddate.qdparser" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="qddate.qdparser.DateParser">
+<em class="property">class </em><code class="sig-prename descclassname">qddate.qdparser.</code><code class="sig-name descname">DateParser</code><span class="sig-paren">(</span><em class="sig-param">generate=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qddate/qdparser.html#DateParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qddate.qdparser.DateParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class to use pyparsing-based patterns to parse dates</p>
+<dl class="method">
+<dt id="qddate.qdparser.DateParser.endSession">
+<code class="sig-name descname">endSession</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qddate/qdparser.html#DateParser.endSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qddate.qdparser.DateParser.endSession" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qddate.qdparser.DateParser.match">
+<code class="sig-name descname">match</code><span class="sig-paren">(</span><em class="sig-param">text</em>, <em class="sig-param">noprefix=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qddate/qdparser.html#DateParser.match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qddate.qdparser.DateParser.match" title="Permalink to this definition">¶</a></dt>
+<dd><p>Matches date/datetime string against date patterns and returns pattern and parsed date if matched.
+It’s not indeded for common usage, since if successful it returns date as array of numbers and pattern
+that matched this date</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – Any human readable string</p></li>
+<li><p><strong>noprefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – If set True than doesn’t use prefix based date patterns filtering settings</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns dicts with <cite>values</cite> as array of representing parsed date and ‘pattern’ with info about matched pattern if successful, else returns None</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="qddate.qdparser.DateParser.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param">text</em>, <em class="sig-param">noprefix=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qddate/qdparser.html#DateParser.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qddate.qdparser.DateParser.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse date and time from given date string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – Any human readable string</p></li>
+<li><p><strong>noprefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – If set True than doesn’t use prefix based date patterns filtering settings</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns <a class="reference external" href="https://docs.python.org/2/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">datetime</span></code></a> representing parsed date if successful, else returns None</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/2/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">datetime</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="qddate.qdparser.DateParser.startSession">
+<code class="sig-name descname">startSession</code><span class="sig-paren">(</span><em class="sig-param">cached_p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qddate/qdparser.html#DateParser.startSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qddate.qdparser.DateParser.startSession" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-qddate">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-qddate" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">qddate package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-qddate.dirty">qddate.dirty module</a></li>
+<li><a class="reference internal" href="#module-qddate.qdparser">qddate.qdparser module</a></li>
+<li><a class="reference internal" href="#module-qddate">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/qddate.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qddate 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Ivan Begtin.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>
