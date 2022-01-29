@@ -363,6 +363,18 @@ PATTERNS_EN = [
         "filter": 2,
     },
     {
+        "key": "dt:date:date_eng4_short",
+        "name": "Date with english month short with dash",
+        "pattern": Word(nums, min=1, max=2).setResultsName("day")
+        + Optional("-").suppress()
+        + BASE_PATTERNS_EN["pat:eng:months:short"].setResultsName("month")
+        + Optional("-").suppress()
+        + Word(nums, exact=2).setResultsName("year"),
+        "length": {"min": 10, "max": 10},
+        "format": "%d-%b-%y",
+        "yearshort": True,
+    },
+    {
         "key": "dt:date:noyear_1",
         "name": "Datetime string without year",
         "pattern": BASE_DATE_PATTERNS["pat:date:d.m"],
