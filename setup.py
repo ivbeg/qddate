@@ -24,8 +24,10 @@ setup(
     packages=find_packages(exclude=('tests', 'tests.*')),
     include_package_data=True,
     install_requires=[
-        'pyparsing',
+        'dateparser>=1.1.0',
+        'pyparsing>=2.4.7'
     ],
+    python_requires='>=3.8',
     license="BSD",
     zip_safe=False,
     keywords='date datetime',
