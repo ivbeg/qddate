@@ -1,6 +1,6 @@
-====================================================
+======================================================================================
 qddate -- quick and dirty python parser dates what could be found during HTML scraping
-====================================================
+======================================================================================
 
 .. image:: https://img.shields.io/travis/ivbeg/qddate/master.svg?style=flat-square
     :target: https://travis-ci.org/ivbeg/qddate
@@ -54,7 +54,7 @@ Features
 
 
 Limitations
-========
+===========
 
 * Not all languages supported, more languages will be added by request and example
 * Not so easy to add new language based date patterns as it's in dateparser for example.
@@ -64,7 +64,7 @@ Limitations
 
 
 Speed optimization
-========
+==================
 
 * All constants are hard encoded, no external settings
 * Uses only datetime and pyparsing as external libraries. No more dependencies, all reused code incorporated into the lib code
@@ -78,9 +78,6 @@ Usage
 
 The easiest way is to use the `qddate.DateParser <#qddate.DateParser>`_ class,
 and it's `parse` function.
-
-.. automodule:: qddate
-   :members: DateParser
 
 
 Popular Formats
@@ -107,6 +104,8 @@ Dependencies
 `qddate` relies on following libraries in some ways:
 
   * pyparsing_ is a module for advanced text processing.
+
+
 .. _pyparsing: https://pypi.python.org/pypi/pyparsing
 
 
