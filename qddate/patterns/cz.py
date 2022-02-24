@@ -1,16 +1,6 @@
 # -*- coding: utf-8 -*-
 from pyparsing import (
-    Word,
-    nums,
-    alphas,
     oneOf,
-    lineStart,
-    lineEnd,
-    Optional,
-    restOfLine,
-    Literal,
-    ParseException,
-    CaselessLiteral,
 )
 
 # Incomplete

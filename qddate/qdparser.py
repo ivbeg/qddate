@@ -4,10 +4,12 @@ __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
 
-from .patterns import ALL_PATTERNS, BASE_TIME_PATTERNS
-from pyparsing import Optional, lineStart, oneOf, Literal, restOfLine, ParseException
 import datetime
+
+from pyparsing import Optional, lineStart, oneOf, Literal, restOfLine, ParseException
+
 from .dirty import matchPrefix
+from .patterns import ALL_PATTERNS, BASE_TIME_PATTERNS
 
 
 class DateParser:
@@ -202,7 +204,6 @@ class DateParser:
 
 
 if __name__ == "__main__":
-    from pprint import pprint
 
     tests = [
         "01.12.2009",
@@ -282,7 +283,6 @@ if __name__ == "__main__":
 
     #    for p in ind.patterns:
     #        pprint(p)
-    import dateparser
 
     for text in tests:
         pass

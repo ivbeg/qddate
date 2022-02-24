@@ -2,16 +2,11 @@
 from pyparsing import (
     Word,
     nums,
-    alphas,
     oneOf,
-    lineStart,
-    lineEnd,
     Optional,
-    restOfLine,
     Literal,
-    ParseException,
-    CaselessLiteral,
 )
+
 from .base import BASE_DATE_PATTERNS
 
 RUS_MONTHS_ORIG = [

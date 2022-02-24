@@ -3,6 +3,7 @@ __version__ = "0.1.1"
 __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
+from .base import PATTERNS_EN, BASE_TIME_PATTERNS, INTEGER_LIKE_PATTERNS
 from .bg import PATTERNS_BG
 from .cz import PATTERNS_CZ
 from .de import PATTERNS_DE
@@ -11,7 +12,6 @@ from .fr import PATTERNS_FR
 from .it import PATTERNS_IT
 from .pt import PATTERNS_PT
 from .ru import PATTERNS_RU
-from .base import PATTERNS_EN, BASE_TIME_PATTERNS, INTEGER_LIKE_PATTERNS
 
 ALL_PATTERNS = (
     PATTERNS_EN
