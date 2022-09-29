@@ -13,17 +13,8 @@ from .it import PATTERNS_IT
 from .pt import PATTERNS_PT
 from .ru import PATTERNS_RU
 
-ALL_PATTERNS = (
-    PATTERNS_EN
-    + INTEGER_LIKE_PATTERNS
-    + PATTERNS_BG
-    + PATTERNS_CZ
-    + PATTERNS_DE
-    + PATTERNS_ES
-    + PATTERNS_FR
-    + PATTERNS_IT
-    + PATTERNS_PT
-    + PATTERNS_RU
-)
+ALL_PATTERNS = (PATTERNS_EN + INTEGER_LIKE_PATTERNS + PATTERNS_BG +
+                PATTERNS_CZ + PATTERNS_DE + PATTERNS_ES + PATTERNS_FR +
+                PATTERNS_IT + PATTERNS_PT + PATTERNS_RU)
 
 SUPPORTED_LANGUAGES = ["bg", "cz", "de", "en", "fr", "it", "pt", "ru"]

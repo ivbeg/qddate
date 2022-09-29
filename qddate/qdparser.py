@@ -3,7 +3,6 @@
 __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
-
 import datetime
 
 from pyparsing import Optional, lineStart, oneOf, Literal, restOfLine, ParseException
@@ -52,11 +51,9 @@ class DateParser:
             data["basekey"] = data["key"]
             data["key"] += ":time_1"
             data["right"] = True
-            data["pattern"] = (
-                data["pattern"]
-                + Optional(Literal(",")).suppress()
-                + BASE_TIME_PATTERNS["pat:time:minutes"]
-            )
+            data["pattern"] = (data["pattern"] +
+                               Optional(Literal(",")).suppress() +
+                               BASE_TIME_PATTERNS["pat:time:minutes"])
             data["time_format"] = "%H:%M"
             data["length"] = {
                 "min": data["length"]["min"] + 5,
@@ -68,11 +65,9 @@ class DateParser:
             data["basekey"] = data["key"]
             data["right"] = True
             data["key"] += ":time_2"
-            data["pattern"] = (
-                data["pattern"]
-                + Optional(oneOf([",", "|", 'T'])).suppress()
-                + BASE_TIME_PATTERNS["pat:time:full"]
-            )
+            data["pattern"] = (data["pattern"] +
+                               Optional(oneOf([",", "|", "T"])).suppress() +
+                               BASE_TIME_PATTERNS["pat:time:full"])
             data["time_format"] = "%H:%M:%S"
             data["length"] = {
                 "min": data["length"]["min"] + 9,
@@ -84,12 +79,10 @@ class DateParser:
             data["basekey"] = data["key"]
             data["right"] = True
             data["key"] += ":time_3"
-            data["pattern"] = (
-                data["pattern"]
-                + Optional(Literal("[")).suppress()
-                + BASE_TIME_PATTERNS["pat:time:minutes"]
-                + Optional(Literal("]")).suppress()
-            )
+            data["pattern"] = (data["pattern"] +
+                               Optional(Literal("[")).suppress() +
+                               BASE_TIME_PATTERNS["pat:time:minutes"] +
+                               Optional(Literal("]")).suppress())
             data["time_format"] = "%H:%M"
             data["length"] = {
                 "min": data["length"]["min"] + 7,
@@ -109,11 +102,9 @@ class DateParser:
                 data = pat.copy()
                 data["key"] += ":t_right"
                 data["pattern"] = (
-                    lineStart
-                    + data["pattern"]
-                    + Optional(oneOf([",", "|", ":", ")"])).suppress()
-                    + restOfLine.suppress()
-                )
+                    lineStart + data["pattern"] +
+                    Optional(oneOf([",", "|", ":", ")"])).suppress() +
+                    restOfLine.suppress())
                 data["length"] = {
                     "min": data["length"]["min"] + 1,
                     "max": data["length"]["max"] + 90,
@@ -153,9 +144,10 @@ class DateParser:
         for p in pats:
             if n < p["length"]["min"] or n > p["length"]["max"]:
                 continue
-            if p["right"] and len(basekeys) > 0 and p["basekey"] not in basekeys:
+            if p["right"] and len(
+                    basekeys) > 0 and p["basekey"] not in basekeys:
                 continue
-            if not noyear and 'noyear' in p.keys() and p['noyear']:
+            if not noyear and "noyear" in p.keys() and p["noyear"]:
                 continue
             try:
                 r = p["pattern"].parseString(text)
@@ -229,36 +221,36 @@ if __name__ == "__main__":
         "Thursday 4 April 2019",
         "July 01, 2015",
         "Fri, 3 July 2015",
-        u"2 Июня 2015",
-        u"9 июля 2015 г.",
-        u"26 / 06 ‘15",
-        u"09.июля.2015",
-        u"14th April 2015:",
-        u"23 Jul 2015, 09:00 BST",
-        u"пятница, июля 17, 2015",
-        u"Июль 16, 2015",
-        u"Le 8 juillet 2015",
-        u"8 juillet 2015",
-        u"Fri 24 Jul 2015",
-        u"26 de julho de 2015",
-        u"17 de Junio de 2015",
-        u"28. Juli 2015",
-        u"21 Фeвpyapи 2015",
-        u"1 нoeмвpи 2013",
-        u"23 июня 2015",
-        u"3 Июля, 2015",
-        u"7 August, 2015",
-        u"Wednesday 22 Apr 2015",
-        u"12-08-2015 - 09:00",
-        u"08 Jul, 2015",
-        u"August 10th, 2015",
-        u"junio 9, 2015",
-        u"Авг 11, 2015",
-        u"Вторник, 18 Август 2015 18:51",
-        u"Июль 16th, 2012 | 11:08 пп",
-        u"19 август в 16:03",
-        u"7 August, 2015",
-        u"9 Июля 2015 [11:23]",
+        "2 Июня 2015",
+        "9 июля 2015 г.",
+        "26 / 06 ‘15",
+        "09.июля.2015",
+        "14th April 2015:",
+        "23 Jul 2015, 09:00 BST",
+        "пятница, июля 17, 2015",
+        "Июль 16, 2015",
+        "Le 8 juillet 2015",
+        "8 juillet 2015",
+        "Fri 24 Jul 2015",
+        "26 de julho de 2015",
+        "17 de Junio de 2015",
+        "28. Juli 2015",
+        "21 Фeвpyapи 2015",
+        "1 нoeмвpи 2013",
+        "23 июня 2015",
+        "3 Июля, 2015",
+        "7 August, 2015",
+        "Wednesday 22 Apr 2015",
+        "12-08-2015 - 09:00",
+        "08 Jul, 2015",
+        "August 10th, 2015",
+        "junio 9, 2015",
+        "Авг 11, 2015",
+        "Вторник, 18 Август 2015 18:51",
+        "Июль 16th, 2012 | 11:08 пп",
+        "19 август в 16:03",
+        "7 August, 2015",
+        "9 Июля 2015 [11:23]",
     ]
 
     #    print list(calendar.month_abbr)[1:]

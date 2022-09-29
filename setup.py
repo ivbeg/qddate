@@ -10,7 +10,7 @@ readme = re.sub(r':members:.+|..\sautomodule::.+|:class:|:func:', '', open_as_ut
 readme = re.sub(r'`Settings`_', '`Settings`', readme)
 readme = re.sub(r'`Contributing`_', '`Contributing`', readme)
 readme = open_as_utf('README.rst').read()
-history = re.sub(r':mod:|:class:|:func:', '', open_as_utf('HISTORY.rst').read())
+#history = re.sub(r':mod:|:class:|:func:', '', open_as_utf('HISTORY.rst').read())
 
 
 
@@ -18,7 +18,7 @@ setup(
     name='qddate',
     version=__version__,
     description='Quick and dirty date parsing Python library to parse HTML dates really fast',
-    long_description=readme + '\n\n\n' + history,
+    long_description=readme,# + '\n\n\n' + history,
     author='Ivan Begtin',
     author_email='ivan@begtin.tech',
     url='https://github.com/ivbeg/qddate',
@@ -33,7 +33,7 @@ setup(
     zip_safe=False,
     keywords='date datetime',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
