@@ -157,13 +157,15 @@ ensh_wday2weekday = dict(
 
 BASE_PATTERNS_EN = {
     "pat:eng:months":
-    oneOf(ENG_MONTHS).setParseAction(lambda t: en_mname2mon[t[0]]),
+    oneOf(ENG_MONTHS, caseless=True).setParseAction(lambda t: en_mname2mon[t[0]]),
     "pat:eng:months:lc":
     oneOf(ENG_MONTHS_LC).setParseAction(lambda t: enlc_mname2mon[t[0]]),
     "pat:eng:months:short":
     oneOf(
         ENG_MONTHS_SHORT,
         caseless=True).setParseAction(lambda t: ensh_mname2mon[t[0].lower()]),
+    "pat:eng:day_postfix":
+    PAT_EN_DAY_NUMERIC,
     "pat:eng:weekdays":
     oneOf(ENG_WEEKDAYS),
     "pat:eng:weekdays:short":
@@ -359,7 +361,7 @@ PATTERNS_EN = [
         Optional(".").suppress() + Word(nums, exact=4).setResultsName("year"),
         "length": {
             "min": 10,
-            "max": 10
+            "max": 11
         },
         "format":
         "%d.%b.%Y",
@@ -371,11 +373,11 @@ PATTERNS_EN = [
         "Date with english month 2",
         "pattern":
         BASE_PATTERNS_EN["pat:eng:months"].setResultsName("month") +
-        Word(nums, min=1, max=2).setResultsName("day") +
+        PAT_EN_DAY_NUMERIC +
         Optional(",").suppress() + Word(nums, exact=4).setResultsName("year"),
         "length": {
             "min": 10,
-            "max": 20
+            "max": 22
         },
         "format":
         "%b %d, %Y",
@@ -387,11 +389,11 @@ PATTERNS_EN = [
         "Date with english month 2 lowcase",
         "pattern":
         BASE_PATTERNS_EN["pat:eng:months:lc"].setResultsName("month") +
-        Word(nums, min=1, max=2).setResultsName("day") +
+        PAT_EN_DAY_NUMERIC +
         Optional(",").suppress() + Word(nums, exact=4).setResultsName("year"),
         "length": {
             "min": 10,
-            "max": 20
+            "max": 22
         },
         "format":
         "%b %d, %Y",
@@ -416,9 +418,27 @@ PATTERNS_EN = [
         "key":
         "dt:date:date_eng3",
         "name":
-        "Date with english month full",
+        "Date with english month full lowcase",
         "pattern":
         BASE_PATTERNS_EN["pat:eng:months:lc"].setResultsName("month") +
+        Word(nums, min=1, max=2).setResultsName("day") +
+        Optional(",").suppress() + Word(nums, exact=4).setResultsName("year"),
+        "length": {
+            "min": 10,
+            "max": 20
+        },
+        "format":
+        "%b %d, %Y",
+        "filter":
+        2,
+    },
+    {
+        "key":
+        "dt:date:date_eng3_nolc",
+        "name":
+        "Date with english month full",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:months"].setResultsName("month") +
         Word(nums, min=1, max=2).setResultsName("day") +
         Optional(",").suppress() + Word(nums, exact=4).setResultsName("year"),
         "length": {

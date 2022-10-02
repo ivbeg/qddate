@@ -16,16 +16,17 @@ def matchPrefix(text):
     basekeys = []
     if not text[0].isdigit():
         fc = text[0].lower()
-        fc = fc if len(fc) > 1 else text[0]
+#        fc = fc if len(fc) > 1 else text[0].lower()
         if fc.isalpha() and ord(fc) in range(ord("a"), ord("z") + 1):
             basekeys = [
                 "dt:date:eng1",
                 "dt:date:date_eng1x",
                 "dt:date:eng3",
-                "dt:date:date_eng2_lc",
                 "dt:date:date_eng2",
+                "dt:date:date_eng2_lc",
                 "dt:date:date_eng2_short",
                 "dt:date:date_eng3",
+                "dt:date:date_eng3_nolc",
                 "dt:date:weekday_eng",
                 "dt:date:weekday_eng_lc",
                 "dt:date:weekday_eng_wshort",
