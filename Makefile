@@ -34,9 +34,7 @@ lint:
 	flake8 qddate tests --config=./flake8
 
 coverage:
-	coverage run --source qddate setup.py test
-	coverage report -m
-	coverage html
+	pytest --cov=qddate --cov-report=term-missing --cov-report=html
 	python3 -m webbrowser htmlcov/index.html
 
 docs:
@@ -48,10 +46,9 @@ docs:
 	python3 -m webbrowser docs/_build/html/index.html
 
 release: clean
-	python3 setup.py sdist upload
-	python3 setup.py bdist_wheel upload
+	python3 -m build
+	python3 -m twine upload dist/*
 
 dist: clean
-	python3 setup.py sdist
-	python3 setup.py bdist_wheel
+	python3 -m build
 	ls -l dist

@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qddate"
+version = "1.0.4"
+description = "Quick and dirty date parsing Python library to parse HTML dates really fast"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "BSD"}
+authors = [
+    {name = "Ivan Begtin", email = "ivan@begtin.tech"}
+]
+maintainers = [
+    {name = "Ivan Begtin", email = "ivan@begtin.tech"}
+]
+keywords = ["date", "datetime", "parsing", "html", "scraping"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: General",
+]
+dependencies = [
+    "dateparser>=1.2.0",
+    "pyparsing>=3.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ivbeg/qddate"
+Documentation = "https://qddate.readthedocs.org/en/latest/"
+Repository = "https://github.com/ivbeg/qddate"
+Issues = "https://github.com/ivbeg/qddate/issues"
+
+[tool.setuptools]
+# Automatically discover packages, excluding tests
+packages = {find = {exclude = ["tests", "tests.*"]}}
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.package-data]
+"*" = ["*.rst", "*.txt"]
+
+[tool.flake8]
+max-line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+

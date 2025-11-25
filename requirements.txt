@@ -1,3 +1,14 @@
-dateparser>=1.1.8
-pyparsing>=3.1.1
-setuptools>=65.5.0
+# Runtime dependencies (also specified in pyproject.toml)
+dateparser>=1.2.0
+pyparsing>=3.1.0
+
+# Development dependencies
+setuptools>=65.0
+wheel>=0.40.0
+build>=0.10.0
+twine>=4.0.0
+pytest>=8.0.0
+pytest-cov>=4.0.0
+flake8>=6.0.0
+tox>=4.0.0
+coverage>=7.0.0

@@ -1,13 +1,24 @@
 Benchmark
---------------------
+---------
 
-Benchmark code qddate vs dateparser is at `tests/bench.py'.
-It runs 10 times against 50 raw dates, so it's up to 500 comparisons
+The reference benchmark lives in ``benchmarks/bench.py`` and compares qddate
+with `dateparser <https://github.com/scrapinghub/dateparser>`_ on a corpus of
+50 multilingual date strings. Run it with::
 
-Latest run:
->>> Bench per 10 pass: qddate 0.5 seconds, dateparser 44.8 seconds
->>> qddate.DateParser.parse is 84.7X faster over dateparser.parse
+    python benchmarks/bench.py
 
+The helper script runs several passes (configurable inside the file) and prints
+per-run timings together with the relative speed-up.
 
-Note: This benchmarking was for internal testing only. Independent benchmark will be highly appreciated.
-Feel free to write me at ivan@begtin.tech
+**Interpreting the numbers**
+
+* The benchmark is CPU and storage bound; expect large variation across
+  hardware, Python versions, and pyparsing releases.
+* ``benchmarks/bench.py`` enables pyparsing packrat mode during the run so the
+  reported numbers reflect the current optimized parser defaults.
+* For a deeper discussion about profiling methodology and optimization ideas,
+  see :file:`PERFORMANCE_ANALYSIS.md`.
+
+If you run the benchmark on additional datasets or have more representative
+numbers for your workloads, please file an issue or pull request with the
+results so we can document them here.

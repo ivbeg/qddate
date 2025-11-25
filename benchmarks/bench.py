@@ -4,6 +4,7 @@ from qddate import DateParser
 import dateparser
 import datetime
 from pprint import pprint
+import pyparsing
 from timeit import timeit
 
 TESTS = ['01.12.2009',
@@ -102,16 +103,23 @@ def compare():
 
 
 def run():
-    NUM_PASS = 10
+    NUM_PASS = 5
     qd = timeit("_run_qddate()", setup="from __main__ import _run_qddate", number=NUM_PASS)
     qd2 = timeit("_run_qddate_nopref()", setup="from __main__ import _run_qddate_nopref", number=NUM_PASS)
     dt = timeit("_run_dateparser()", setup="from __main__ import _run_dateparser", number=NUM_PASS)
+    pyparsing.ParserElement.enable_packrat()
+    qd3 = timeit("_run_qddate()", setup="from __main__ import _run_qddate", number=NUM_PASS)
     print('Bench per %d pass: qddate %s seconds, dateparser %s seconds' % (NUM_PASS, str(qd), str(dt)))
     print('qddate is %fX faster over dateparser' % (dt / qd))
 
     print('Bench per %d pass: qddate %s seconds, qddate no pref %s seconds' % (NUM_PASS, str(qd), str(qd2)))
     print('qddate is %fX faster over qddate no pref' % (qd2 / qd))
 
+    print('Bench per %d pass: qddate %s seconds, qddate with enable_packrat %s seconds' % (NUM_PASS, str(qd), str(qd3)))
+    print('qddate is %fX faster over qddate with enable_packrat' % (qd3 / qd))
+
+
 if __name__ == "__main__":
     run()
     #compare()
+

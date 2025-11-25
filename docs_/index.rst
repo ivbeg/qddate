@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. include:: ../README.rst
+For an overview of the project, see the top-level ``README.md`` file.
 .. include:: usage.rst
 
 Documentation

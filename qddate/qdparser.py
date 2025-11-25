@@ -4,8 +4,23 @@ __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
 import datetime
+import os
+import time
 
-from pyparsing import Optional, lineStart, oneOf, Literal, restOfLine, ParseException
+from pyparsing import Optional, lineStart, oneOf, Literal, restOfLine
+
+try:
+   import dill
+   DILL_ENABLED = True
+except:
+   DILL_ENABLED = False
+
+# Enable packrat parsing for better performance
+try:
+    from pyparsing import ParserElement
+    ParserElement.enable_packrat()
+except:
+    pass
 
 from .dirty import matchPrefix
 from .patterns import ALL_PATTERNS, BASE_TIME_PATTERNS
@@ -21,8 +36,12 @@ class DateParser:
         :param base_only: Use only base patterns during generation of final list. Filters all patterns with text after datetime.
         """
         self.patterns = patterns
+        self._current_year = datetime.datetime.now().year
+        self._year_refresh_interval = 3600  # seconds
+        self._next_year_refresh = time.monotonic() + self._year_refresh_interval
         if generate:
             self.__generate(base_only)
+        self._build_length_index()
         self.cachedpats = None
         self.ind = []
 
@@ -37,7 +56,8 @@ class DateParser:
         return matchPrefix(text)
 
     def startSession(self, cached_p):
-        self.cachedpats = [x for x in self.patterns if x["key"] in cached_p]
+        cached_set = set(cached_p) if not isinstance(cached_p, set) else cached_p
+        self.cachedpats = [x for x in self.patterns if x["key"] in cached_set]
 
     def endSession(self):
         self.cachedpats = None
@@ -47,7 +67,7 @@ class DateParser:
         base = []
         texted = []
         for pat in self.patterns:
-            data = pat.copy()
+            data = {**pat}
             data["basekey"] = data["key"]
             data["key"] += ":time_1"
             data["right"] = True
@@ -61,7 +81,7 @@ class DateParser:
             }
             base.append(data)
 
-            data = pat.copy()
+            data = {**pat}
             data["basekey"] = data["key"]
             data["right"] = True
             data["key"] += ":time_2"
@@ -75,7 +95,7 @@ class DateParser:
             }
             base.append(data)
 
-            data = pat.copy()
+            data = {**pat}
             data["basekey"] = data["key"]
             data["right"] = True
             data["key"] += ":time_3"
@@ -90,7 +110,7 @@ class DateParser:
             }
             base.append(data)
 
-            data = pat.copy()
+            data = {**pat}
             data["pattern"] = data["pattern"]
             data["right"] = True
             data["basekey"] = data["key"]
@@ -99,7 +119,7 @@ class DateParser:
         if not base_only:
             for pat in base:
                 # Right
-                data = pat.copy()
+                data = {**pat}
                 data["key"] += ":t_right"
                 data["pattern"] = (
                     lineStart + data["pattern"] +
@@ -113,6 +133,17 @@ class DateParser:
 
             base.extend(texted)
         self.patterns = base
+
+    def _build_length_index(self):
+        """Pre-index patterns by length ranges for faster filtering"""
+        self._patterns_by_length = {}
+        for p in self.patterns:
+            min_len = p["length"]["min"]
+            max_len = p["length"]["max"]
+            for length in range(min_len, max_len + 1):
+                if length not in self._patterns_by_length:
+                    self._patterns_by_length[length] = []
+                self._patterns_by_length[length].append(p)
 
     def match(self, text, noprefix=False, noyear=True):
         """Matches date/datetime string against date patterns and returns pattern and parsed date if matched.
@@ -136,35 +167,48 @@ class DateParser:
         if self.cachedpats is not None:
             pats = self.cachedpats
         else:
-            pats = self.patterns
+            # Use length-based indexing if available
+            if hasattr(self, '_patterns_by_length'):
+                pats = self._patterns_by_length.get(n, [])
+            else:
+                pats = self.patterns
         if n > 5 and not noprefix:
             basekeys = self.__matchPrefix(text[:6])
         else:
             basekeys = []
+        basekeys_len = len(basekeys)
         for p in pats:
-            if n < p["length"]["min"] or n > p["length"]["max"]:
+            # Cache dictionary lookups
+            length_min = p["length"]["min"]
+            length_max = p["length"]["max"]
+            if n < length_min or n > length_max:
                 continue
-            if p["right"] and len(
-                    basekeys) > 0 and p["basekey"] not in basekeys:
+            p_right = p.get("right", False)
+            if p_right and basekeys_len > 0:
+                p_basekey = p.get("basekey")
+                if p_basekey not in basekeys:
+                    continue
+            if not noyear:
+                p_noyear = p.get("noyear", False)
+                if p_noyear:
+                    continue
+            match_data = next(p["pattern"].scanString(text, maxMatches=1), None)
+            if match_data is None:
                 continue
-            if not noyear and "noyear" in p.keys() and p["noyear"]:
+            r, start, _ = match_data
+            if start != 0:
                 continue
-            try:
-                r = p["pattern"].parseString(text)
-                # Do sanity check
-                d = r.asDict()
-                if "month" in d:
-                    val = int(d["month"])
-                    if val > 12 or val < 1:
-                        continue
-                if "day" in d:
-                    val = int(d["day"])
-                    if val > 31 or val < 1:
-                        continue
-                return {"values": r, "pattern": p}
-            except ParseException as e:
-                #                print p['key'], text.encode('utf-8'), e
-                pass
+            # Do sanity check
+            d = r.asDict()
+            if "month" in d:
+                val = int(d["month"])
+                if val > 12 or val < 1:
+                    continue
+            if "day" in d:
+                val = int(d["day"])
+                if val > 31 or val < 1:
+                    continue
+            return {"values": r, "pattern": p}
         return None
 
     def parse(self, text, noprefix=False):
@@ -186,13 +230,21 @@ class DateParser:
             r = res["values"]
             p = res["pattern"]
             d = {"month": 0, "day": 0, "year": 0}
-            if "noyear" in p and p["noyear"] == True:
-                d["year"] = datetime.datetime.now().year
-            for k, v in list(r.items()):
+            if p.get("noyear", False):
+                d["year"] = self._get_cached_year()
+            for k, v in r.items():
                 d[k] = int(v)
             dt = datetime.datetime(**d)
             return dt
         return None
+
+    def _get_cached_year(self):
+        """Return cached current year, refreshing periodically."""
+        now = time.monotonic()
+        if now >= self._next_year_refresh:
+            self._current_year = datetime.datetime.now().year
+            self._next_year_refresh = now + self._year_refresh_interval
+        return self._current_year
 
 
 if __name__ == "__main__":
