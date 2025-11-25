@@ -1,4 +1,21 @@
 *.py[cod]
+*$py.class
+__pycache__/
+
+# Virtual environments
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Editor / OS files
+.idea
+.vscode/
+.DS_Store
+
+# Logs
+*.log
 
 # C extensions
 *.so
@@ -17,13 +34,19 @@ develop-eggs
 .installed.cfg
 lib
 lib64
+pip-wheel-metadata/
+share/python-wheels/
 
 # Installer logs
 pip-log.txt
 
 # Unit test / coverage reports
 .coverage
+.coverage.*
 .tox
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 nosetests.xml
 htmlcov
 
@@ -34,4 +57,5 @@ htmlcov
 # Sphinx
 docs/_build
 
-.idea
+# Project specific
+qddate.egg-info/
