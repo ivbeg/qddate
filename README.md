@@ -69,6 +69,7 @@ The parser auto-detects languages for each string and returns `datetime.datetime
 - English
 - French
 - German
+- Polish
 - Portuguese
 - Russian
 - Spanish

@@ -50,7 +50,7 @@ include-package-data = true
 zip-safe = false
 
 [tool.setuptools.package-data]
-"*" = ["*.rst", "*.txt"]
+"*" = ["*.md", "*.txt"]
 
 [tool.flake8]
 max-line-length = 100

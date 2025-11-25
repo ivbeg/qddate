@@ -38,9 +38,6 @@ coverage:
 	python3 -m webbrowser htmlcov/index.html
 
 docs:
-	rm -f docs/qddate.rst
-	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ qddate
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	python3 -m webbrowser docs/_build/html/index.html

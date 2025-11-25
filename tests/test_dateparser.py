@@ -55,8 +55,14 @@ def fresh_parser():
         # Spanish formats
         ("17 de Junio de 2015", datetime.datetime(2015, 6, 17)),
         ("junio 9, 2015", datetime.datetime(2015, 6, 9)),
+        # Turkish formats
+        ("17 Ocak 2015", datetime.datetime(2015, 1, 17)),
+        ("9 eylül 2022 tarihinde", datetime.datetime(2022, 9, 9)),
         # German formats
         ("28. Juli 2015", datetime.datetime(2015, 7, 28)),
+        # Polish formats
+        ("5 stycznia 2020", datetime.datetime(2020, 1, 5)),
+        ("17 Marca 2018 r.", datetime.datetime(2018, 3, 17)),
         # Dates with text after
         ("12.03.1999 Hello people", datetime.datetime(1999, 3, 12)),
         # Dates with time

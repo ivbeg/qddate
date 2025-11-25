@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to this project are tracked here. Older entries are adapted from `HISTORY.rst`.
+All notable changes to this project are tracked here. Older entries are adapted from `HISTORY.md`.
 
 ## 1.0.5 (2025-11-25)
 - Updated README and benchmark documentation with current performance guidance and references to `benchmarks/bench.py` and `PERFORMANCE_ANALYSIS.md`.

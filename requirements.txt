@@ -12,3 +12,4 @@ pytest-cov>=4.0.0
 flake8>=6.0.0
 tox>=4.0.0
 coverage>=7.0.0
+myst-parser>=2.0.0

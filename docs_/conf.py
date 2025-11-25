@@ -39,13 +39,25 @@ import qddate
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.intersphinx']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
+    'myst_parser',
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = {
+    '.md': 'markdown',
+}
+
+# Enable MyST features needed for Markdown directives.
+myst_enable_extensions = [
+    'linkify',
+]
 
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
