@@ -1,7 +1,7 @@
 
 # qddate — quick and dirty date parsing for scraped HTML
 
-[![Build Status](https://img.shields.io/travis/ivbeg/qddate/master.svg?style=flat-square)](https://travis-ci.org/ivbeg/qddate)
+[![CI](https://github.com/ivbeg/qddate/workflows/CI/badge.svg)](https://github.com/ivbeg/qddate/actions)
 [![PyPI Version](https://img.shields.io/pypi/v/qddate.svg?style=flat-square)](https://pypi.python.org/pypi/qddate)
 [![Docs](https://readthedocs.org/projects/qddate/badge/?version=latest)](https://qddate.readthedocs.org/en/latest/)
 [![Coverage](https://codecov.io/gh/ivbeg/qddate/branch/master/graph/badge.svg)](https://codecov.io/gh/ivbeg/qddate)
@@ -17,7 +17,7 @@ Full documentation is automatically published at [Read the Docs](https://qddate.
 
 ## Features
 
-- 348+ date patterns as of 2017 and growing on demand
+- 712+ date patterns (expanded from 89 base patterns) and growing on demand
 - Multi-language parsing (English, Russian, Spanish, Portuguese, and more)
 - Handles left-aligned dates with trailing text: `12.03.1999 some text here`
 - Prioritizes speed via pyparsing, hard-coded constants, and dirty tricks
@@ -39,7 +39,9 @@ Full documentation is automatically published at [Read the Docs](https://qddate.
 
 ## Benchmark & Performance Notes
 
-- Benchmarks live in `benchmarks/bench.py`. Run `python benchmarks/bench.py` to compare qddate with dateparser on the bundled corpus.
+- **Standard benchmarks**: `benchmarks/bench.py` compares qddate with dateparser on the bundled corpus. Run `python benchmarks/bench.py` to execute.
+- **Webpage data benchmarks**: `benchmarks/benchmark_webpage_data.py` tests qddate against other libraries using real-world text snippets extracted from webpages. Use `scripts/generate_webpage_test_data.py` to generate test data from government and international organization websites.
+- **Comprehensive performance tests**: `benchmarks/comprehensive_performance_test.py` provides extensive performance testing with detailed metrics, pattern analysis, and regression detection. See [`benchmarks/README_PERFORMANCE_TEST.md`](benchmarks/README_PERFORMANCE_TEST.md) for details.
 - [`PERFORMANCE_ANALYSIS.md`](PERFORMANCE_ANALYSIS.md) documents the 2025 profiling work (length-based indexing, prefix caching, packrat parsing, etc.) and how to evaluate future optimizations.
 - Benchmark numbers depend on hardware, Python version, and workload. Please share your results in issues if you run the benchmark elsewhere.
 
@@ -69,10 +71,12 @@ The parser auto-detects languages for each string and returns `datetime.datetime
 - English
 - French
 - German
+- Italian
 - Polish
 - Portuguese
 - Russian
 - Spanish
+- Turkish
 
 ## Thanks
 
