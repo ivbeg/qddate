@@ -1,0 +1,13 @@
+Category,Metric,Value,Unit
+initialization,mean_time,15.4387,ms
+initialization,median_time,15.2277,ms
+parse,mean_time,2.1936,ms
+parse,p95_time,9.3465,ms
+parse,success_rate,0.8474,ratio
+parse,throughput,455,ops/sec
+match,mean_time,2.2846,ms
+match,p95_time,9.7927,ms
+match,success_rate,0.8480,ratio
+match,throughput,437,ops/sec
+match_prefix,mean_time,0.2234,μs
+match_prefix,throughput,1926582,ops/sec

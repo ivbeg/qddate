@@ -1,0 +1,24 @@
+QDDate Performance Test Summary
+================================================================================
+
+Timestamp: 2026-01-02T20:43:31.229353
+Python version: 3.13.7 (main, Aug 14 2025, 11:12:11) [Clang 17.0.0 (clang-1700.0.13.3)]
+Test cases: 10359
+Iterations: 1
+
+Initialization:
+  Mean: 17.52ms
+  Median: 17.23ms
+
+Parse Operations:
+  Mean: 0.86ms
+  P95: 2.74ms
+  Success rate: 77.5%
+  Throughput: 1154 ops/sec
+
+Match Operations:
+  Mean: 0.85ms
+  P95: 2.78ms
+  Success rate: 77.5%
+  Throughput: 1168 ops/sec
+

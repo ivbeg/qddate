@@ -1,0 +1,358 @@
+{
+  "timestamp": "20260102_132001",
+  "profiles": {
+    "initialization": {
+      "top_functions": [
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/scripts/profile_performance.py",
+          "line": 130,
+          "function": "run_init",
+          "calls": 1,
+          "total_time": 0.029506624000000002,
+          "cumulative_time": 1.3166440000000001,
+          "per_call": 0.029506624000000002
+        },
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/qddate/qdparser.py",
+          "line": 32,
+          "function": "__init__",
+          "calls": 5,
+          "total_time": 0.0009504170000000001,
+          "cumulative_time": 1.287137376,
+          "per_call": 0.00019008340000000002
+        },
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/qddate/qdparser.py",
+          "line": 65,
+          "function": "__generate",
+          "calls": 5,
+          "total_time": 0.04546522,
+          "cumulative_time": 1.080774957,
+          "per_call": 0.009093044
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 1574,
+          "function": "__add__",
+          "calls": 11685,
+          "total_time": 0.029592996000000003,
+          "cumulative_time": 0.515173092,
+          "per_call": 2.532562772785623e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 4399,
+          "function": "__init__",
+          "calls": 11685,
+          "total_time": 0.073205144,
+          "cumulative_time": 0.461758386,
+          "per_call": 6.264881814291827e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 4203,
+          "function": "__init__",
+          "calls": 11685,
+          "total_time": 0.06424357700000001,
+          "cumulative_time": 0.26219067100000004,
+          "per_call": 5.49795267436885e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/util.py",
+          "line": 440,
+          "function": "_inner",
+          "calls": 3075,
+          "total_time": 0.0044932570000000005,
+          "cumulative_time": 0.259867067,
+          "per_call": 1.4612217886178863e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/helpers.py",
+          "line": 168,
+          "function": "one_of",
+          "calls": 3075,
+          "total_time": 0.05726388,
+          "cumulative_time": 0.25537381000000003,
+          "per_call": 1.86224e-05
+        },
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/qddate/qdparser.py",
+          "line": 137,
+          "function": "_build_length_index",
+          "calls": 5,
+          "total_time": 0.125844871,
+          "cumulative_time": 0.20535066800000001,
+          "per_call": 0.0251689742
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 484,
+          "function": "__init__",
+          "calls": 28905,
+          "total_time": 0.138155089,
+          "cumulative_time": 0.199359964,
+          "per_call": 4.779625981664072e-06
+        }
+      ],
+      "total_calls": 1282955
+    },
+    "match_prefix": {
+      "top_functions": [
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/scripts/profile_performance.py",
+          "line": 116,
+          "function": "run_match_prefix",
+          "calls": 1,
+          "total_time": 0.001292706,
+          "cumulative_time": 0.004819958,
+          "per_call": 0.001292706
+        },
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/qddate/dirty.py",
+          "line": 177,
+          "function": "matchPrefix",
+          "calls": 1900,
+          "total_time": 0.002234218,
+          "cumulative_time": 0.0032331820000000002,
+          "per_call": 1.1759042105263158e-06
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.len>",
+          "calls": 3800,
+          "total_time": 0.0005990850000000001,
+          "cumulative_time": 0.0005990850000000001,
+          "per_call": 1.5765394736842107e-07
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'isdigit' of 'str' objects>",
+          "calls": 1900,
+          "total_time": 0.000481863,
+          "cumulative_time": 0.000481863,
+          "per_call": 2.536121052631579e-07
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'lower' of 'str' objects>",
+          "calls": 450,
+          "total_time": 0.000107398,
+          "cumulative_time": 0.000107398,
+          "per_call": 2.386622222222222e-07
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'isalpha' of 'str' objects>",
+          "calls": 450,
+          "total_time": 0.00010468800000000001,
+          "cumulative_time": 0.00010468800000000001,
+          "per_call": 2.3264000000000002e-07
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'disable' of '_lsprof.Profiler' objects>",
+          "calls": 1,
+          "total_time": 1.5958000000000002e-05,
+          "cumulative_time": 1.5958000000000002e-05,
+          "per_call": 1.5958000000000002e-05
+        }
+      ],
+      "total_calls": 8502
+    },
+    "match": {
+      "top_functions": [
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/scripts/profile_performance.py",
+          "line": 98,
+          "function": "run_matches",
+          "calls": 1,
+          "total_time": 0.00047925100000000004,
+          "cumulative_time": 4.32431675,
+          "per_call": 0.00047925100000000004
+        },
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/qddate/qdparser.py",
+          "line": 148,
+          "function": "match",
+          "calls": 190,
+          "total_time": 0.056328137,
+          "cumulative_time": 4.323837499000001,
+          "per_call": 0.0002964638789473684
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.next>",
+          "calls": 16349,
+          "total_time": 0.011428001,
+          "cumulative_time": 4.240157180000001,
+          "per_call": 6.990030582910269e-07
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 1322,
+          "function": "scan_string",
+          "calls": 6140,
+          "total_time": 0.224559171,
+          "cumulative_time": 4.233191756,
+          "per_call": 3.6573154885993486e-05
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 1060,
+          "function": "_parseCache",
+          "calls": 225150,
+          "total_time": 0.966367764,
+          "cumulative_time": 3.571735632,
+          "per_call": 4.292106435709527e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 893,
+          "function": "_parseNoCache",
+          "calls": 214420,
+          "total_time": 0.507702465,
+          "cumulative_time": 2.8376462790000003,
+          "per_call": 2.3677943522059513e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 4490,
+          "function": "parseImpl",
+          "calls": 85000,
+          "total_time": 0.132399962,
+          "cumulative_time": 2.6804553330000003,
+          "per_call": 1.557646611764706e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/util.py",
+          "line": 113,
+          "function": "set_",
+          "calls": 214410,
+          "total_time": 0.21440172500000002,
+          "cumulative_time": 0.401675229,
+          "per_call": 9.99961405718017e-07
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/util.py",
+          "line": 110,
+          "function": "get",
+          "calls": 225150,
+          "total_time": 0.09683594200000001,
+          "cumulative_time": 0.389200164,
+          "per_call": 4.300952342882523e-07
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 5031,
+          "function": "parseImpl",
+          "calls": 12545,
+          "total_time": 0.017392954000000002,
+          "cumulative_time": 0.330743587,
+          "per_call": 1.386445117576724e-06
+        }
+      ],
+      "total_calls": 4622008
+    },
+    "parse": {
+      "top_functions": [
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/scripts/profile_performance.py",
+          "line": 80,
+          "function": "run_parses",
+          "calls": 1,
+          "total_time": 0.00041829300000000003,
+          "cumulative_time": 3.967550875,
+          "per_call": 0.00041829300000000003
+        },
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/qddate/qdparser.py",
+          "line": 214,
+          "function": "parse",
+          "calls": 190,
+          "total_time": 0.00237258,
+          "cumulative_time": 3.967132582,
+          "per_call": 1.2487263157894736e-05
+        },
+        {
+          "file": "/Users/ibegtin/workspace/ivbeg/qddate/qddate/qdparser.py",
+          "line": 148,
+          "function": "match",
+          "calls": 190,
+          "total_time": 0.052729635000000004,
+          "cumulative_time": 3.9632308380000003,
+          "per_call": 0.00027752439473684214
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.next>",
+          "calls": 5950,
+          "total_time": 0.0067569990000000005,
+          "cumulative_time": 3.885164295,
+          "per_call": 1.1356300840336135e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 1322,
+          "function": "scan_string",
+          "calls": 6140,
+          "total_time": 0.199655448,
+          "cumulative_time": 3.878762876,
+          "per_call": 3.251717394136808e-05
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 1060,
+          "function": "_parseCache",
+          "calls": 225150,
+          "total_time": 0.968249741,
+          "cumulative_time": 3.435047608,
+          "per_call": 4.30046520541861e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 893,
+          "function": "_parseNoCache",
+          "calls": 214420,
+          "total_time": 0.546698612,
+          "cumulative_time": 2.713675095,
+          "per_call": 2.549662400895439e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/core.py",
+          "line": 4490,
+          "function": "parseImpl",
+          "calls": 85000,
+          "total_time": 0.122923452,
+          "cumulative_time": 2.5723964500000003,
+          "per_call": 1.4461582588235295e-06
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/util.py",
+          "line": 113,
+          "function": "set_",
+          "calls": 214410,
+          "total_time": 0.18717376400000002,
+          "cumulative_time": 0.366776618,
+          "per_call": 8.729712420129659e-07
+        },
+        {
+          "file": "/opt/homebrew/lib/python3.13/site-packages/pyparsing/util.py",
+          "line": 110,
+          "function": "get",
+          "calls": 225150,
+          "total_time": 0.08381173700000001,
+          "cumulative_time": 0.341819735,
+          "per_call": 3.722484432600489e-07
+        }
+      ],
+      "total_calls": 4437422
+    }
+  }
+}

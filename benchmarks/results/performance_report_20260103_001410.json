@@ -1,0 +1,1032 @@
+{
+  "timestamp": "2026-01-03T00:03:06.957609",
+  "python_version": "3.13.7 (main, Aug 14 2025, 11:12:11) [Clang 17.0.0 (clang-1700.0.13.3)]",
+  "test_cases_count": 10359,
+  "iterations": 1,
+  "prefix_iterations": 50,
+  "initialization": {
+    "operation": "initialization",
+    "iterations": 5,
+    "total_time": 0.6195157500005735,
+    "mean": 0.12390315000011469,
+    "median": 0.10653204200207256,
+    "min": 0.0935169579970534,
+    "max": 0.20662758300022688,
+    "stdev": 0.04704777906982114,
+    "p50": 0.10653204200207256,
+    "p90": 0.115752749999956,
+    "p95": 0.115752749999956,
+    "p99": 0.115752749999956
+  },
+  "match_prefix": {
+    "operation": "match_prefix",
+    "iterations": 50,
+    "test_cases": 10359,
+    "total_operations": 517950,
+    "total_time": 7.275476292001258,
+    "throughput": 71191.21542179171,
+    "stats": {
+      "match_prefix": {
+        "count": 517950,
+        "total": 5.857935282016115,
+        "mean": 1.1309847054766126e-05,
+        "median": 8.541999704902992e-06,
+        "min": 3.082997864112258e-06,
+        "max": 0.014659292002761504,
+        "stdev": 3.6005204886633604e-05,
+        "p50": 8.541999704902992e-06,
+        "p90": 1.5957997675286606e-05,
+        "p95": 1.745899862726219e-05,
+        "p99": 5.241699909674935e-05,
+        "coefficient_of_variation": 3.183527125723642
+      }
+    }
+  },
+  "match": {
+    "operation": "match",
+    "iterations": 1,
+    "test_cases": 10359,
+    "total_operations": 10359,
+    "total_time": 77.77833145800105,
+    "throughput": 133.18619473848807,
+    "successful": 9846,
+    "failed": 513,
+    "errors": 0,
+    "success_rate": 0.950477845351868,
+    "stats": {
+      "match": {
+        "count": 10359,
+        "total": 77.48321758408201,
+        "mean": 0.0074797970445102824,
+        "median": 0.0032708750004530884,
+        "min": 4.4459000491769984e-05,
+        "max": 0.35827133299972047,
+        "stdev": 0.012333935714439265,
+        "p50": 0.0032708750004530884,
+        "p90": 0.01936087499925634,
+        "p95": 0.029901924401201558,
+        "p99": 0.051701355641489505,
+        "coefficient_of_variation": 1.6489666285118827
+      },
+      "match_success": {
+        "count": 9846,
+        "total": 71.90462712306544,
+        "mean": 0.007302927800433215,
+        "median": 0.0032123125020007137,
+        "min": 4.4459000491769984e-05,
+        "max": 0.18599874999927124,
+        "stdev": 0.011467540325100853,
+        "p50": 0.0032123125020007137,
+        "p90": 0.01901812500000233,
+        "p95": 0.02997428125127044,
+        "p99": 0.05170561860086307,
+        "coefficient_of_variation": 1.5702661505732796
+      },
+      "match_failure": {
+        "count": 513,
+        "total": 5.578590461016574,
+        "mean": 0.010874445343112231,
+        "median": 0.005504000000655651,
+        "min": 6.149999899207614e-05,
+        "max": 0.35827133299972047,
+        "stdev": 0.02316885821288385,
+        "p50": 0.005504000000655651,
+        "p90": 0.02129808360114112,
+        "p95": 0.028885458000877388,
+        "p99": 0.047287148079340105,
+        "coefficient_of_variation": 2.130578386469962
+      }
+    }
+  },
+  "parse": {
+    "operation": "parse",
+    "iterations": 1,
+    "test_cases": 10359,
+    "total_operations": 10359,
+    "total_time": 40.30433541599996,
+    "throughput": 257.0194966144436,
+    "successful": 9840,
+    "failed": 519,
+    "errors": 0,
+    "success_rate": 0.9498986388647553,
+    "stats": {
+      "parse": {
+        "count": 10359,
+        "total": 40.16532514804203,
+        "mean": 0.003877336147122505,
+        "median": 0.0014604999996663537,
+        "min": 4.162500044913031e-05,
+        "max": 0.18810887500148965,
+        "stdev": 0.0076098766534314225,
+        "p50": 0.0014604999996663537,
+        "p90": 0.008928841802116954,
+        "p95": 0.01646180830211961,
+        "p99": 0.03731247285941209,
+        "coefficient_of_variation": 1.9626558969046197
+      },
+      "parse_success": {
+        "count": 9840,
+        "total": 37.42298535404552,
+        "mean": 0.003803148918094057,
+        "median": 0.0014306039993243758,
+        "min": 4.345900015323423e-05,
+        "max": 0.18810887500148965,
+        "stdev": 0.007384811316543758,
+        "p50": 0.0014306039993243758,
+        "p90": 0.008683932998246748,
+        "p95": 0.016003529502086094,
+        "p99": 0.037468479250019324,
+        "coefficient_of_variation": 1.9417623331575051
+      },
+      "parse_failure": {
+        "count": 519,
+        "total": 2.742339793996507,
+        "mean": 0.0052838917032688,
+        "median": 0.002422207999188686,
+        "min": 4.162500044913031e-05,
+        "max": 0.16524820899940096,
+        "stdev": 0.010956122085145709,
+        "p50": 0.002422207999188686,
+        "p90": 0.014373350000823843,
+        "p95": 0.018809374699776525,
+        "p99": 0.03378408444055824,
+        "coefficient_of_variation": 2.0734948216989135
+      }
+    },
+    "pattern_performance": {
+      "dt:date:date_rus2": {
+        "count": 95,
+        "success_rate": 1.0,
+        "mean_time": 0.0019474123054303498,
+        "median_time": 0.0012611249985639006,
+        "success_count": 95,
+        "fail_count": 0
+      },
+      "dt:date:fr_short_monthfirst": {
+        "count": 108,
+        "success_rate": 1.0,
+        "mean_time": 0.005791977962905582,
+        "median_time": 0.0023344789988186676,
+        "success_count": 108,
+        "fail_count": 0
+      },
+      "dt:date:date_rus_lc1": {
+        "count": 218,
+        "success_rate": 0.5229357798165137,
+        "mean_time": 0.0007755225048198337,
+        "median_time": 0.0003423335001571104,
+        "success_count": 114,
+        "fail_count": 104
+      },
+      "dt:date:fr_base_lc": {
+        "count": 139,
+        "success_rate": 1.0,
+        "mean_time": 0.003380453554265789,
+        "median_time": 0.0011304580002615694,
+        "success_count": 139,
+        "fail_count": 0
+      },
+      "dt:date:date_8": {
+        "count": 346,
+        "success_rate": 0.8554913294797688,
+        "mean_time": 0.001177571416209466,
+        "median_time": 0.0006025415004842216,
+        "success_count": 296,
+        "fail_count": 50
+      },
+      "dt:date:date_eng3_nolc": {
+        "count": 181,
+        "success_rate": 1.0,
+        "mean_time": 0.006753070878413427,
+        "median_time": 0.0036832910009252373,
+        "success_count": 181,
+        "fail_count": 0
+      },
+      "dt:date:es_base_article": {
+        "count": 300,
+        "success_rate": 1.0,
+        "mean_time": 0.008248996816643437,
+        "median_time": 0.004961833001289051,
+        "success_count": 300,
+        "fail_count": 0
+      },
+      "dt:date:date_eng1x": {
+        "count": 299,
+        "success_rate": 1.0,
+        "mean_time": 0.006135489702203123,
+        "median_time": 0.003372749997652136,
+        "success_count": 299,
+        "fail_count": 0
+      },
+      "dt:date:de_rare_2": {
+        "count": 117,
+        "success_rate": 1.0,
+        "mean_time": 0.009367099034448968,
+        "median_time": 0.004279707998648519,
+        "success_count": 117,
+        "fail_count": 0
+      },
+      "dt:date:date_usa": {
+        "count": 159,
+        "success_rate": 1.0,
+        "mean_time": 0.0012666693146456964,
+        "median_time": 0.0003655420005088672,
+        "success_count": 159,
+        "fail_count": 0
+      },
+      "dt:date:it_base_lc": {
+        "count": 106,
+        "success_rate": 1.0,
+        "mean_time": 0.004546587254566784,
+        "median_time": 0.001777229001163505,
+        "success_count": 106,
+        "fail_count": 0
+      },
+      "dt:date:date_9": {
+        "count": 412,
+        "success_rate": 1.0,
+        "mean_time": 0.002455084150427053,
+        "median_time": 0.001207875000545755,
+        "success_count": 412,
+        "fail_count": 0
+      },
+      "dt:date:date_eng1_lc": {
+        "count": 254,
+        "success_rate": 1.0,
+        "mean_time": 0.002879778192780534,
+        "median_time": 0.0013936044997535646,
+        "success_count": 254,
+        "fail_count": 0
+      },
+      "dt:date:date_1": {
+        "count": 491,
+        "success_rate": 1.0,
+        "mean_time": 0.0009112439042661679,
+        "median_time": 0.00033870900006149895,
+        "success_count": 491,
+        "fail_count": 0
+      },
+      "dt:date:date_eng1": {
+        "count": 145,
+        "success_rate": 1.0,
+        "mean_time": 0.001866743103415376,
+        "median_time": 0.0011632079986156896,
+        "success_count": 145,
+        "fail_count": 0
+      },
+      "dt:date:de_rare_1": {
+        "count": 137,
+        "success_rate": 1.0,
+        "mean_time": 0.008988469036510146,
+        "median_time": 0.0038489159996970557,
+        "success_count": 137,
+        "fail_count": 0
+      },
+      "dt:date:pt_base_lc": {
+        "count": 95,
+        "success_rate": 1.0,
+        "mean_time": 0.0022270245578271753,
+        "median_time": 0.0012621669993677642,
+        "success_count": 95,
+        "fail_count": 0
+      },
+      "dt:date:it_base": {
+        "count": 106,
+        "success_rate": 1.0,
+        "mean_time": 0.0035566211319643837,
+        "median_time": 0.0011943329991481733,
+        "success_count": 106,
+        "fail_count": 0
+      },
+      "dt:date:date_rus_lc2": {
+        "count": 110,
+        "success_rate": 1.0,
+        "mean_time": 0.0026906045999071054,
+        "median_time": 0.0014785830007895129,
+        "success_count": 110,
+        "fail_count": 0
+      },
+      "dt:date:date_eng1_short": {
+        "count": 310,
+        "success_rate": 1.0,
+        "mean_time": 0.0013181258743932103,
+        "median_time": 0.0006969380010559689,
+        "success_count": 310,
+        "fail_count": 0
+      },
+      "dt:date:date_eng3": {
+        "count": 117,
+        "success_rate": 1.0,
+        "mean_time": 0.007086362546919516,
+        "median_time": 0.004478208000364248,
+        "success_count": 117,
+        "fail_count": 0
+      },
+      "dt:date:date_2": {
+        "count": 405,
+        "success_rate": 1.0,
+        "mean_time": 0.0006052319975289585,
+        "median_time": 0.0002929580005002208,
+        "success_count": 405,
+        "fail_count": 0
+      },
+      "dt:date:date_iso8601_short": {
+        "count": 147,
+        "success_rate": 0.9931972789115646,
+        "mean_time": 0.00030288291813134133,
+        "median_time": 0.00013116699847159907,
+        "success_count": 146,
+        "fail_count": 1
+      },
+      "dt:date:weekday_eng": {
+        "count": 32,
+        "success_rate": 0.84375,
+        "mean_time": 0.012656471437367145,
+        "median_time": 0.005191353999180137,
+        "success_count": 27,
+        "fail_count": 5
+      },
+      "dt:date:date_iso8601": {
+        "count": 284,
+        "success_rate": 1.0,
+        "mean_time": 0.0008418249506217429,
+        "median_time": 0.0003895204990840284,
+        "success_count": 284,
+        "fail_count": 0
+      },
+      "dt:date:it_rare_2": {
+        "count": 92,
+        "success_rate": 1.0,
+        "mean_time": 0.007307534489210293,
+        "median_time": 0.002763500000583008,
+        "success_count": 92,
+        "fail_count": 0
+      },
+      "dt:date:date_eng2": {
+        "count": 263,
+        "success_rate": 1.0,
+        "mean_time": 0.00811077457808508,
+        "median_time": 0.0048165420012082905,
+        "success_count": 263,
+        "fail_count": 0
+      },
+      "dt:date:date_rus": {
+        "count": 284,
+        "success_rate": 0.7077464788732394,
+        "mean_time": 0.0024749306302651285,
+        "median_time": 0.001306916999965324,
+        "success_count": 201,
+        "fail_count": 83
+      },
+      "dt:date:fr_base": {
+        "count": 328,
+        "success_rate": 1.0,
+        "mean_time": 0.002842198426739143,
+        "median_time": 0.00100533350087062,
+        "success_count": 328,
+        "fail_count": 0
+      },
+      "dt:date:de_base": {
+        "count": 476,
+        "success_rate": 0.9852941176470589,
+        "mean_time": 0.004903277819301197,
+        "median_time": 0.0027718539986381074,
+        "success_count": 469,
+        "fail_count": 7
+      },
+      "dt:date:it_base_article": {
+        "count": 99,
+        "success_rate": 1.0,
+        "mean_time": 0.007620208727438685,
+        "median_time": 0.005678917001205264,
+        "success_count": 99,
+        "fail_count": 0
+      },
+      "dt:date:cz_base": {
+        "count": 58,
+        "success_rate": 1.0,
+        "mean_time": 0.0037142657583272326,
+        "median_time": 0.0005567499993048841,
+        "success_count": 58,
+        "fail_count": 0
+      },
+      "dt:date:de_base_lc": {
+        "count": 110,
+        "success_rate": 1.0,
+        "mean_time": 0.0046099871182708405,
+        "median_time": 0.001936916500199004,
+        "success_count": 110,
+        "fail_count": 0
+      },
+      "dt:date:es_short": {
+        "count": 120,
+        "success_rate": 0.4,
+        "mean_time": 0.013077298224955788,
+        "median_time": 0.0069223959999362705,
+        "success_count": 48,
+        "fail_count": 72
+      },
+      "dt:date:fr_base_article": {
+        "count": 134,
+        "success_rate": 1.0,
+        "mean_time": 0.00443207179854816,
+        "median_time": 0.0016520000008313218,
+        "success_count": 134,
+        "fail_count": 0
+      },
+      "dt:date:pt_short_lc_monthfirst": {
+        "count": 92,
+        "success_rate": 1.0,
+        "mean_time": 0.006296719706449,
+        "median_time": 0.0031445000004168833,
+        "success_count": 92,
+        "fail_count": 0
+      },
+      "dt:date:de_short": {
+        "count": 130,
+        "success_rate": 0.9461538461538461,
+        "mean_time": 0.0035303849000438976,
+        "median_time": 0.0015118125011213124,
+        "success_count": 123,
+        "fail_count": 7
+      },
+      "dt:date:date_usa_1": {
+        "count": 125,
+        "success_rate": 1.0,
+        "mean_time": 0.0012662586639053189,
+        "median_time": 0.0006556660009664483,
+        "success_count": 125,
+        "fail_count": 0
+      },
+      "dt:date:fr_short_lc_monthfirst": {
+        "count": 126,
+        "success_rate": 1.0,
+        "mean_time": 0.005141090341105213,
+        "median_time": 0.002738416998909088,
+        "success_count": 126,
+        "fail_count": 0
+      },
+      "dt:date:nl_base_lc": {
+        "count": 64,
+        "success_rate": 1.0,
+        "mean_time": 0.004727101468688488,
+        "median_time": 0.002831249999871943,
+        "success_count": 64,
+        "fail_count": 0
+      },
+      "dt:date:weekday_eng_short": {
+        "count": 60,
+        "success_rate": 0.7666666666666667,
+        "mean_time": 0.006040831283038036,
+        "median_time": 0.0033658755019132514,
+        "success_count": 46,
+        "fail_count": 14
+      },
+      "dt:date:date_4": {
+        "count": 177,
+        "success_rate": 0.9830508474576272,
+        "mean_time": 0.0006524208587774215,
+        "median_time": 0.0002549999990151264,
+        "success_count": 174,
+        "fail_count": 3
+      },
+      "dt:date:bg_base": {
+        "count": 65,
+        "success_rate": 0.15384615384615385,
+        "mean_time": 0.0038650954925217845,
+        "median_time": 0.0025713750001159497,
+        "success_count": 10,
+        "fail_count": 55
+      },
+      "dt:date:date_3": {
+        "count": 148,
+        "success_rate": 1.0,
+        "mean_time": 0.001072789445872233,
+        "median_time": 0.000570937500015134,
+        "success_count": 148,
+        "fail_count": 0
+      },
+      "dt:date:pt_base_article": {
+        "count": 102,
+        "success_rate": 1.0,
+        "mean_time": 0.0062528798625149365,
+        "median_time": 0.0022325415011437144,
+        "success_count": 102,
+        "fail_count": 0
+      },
+      "dt:date:it_base_lc_article": {
+        "count": 88,
+        "success_rate": 1.0,
+        "mean_time": 0.01002324152271037,
+        "median_time": 0.007139624998671934,
+        "success_count": 88,
+        "fail_count": 0
+      },
+      "dt:date:date_eng2_short": {
+        "count": 111,
+        "success_rate": 1.0,
+        "mean_time": 0.001860679396453601,
+        "median_time": 0.0007977499990374781,
+        "success_count": 111,
+        "fail_count": 0
+      },
+      "dt:date:it_rare_1": {
+        "count": 109,
+        "success_rate": 1.0,
+        "mean_time": 0.0067604850549312255,
+        "median_time": 0.003473290998954326,
+        "success_count": 109,
+        "fail_count": 0
+      },
+      "dt:date:fr_short": {
+        "count": 136,
+        "success_rate": 1.0,
+        "mean_time": 0.0032637248602227107,
+        "median_time": 0.0021220630005700514,
+        "success_count": 136,
+        "fail_count": 0
+      },
+      "dt:date:date_10": {
+        "count": 163,
+        "success_rate": 1.0,
+        "mean_time": 0.0006859215521948209,
+        "median_time": 0.0002507919998606667,
+        "success_count": 163,
+        "fail_count": 0
+      },
+      "dt:date:rus_rare_5": {
+        "count": 122,
+        "success_rate": 0.860655737704918,
+        "mean_time": 0.0019923337211843854,
+        "median_time": 0.0011154585008625872,
+        "success_count": 105,
+        "fail_count": 17
+      },
+      "dt:date:es_base": {
+        "count": 116,
+        "success_rate": 1.0,
+        "mean_time": 0.0028485118965395017,
+        "median_time": 0.0017139375013357494,
+        "success_count": 116,
+        "fail_count": 0
+      },
+      "dt:date:es_rare_1": {
+        "count": 99,
+        "success_rate": 1.0,
+        "mean_time": 0.008120825353722062,
+        "median_time": 0.004525708998698974,
+        "success_count": 99,
+        "fail_count": 0
+      },
+      "dt:date:rus_rare_3": {
+        "count": 115,
+        "success_rate": 0.9565217391304348,
+        "mean_time": 0.0011008468001028119,
+        "median_time": 0.00046308299715747125,
+        "success_count": 110,
+        "fail_count": 5
+      },
+      "dt:date:pt_short_monthfirst": {
+        "count": 110,
+        "success_rate": 1.0,
+        "mean_time": 0.006043661791045452,
+        "median_time": 0.004105541500393883,
+        "success_count": 110,
+        "fail_count": 0
+      },
+      "dt:date:nl_base": {
+        "count": 59,
+        "success_rate": 1.0,
+        "mean_time": 0.003773954067767945,
+        "median_time": 0.001321083000220824,
+        "success_count": 59,
+        "fail_count": 0
+      },
+      "dt:date:pl_base": {
+        "count": 52,
+        "success_rate": 0.9807692307692307,
+        "mean_time": 0.004734763557770258,
+        "median_time": 0.0008567080003558658,
+        "success_count": 51,
+        "fail_count": 1
+      },
+      "dt:date:cz_base_lc": {
+        "count": 63,
+        "success_rate": 1.0,
+        "mean_time": 0.0023596653812250775,
+        "median_time": 0.0006617090002691839,
+        "success_count": 63,
+        "fail_count": 0
+      },
+      "dt:date:weekday_rus": {
+        "count": 18,
+        "success_rate": 0.0,
+        "mean_time": 0.009291837944652393,
+        "median_time": 0.004671792001317954,
+        "success_count": 0,
+        "fail_count": 18
+      },
+      "dt:date:tr_base_lc": {
+        "count": 53,
+        "success_rate": 1.0,
+        "mean_time": 0.0011279071509735967,
+        "median_time": 0.0004630410003301222,
+        "success_count": 53,
+        "fail_count": 0
+      },
+      "dt:date:pl_base_lc": {
+        "count": 55,
+        "success_rate": 1.0,
+        "mean_time": 0.004664663672817617,
+        "median_time": 0.001093750001018634,
+        "success_count": 55,
+        "fail_count": 0
+      },
+      "dt:date:es_weekday": {
+        "count": 21,
+        "success_rate": 0.0,
+        "mean_time": 0.02988924023745875,
+        "median_time": 0.007243707997986348,
+        "success_count": 0,
+        "fail_count": 21
+      },
+      "dt:date:es_rare_2": {
+        "count": 118,
+        "success_rate": 1.0,
+        "mean_time": 0.00801713461028851,
+        "median_time": 0.004419291999511188,
+        "success_count": 118,
+        "fail_count": 0
+      },
+      "dt:date:tr_base": {
+        "count": 67,
+        "success_rate": 1.0,
+        "mean_time": 0.0011062089553834356,
+        "median_time": 0.0003799579972110223,
+        "success_count": 67,
+        "fail_count": 0
+      },
+      "dt:date:pt_base": {
+        "count": 105,
+        "success_rate": 1.0,
+        "mean_time": 0.002317702733576187,
+        "median_time": 0.001327375000983011,
+        "success_count": 105,
+        "fail_count": 0
+      },
+      "dt:date:es_base_lc_article": {
+        "count": 114,
+        "success_rate": 1.0,
+        "mean_time": 0.00832017034180784,
+        "median_time": 0.007431937498040497,
+        "success_count": 114,
+        "fail_count": 0
+      },
+      "dt:date:es_base_lc": {
+        "count": 109,
+        "success_rate": 1.0,
+        "mean_time": 0.003256797037098595,
+        "median_time": 0.001766749999660533,
+        "success_count": 109,
+        "fail_count": 0
+      },
+      "dt:date:bg_base_lc": {
+        "count": 64,
+        "success_rate": 0.15625,
+        "mean_time": 0.0038623698125661576,
+        "median_time": 0.0025306875013484387,
+        "success_count": 10,
+        "fail_count": 54
+      },
+      "dt:date:pt_base_lc_article": {
+        "count": 95,
+        "success_rate": 1.0,
+        "mean_time": 0.007886120147496081,
+        "median_time": 0.007547457997134188,
+        "success_count": 95,
+        "fail_count": 0
+      },
+      "dt:date:de_weekday": {
+        "count": 20,
+        "success_rate": 0.9,
+        "mean_time": 0.00935558544970263,
+        "median_time": 0.006272583499594475,
+        "success_count": 18,
+        "fail_count": 2
+      },
+      "dt:date:fr_weekday": {
+        "count": 11,
+        "success_rate": 1.0,
+        "mean_time": 0.01206271963713913,
+        "median_time": 0.011915416002011625,
+        "success_count": 11,
+        "fail_count": 0
+      }
+    }
+  },
+  "pattern_analysis": {
+    "operation": "pattern_analysis",
+    "total_patterns": 71,
+    "fastest_patterns": [
+      {
+        "pattern": "dt:date:date_iso8601_short",
+        "mean_time": 0.00030288291813134133,
+        "success_rate": 0.9931972789115646
+      },
+      {
+        "pattern": "dt:date:date_2",
+        "mean_time": 0.0006052319975289585,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_4",
+        "mean_time": 0.0006524208587774215,
+        "success_rate": 0.9830508474576272
+      },
+      {
+        "pattern": "dt:date:date_10",
+        "mean_time": 0.0006859215521948209,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_rus_lc1",
+        "mean_time": 0.0007755225048198337,
+        "success_rate": 0.5229357798165137
+      },
+      {
+        "pattern": "dt:date:date_iso8601",
+        "mean_time": 0.0008418249506217429,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_1",
+        "mean_time": 0.0009112439042661679,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_3",
+        "mean_time": 0.001072789445872233,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:rus_rare_3",
+        "mean_time": 0.0011008468001028119,
+        "success_rate": 0.9565217391304348
+      },
+      {
+        "pattern": "dt:date:tr_base",
+        "mean_time": 0.0011062089553834356,
+        "success_rate": 1.0
+      }
+    ],
+    "slowest_patterns": [
+      {
+        "pattern": "dt:date:es_base_lc_article",
+        "mean_time": 0.00832017034180784,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:de_rare_1",
+        "mean_time": 0.008988469036510146,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:weekday_rus",
+        "mean_time": 0.009291837944652393,
+        "success_rate": 0.0
+      },
+      {
+        "pattern": "dt:date:de_weekday",
+        "mean_time": 0.00935558544970263,
+        "success_rate": 0.9
+      },
+      {
+        "pattern": "dt:date:de_rare_2",
+        "mean_time": 0.009367099034448968,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:it_base_lc_article",
+        "mean_time": 0.01002324152271037,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:fr_weekday",
+        "mean_time": 0.01206271963713913,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:weekday_eng",
+        "mean_time": 0.012656471437367145,
+        "success_rate": 0.84375
+      },
+      {
+        "pattern": "dt:date:es_short",
+        "mean_time": 0.013077298224955788,
+        "success_rate": 0.4
+      },
+      {
+        "pattern": "dt:date:es_weekday",
+        "mean_time": 0.02988924023745875,
+        "success_rate": 0.0
+      }
+    ],
+    "pattern_time_stats": {
+      "mean": 0.004935810020105653,
+      "median": 0.0038623698125661576,
+      "min": 0.00030288291813134133,
+      "max": 0.02988924023745875
+    },
+    "pattern_success_stats": {
+      "mean": 0.9156666085416482,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "batch_processing": {
+    "operation": "batch_processing",
+    "results": {
+      "batch_100": {
+        "batch_size": 100,
+        "total_time": 0.9967603750010312,
+        "throughput": 100.32501542800249,
+        "time_per_item": 0.009967603750010313
+      },
+      "batch_500": {
+        "batch_size": 500,
+        "total_time": 4.3699342500003695,
+        "throughput": 114.41819748202337,
+        "time_per_item": 0.008739868500000738
+      },
+      "batch_1000": {
+        "batch_size": 1000,
+        "total_time": 6.4973164170005475,
+        "throughput": 153.90969683782845,
+        "time_per_item": 0.006497316417000547
+      },
+      "batch_5000": {
+        "batch_size": 5000,
+        "total_time": 39.82467666699813,
+        "throughput": 125.55029741505459,
+        "time_per_item": 0.007964935333399627
+      }
+    }
+  },
+  "library_comparison": {
+    "qddate_default": {
+      "library": "qddate_default",
+      "config": "default",
+      "total_time": 26.041761625001527,
+      "total_operations": 10359,
+      "successful": 9840,
+      "failed": 519,
+      "errors": 0,
+      "success_rate": 0.9498986388647553,
+      "mean_time": 0.0025118564612691776,
+      "median_time": 0.0008977090001280885,
+      "p95_time": 0.008469645798686544,
+      "throughput": 397.7841495198539,
+      "stats": {
+        "parse": {
+          "count": 10359,
+          "total": 26.02032108228741,
+          "mean": 0.0025118564612691776,
+          "median": 0.0008977090001280885,
+          "min": 4.083299791091122e-05,
+          "max": 0.18948449999879813,
+          "stdev": 0.006276681497560338,
+          "p50": 0.0008977090001280885,
+          "p90": 0.005767974402260737,
+          "p95": 0.008469645798686544,
+          "p99": 0.026543027998268375,
+          "coefficient_of_variation": 2.49882172581983
+        }
+      }
+    },
+    "qddate_no_filters": {
+      "library": "qddate_no_filters",
+      "config": "no_filters",
+      "total_time": 293.36454879099983,
+      "total_operations": 10359,
+      "successful": 9942,
+      "failed": 417,
+      "errors": 0,
+      "success_rate": 0.9597451491456704,
+      "mean_time": 0.02831201550197859,
+      "median_time": 0.014785084000322968,
+      "p95_time": 0.09279250829895318,
+      "throughput": 35.311015058537315,
+      "stats": {
+        "parse": {
+          "count": 10359,
+          "total": 293.2841685849962,
+          "mean": 0.02831201550197859,
+          "median": 0.014785084000322968,
+          "min": 0.00010245800149277784,
+          "max": 0.4438783750010771,
+          "stdev": 0.03730950869492274,
+          "p50": 0.014785084000322968,
+          "p90": 0.07024509200127803,
+          "p95": 0.09279250829895318,
+          "p99": 0.18046867813871376,
+          "coefficient_of_variation": 1.317797692372532
+        }
+      }
+    },
+    "qddate_no_prefix": {
+      "library": "qddate_no_prefix",
+      "config": "no_prefix",
+      "total_time": 100.71841966600186,
+      "total_operations": 10359,
+      "successful": 9861,
+      "failed": 498,
+      "errors": 0,
+      "success_rate": 0.9519258615696495,
+      "mean_time": 0.009715377500740505,
+      "median_time": 0.004043749999254942,
+      "p95_time": 0.04020333720000058,
+      "throughput": 102.8510974889407,
+      "stats": {
+        "parse": {
+          "count": 10359,
+          "total": 100.64159553017089,
+          "mean": 0.009715377500740505,
+          "median": 0.004043749999254942,
+          "min": 7.041700155241415e-05,
+          "max": 0.2682830000012473,
+          "stdev": 0.016090081499861426,
+          "p50": 0.004043749999254942,
+          "p90": 0.02602935000177243,
+          "p95": 0.04020333720000058,
+          "p99": 0.07646662935978385,
+          "coefficient_of_variation": 1.6561457852394352
+        }
+      }
+    },
+    "dateparser": {
+      "library": "dateparser",
+      "total_time": 60.90621183300027,
+      "total_operations": 10359,
+      "successful": 10084,
+      "failed": 275,
+      "errors": 0,
+      "success_rate": 0.9734530360073366,
+      "mean_time": 0.005873289360857721,
+      "median_time": 0.0034154170025431085,
+      "p95_time": 0.009045700301066974,
+      "throughput": 170.08117379559758,
+      "stats": {
+        "parse": {
+          "count": 10359,
+          "total": 60.841404489125125,
+          "mean": 0.005873289360857721,
+          "median": 0.0034154170025431085,
+          "min": 0.0008320410015585367,
+          "max": 2.697176708999905,
+          "stdev": 0.032037907223918596,
+          "p50": 0.0034154170025431085,
+          "p90": 0.006790399599412923,
+          "p95": 0.009045700301066974,
+          "p99": 0.03752667750035472,
+          "coefficient_of_variation": 5.4548491067771705
+        }
+      }
+    },
+    "dateutil": {
+      "library": "dateutil",
+      "total_time": 0.4962712909982656,
+      "total_operations": 10359,
+      "successful": 4833,
+      "failed": 5526,
+      "errors": 5526,
+      "success_rate": 0.46655082536924414,
+      "mean_time": 2.502129442910834e-05,
+      "median_time": 0.0,
+      "p95_time": 8.900420107238462e-05,
+      "throughput": 20873.663634989924,
+      "stats": {
+        "parse": {
+          "count": 10359,
+          "total": 0.25919558899113326,
+          "mean": 2.502129442910834e-05,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0021120419987710193,
+          "stdev": 4.43833727822001e-05,
+          "p50": 0.0,
+          "p90": 7.35829999030102e-05,
+          "p95": 8.900420107238462e-05,
+          "p99": 0.00014252299792133277,
+          "coefficient_of_variation": 1.7738240085040138
+        }
+      }
+    },
+    "arrow": {
+      "error": "arrow not available"
+    },
+    "pendulum": {
+      "error": "pendulum not available"
+    }
+  }
+}

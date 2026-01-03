@@ -1,0 +1,47 @@
+QDDate Performance Test Summary
+================================================================================
+
+Timestamp: 2026-01-02T21:19:09.001382
+Python version: 3.13.7 (main, Aug 14 2025, 11:12:11) [Clang 17.0.0 (clang-1700.0.13.3)]
+Test cases: 10359
+Iterations: 1
+
+Initialization:
+  Mean: 18.08ms
+  Median: 16.83ms
+
+Parse Operations:
+  Mean: 0.81ms
+  P95: 2.57ms
+  Success rate: 77.5%
+  Throughput: 1234 ops/sec
+
+Match Operations:
+  Mean: 0.80ms
+  P95: 2.57ms
+  Success rate: 77.5%
+  Throughput: 1254 ops/sec
+
+
+================================================================================
+Library Comparison
+================================================================================
+
+========================================================================================================================
+Library Comparison Table
+========================================================================================================================
+Rank  Library                   Total Time   Success Rate Mean Time    vs qddate       Throughput  
+------------------------------------------------------------------------------------------------------------------------
+1     pendulum                      0.1271s        4.5%      0.001ms 66.55X faster        81533 ops/s
+2     dateutil                      0.5460s       46.7%      0.028ms 15.49X faster        18974 ops/s
+3     arrow                         0.9863s        6.1%      0.007ms 8.57X faster         10502 ops/s
+4     qddate (default)              8.4551s       77.5%      0.816ms same                  1225 ops/s <-- baseline
+5     dateparser                   54.5004s       97.3%      5.256ms 6.45X slower           190 ops/s
+6     qddate (no prefix)           90.8562s       80.9%      8.764ms 10.75X slower          114 ops/s
+7     qddate (no filters)         299.8948s       89.1%     28.942ms 35.47X slower           35 ops/s
+========================================================================================================================
+
+Baseline: qddate (default) - 8.4551s total, 77.5% success rate
+Note: Success rate shows percentage of test cases successfully parsed
+========================================================================================================================
+

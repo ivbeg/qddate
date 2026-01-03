@@ -1,0 +1,45 @@
+QDDate Performance Test Summary
+================================================================================
+
+Timestamp: 2026-01-02T23:41:33.360502
+Python version: 3.13.7 (main, Aug 14 2025, 11:12:11) [Clang 17.0.0 (clang-1700.0.13.3)]
+Test cases: 10359
+Iterations: 1
+
+Initialization:
+  Mean: 109.86ms
+  Median: 108.75ms
+
+Parse Operations:
+  Mean: 7.82ms
+  P95: 28.98ms
+  Success rate: 89.9%
+  Throughput: 127 ops/sec
+
+Match Operations:
+  Mean: 8.13ms
+  P95: 30.20ms
+  Success rate: 90.0%
+  Throughput: 123 ops/sec
+
+
+================================================================================
+Library Comparison
+================================================================================
+
+========================================================================================================================
+Library Comparison Table
+========================================================================================================================
+Rank  Library                   Total Time   Success Rate Mean Time    vs qddate       Throughput  
+------------------------------------------------------------------------------------------------------------------------
+1     dateutil                      0.1085s       46.7%      0.006ms 781.83X faster       95484 ops/s
+2     dateparser                   10.5161s       97.3%      1.014ms 8.07X faster           985 ops/s
+3     qddate (no prefix)           20.3370s       90.3%      1.962ms 4.17X faster           509 ops/s
+4     qddate (default)             84.8205s       89.9%      8.181ms same                   122 ops/s <-- baseline
+5     qddate (no filters)         199.5022s       94.8%     19.254ms 2.35X slower            52 ops/s
+========================================================================================================================
+
+Baseline: qddate (default) - 84.8205s total, 89.9% success rate
+Note: Success rate shows percentage of test cases successfully parsed
+========================================================================================================================
+

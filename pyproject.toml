@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qddate"
-version = "1.0.4"
+version = "1.0.7"
 description = "Quick and dirty date parsing Python library to parse HTML dates really fast"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -37,6 +37,18 @@ dependencies = [
     "pyparsing>=3.1.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+dev = [
+    "ruff",
+    "tox",
+    "twine",
+    "build",
+]
+
 [project.urls]
 Homepage = "https://github.com/ivbeg/qddate"
 Documentation = "https://qddate.readthedocs.org/en/latest/"
@@ -52,12 +64,16 @@ zip-safe = false
 [tool.setuptools.package-data]
 "*" = ["*.md", "*.txt"]
 
-[tool.flake8]
-max-line-length = 100
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = []
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-

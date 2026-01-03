@@ -123,10 +123,13 @@ PATTERNS_RU = [
         Word(nums, min=1, max=2).setResultsName("day") +
         Optional(",").suppress() +
         BASE_PATTERNS_RU["pat:rus:months"].setResultsName("month") +
-        Optional(",").suppress() + Word(nums, exact=4).setResultsName("year"),
+        Optional(",").suppress() +
+        Optional(Word(nums, exact=4).setResultsName("year")) +
+        Optional((Literal("в").suppress() + Word(nums, exact=2) + Literal(":").suppress() + Word(nums, exact=2) + Optional(Literal(":").suppress() + Word(nums, exact=2))) |
+                 (Word(nums, exact=2) + Literal(":").suppress() + Word(nums, exact=2) + Optional(Literal(":").suppress() + Word(nums, exact=2)))),
         "length": {
             "min": 11,
-            "max": 20
+            "max": 30
         },
         "format":
         "%d %m %Y",
@@ -174,10 +177,14 @@ PATTERNS_RU = [
         "name":
         "Date with russian month",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        Optional(",").suppress() +
-        BASE_PATTERNS_RU["pat:rus:months:lc"].setResultsName("month") +
-        Optional(",").suppress() + Word(nums, exact=4).setResultsName("year"),
+        (Word(nums, min=1, max=2).setResultsName("day") +
+         Optional(",").suppress() +
+         BASE_PATTERNS_RU["pat:rus:months:lc"].setResultsName("month") +
+         Optional(",").suppress() + Word(nums, exact=4).setResultsName("year")) |
+        (Word(nums, min=1, max=2).setResultsName("day") +
+         Literal("/").suppress() +
+         BASE_PATTERNS_RU["pat:rus:months:lc"].setResultsName("month") +
+         Literal("/").suppress() + Word(nums, exact=4).setResultsName("year")),
         "length": {
             "min": 10,
             "max": 20

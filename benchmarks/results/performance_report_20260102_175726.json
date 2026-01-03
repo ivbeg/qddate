@@ -1,0 +1,890 @@
+{
+  "timestamp": "2026-01-02T17:56:27.321856",
+  "python_version": "3.13.7 (main, Aug 14 2025, 11:12:11) [Clang 17.0.0 (clang-1700.0.13.3)]",
+  "test_cases_count": 10359,
+  "iterations": 1,
+  "prefix_iterations": 50,
+  "initialization": {
+    "operation": "initialization",
+    "iterations": 5,
+    "total_time": 0.07658637500026089,
+    "mean": 0.015317275000052177,
+    "median": 0.015162707999934355,
+    "min": 0.014688125000247965,
+    "max": 0.016504541999893263,
+    "stdev": 0.0006931361880942757,
+    "p50": 0.015162707999934355,
+    "p90": 0.015041334000216011,
+    "p95": 0.015041334000216011,
+    "p99": 0.015041334000216011
+  },
+  "match_prefix": {
+    "operation": "match_prefix",
+    "iterations": 50,
+    "test_cases": 10359,
+    "total_operations": 517950,
+    "total_time": 0.2695568330000242,
+    "throughput": 1921487.1841143551,
+    "stats": {
+      "match_prefix": {
+        "count": 517950,
+        "total": 0.11392256104545595,
+        "mean": 2.1994895462005204e-07,
+        "median": 2.0900006347801536e-07,
+        "min": 8.299957698909566e-08,
+        "max": 1.754200002324069e-05,
+        "stdev": 1.0108291383974195e-07,
+        "p50": 2.0900006347801536e-07,
+        "p90": 2.9100010578986257e-07,
+        "p95": 2.920000952144619e-07,
+        "p99": 3.330001163703855e-07,
+        "coefficient_of_variation": 0.4595744226852831
+      }
+    }
+  },
+  "match": {
+    "operation": "match",
+    "iterations": 1,
+    "test_cases": 10359,
+    "total_operations": 10359,
+    "total_time": 21.348114083999917,
+    "throughput": 485.24192625351907,
+    "successful": 8784,
+    "failed": 1575,
+    "errors": 0,
+    "success_rate": 0.8479582971329279,
+    "stats": {
+      "match": {
+        "count": 10359,
+        "total": 21.323829517001286,
+        "mean": 0.002058483397721912,
+        "median": 0.0008182500000657456,
+        "min": 1.8374999854131602e-05,
+        "max": 0.03178687500030719,
+        "stdev": 0.0030374963790744756,
+        "p50": 0.0008182500000657456,
+        "p90": 0.005476174999967043,
+        "p95": 0.008869724700116426,
+        "p99": 0.014475712220055358,
+        "coefficient_of_variation": 1.475599163168389
+      },
+      "match_success": {
+        "count": 8784,
+        "total": 14.01064123600554,
+        "mean": 0.001595018355647261,
+        "median": 0.0006581879999885132,
+        "min": 2.0667000171670225e-05,
+        "max": 0.021526958000322338,
+        "stdev": 0.00230200175546482,
+        "p50": 0.0006581879999885132,
+        "p90": 0.00424747500014746,
+        "p95": 0.005934002649860304,
+        "p99": 0.01091766272024416,
+        "coefficient_of_variation": 1.4432446794824905
+      },
+      "match_failure": {
+        "count": 1575,
+        "total": 7.313188280995746,
+        "mean": 0.004643294146663966,
+        "median": 0.0024999999995998223,
+        "min": 1.8374999854131602e-05,
+        "max": 0.03178687500030719,
+        "stdev": 0.004823053433838106,
+        "p50": 0.0024999999995998223,
+        "p90": 0.011544566799966563,
+        "p95": 0.014583654500029297,
+        "p99": 0.02060947999981181,
+        "coefficient_of_variation": 1.0387137410416463
+      }
+    }
+  },
+  "parse": {
+    "operation": "parse",
+    "iterations": 1,
+    "test_cases": 10359,
+    "total_operations": 10359,
+    "total_time": 22.35758995900005,
+    "throughput": 463.33258723308785,
+    "successful": 8778,
+    "failed": 1575,
+    "errors": 6,
+    "success_rate": 0.8473790906458152,
+    "stats": {
+      "parse": {
+        "count": 10353,
+        "total": 22.320505223012333,
+        "mean": 0.0021559456411680026,
+        "median": 0.0008522500002072775,
+        "min": 2.0041999960085377e-05,
+        "max": 0.024747124999976222,
+        "stdev": 0.003161741044182699,
+        "p50": 0.0008522500002072775,
+        "p90": 0.005730499999754103,
+        "p95": 0.00923175860016272,
+        "p99": 0.015055995000020625,
+        "coefficient_of_variation": 1.4665216895124489
+      },
+      "parse_success": {
+        "count": 8778,
+        "total": 14.684404942002857,
+        "mean": 0.0016728645411258666,
+        "median": 0.0006863334999707149,
+        "min": 2.2291999812296126e-05,
+        "max": 0.021864332999939506,
+        "stdev": 0.0023988302866660995,
+        "p50": 0.0006863334999707149,
+        "p90": 0.004539899899918965,
+        "p95": 0.0063133562999155395,
+        "p99": 0.011468302660014154,
+        "coefficient_of_variation": 1.4339656485585173
+      },
+      "parse_failure": {
+        "count": 1575,
+        "total": 7.636100281009476,
+        "mean": 0.0048483176387361755,
+        "median": 0.0026589579997562396,
+        "min": 2.0041999960085377e-05,
+        "max": 0.024747124999976222,
+        "stdev": 0.005010354794961796,
+        "p50": 0.0026589579997562396,
+        "p90": 0.012056549999942948,
+        "p95": 0.015324100199950407,
+        "p99": 0.021728421920170146,
+        "coefficient_of_variation": 1.033421316072818
+      },
+      "parse_error": {
+        "count": 6,
+        "total": 0.0,
+        "mean": 0.0,
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "stdev": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "coefficient_of_variation": 0
+      }
+    },
+    "pattern_performance": {
+      "dt:date:date_rus2": {
+        "count": 95,
+        "success_rate": 1.0,
+        "mean_time": 0.008753257884219285,
+        "median_time": 0.00818737500003408,
+        "success_count": 95,
+        "fail_count": 0
+      },
+      "dt:date:fr_short_monthfirst": {
+        "count": 108,
+        "success_rate": 0.09259259259259259,
+        "mean_time": 0.0031116983518586494,
+        "median_time": 0.0024397709998993378,
+        "success_count": 10,
+        "fail_count": 98
+      },
+      "dt:date:date_rus_lc1": {
+        "count": 218,
+        "success_rate": 0.5229357798165137,
+        "mean_time": 0.0020662727247785905,
+        "median_time": 0.001927271000113251,
+        "success_count": 114,
+        "fail_count": 104
+      },
+      "dt:date:fr_base_lc": {
+        "count": 139,
+        "success_rate": 0.9856115107913669,
+        "mean_time": 0.0018496462949612886,
+        "median_time": 0.0014066249996176339,
+        "success_count": 137,
+        "fail_count": 2
+      },
+      "dt:date:date_8": {
+        "count": 344,
+        "success_rate": 0.40173410404624277,
+        "mean_time": 0.0003355097296543305,
+        "median_time": 0.0003014585001892556,
+        "success_count": 139,
+        "fail_count": 207
+      },
+      "dt:date:date_eng3_nolc": {
+        "count": 181,
+        "success_rate": 1.0,
+        "mean_time": 0.0004116977292976232,
+        "median_time": 0.0003898339996339928,
+        "success_count": 181,
+        "fail_count": 0
+      },
+      "dt:date:es_base_article": {
+        "count": 300,
+        "success_rate": 1.0,
+        "mean_time": 0.0036435901499983934,
+        "median_time": 0.0037274585001796368,
+        "success_count": 300,
+        "fail_count": 0
+      },
+      "dt:date:date_eng1x": {
+        "count": 299,
+        "success_rate": 1.0,
+        "mean_time": 0.0016276325317567566,
+        "median_time": 0.0008195830000659043,
+        "success_count": 299,
+        "fail_count": 0
+      },
+      "dt:date:de_rare_2": {
+        "count": 117,
+        "success_rate": 0.5555555555555556,
+        "mean_time": 0.0017934654700681684,
+        "median_time": 0.0016160840000338794,
+        "success_count": 65,
+        "fail_count": 52
+      },
+      "dt:date:date_usa": {
+        "count": 159,
+        "success_rate": 1.0,
+        "mean_time": 6.537914465675471e-05,
+        "median_time": 8.029099990380928e-05,
+        "success_count": 159,
+        "fail_count": 0
+      },
+      "dt:date:it_base_lc": {
+        "count": 106,
+        "success_rate": 1.0,
+        "mean_time": 0.002196171415094658,
+        "median_time": 0.0017731874997934938,
+        "success_count": 106,
+        "fail_count": 0
+      },
+      "dt:date:date_9": {
+        "count": 412,
+        "success_rate": 1.0,
+        "mean_time": 0.00035231554610048793,
+        "median_time": 0.00028487450003922277,
+        "success_count": 412,
+        "fail_count": 0
+      },
+      "dt:date:date_eng1_lc": {
+        "count": 254,
+        "success_rate": 1.0,
+        "mean_time": 0.0004531817401667059,
+        "median_time": 0.0004278545000033773,
+        "success_count": 254,
+        "fail_count": 0
+      },
+      "dt:date:date_1": {
+        "count": 491,
+        "success_rate": 1.0,
+        "mean_time": 0.00034571012830696596,
+        "median_time": 6.166599996504374e-05,
+        "success_count": 491,
+        "fail_count": 0
+      },
+      "dt:date:date_eng1": {
+        "count": 145,
+        "success_rate": 1.0,
+        "mean_time": 0.00032271406204205865,
+        "median_time": 0.00023170800022853655,
+        "success_count": 145,
+        "fail_count": 0
+      },
+      "dt:date:de_rare_1": {
+        "count": 137,
+        "success_rate": 0.6277372262773723,
+        "mean_time": 0.001474557153272204,
+        "median_time": 0.0009047080002346775,
+        "success_count": 86,
+        "fail_count": 51
+      },
+      "dt:date:pt_base_lc": {
+        "count": 95,
+        "success_rate": 1.0,
+        "mean_time": 0.003252942063145862,
+        "median_time": 0.0031060000001161825,
+        "success_count": 95,
+        "fail_count": 0
+      },
+      "dt:date:it_base": {
+        "count": 106,
+        "success_rate": 1.0,
+        "mean_time": 0.002167787764152171,
+        "median_time": 0.0016689379997387732,
+        "success_count": 106,
+        "fail_count": 0
+      },
+      "dt:date:date_rus_lc2": {
+        "count": 110,
+        "success_rate": 1.0,
+        "mean_time": 0.006498528409085999,
+        "median_time": 0.006365062500208296,
+        "success_count": 110,
+        "fail_count": 0
+      },
+      "dt:date:date_eng1_short": {
+        "count": 310,
+        "success_rate": 0.6645161290322581,
+        "mean_time": 0.000683033722578975,
+        "median_time": 0.0003505834999941726,
+        "success_count": 206,
+        "fail_count": 104
+      },
+      "dt:date:date_eng3": {
+        "count": 117,
+        "success_rate": 1.0,
+        "mean_time": 0.0003107635299053601,
+        "median_time": 0.0003200410001227283,
+        "success_count": 117,
+        "fail_count": 0
+      },
+      "dt:date:date_2": {
+        "count": 405,
+        "success_rate": 1.0,
+        "mean_time": 0.00010060247160916692,
+        "median_time": 5.30420002178289e-05,
+        "success_count": 405,
+        "fail_count": 0
+      },
+      "dt:date:date_iso8601_short": {
+        "count": 146,
+        "success_rate": 0.9931972789115646,
+        "mean_time": 0.00011034819865689975,
+        "median_time": 9.820850004871318e-05,
+        "success_count": 146,
+        "fail_count": 1
+      },
+      "dt:date:weekday_eng": {
+        "count": 32,
+        "success_rate": 0.84375,
+        "mean_time": 0.0030161862500364123,
+        "median_time": 0.0009120004999658704,
+        "success_count": 27,
+        "fail_count": 5
+      },
+      "dt:date:date_iso8601": {
+        "count": 284,
+        "success_rate": 1.0,
+        "mean_time": 4.5636454237416766e-05,
+        "median_time": 3.73335001313535e-05,
+        "success_count": 284,
+        "fail_count": 0
+      },
+      "dt:date:it_rare_2": {
+        "count": 92,
+        "success_rate": 1.0,
+        "mean_time": 0.0015818025652191388,
+        "median_time": 0.0012171669998224388,
+        "success_count": 92,
+        "fail_count": 0
+      },
+      "dt:date:date_eng2": {
+        "count": 263,
+        "success_rate": 0.4790874524714829,
+        "mean_time": 0.0054267549467787324,
+        "median_time": 0.0043081670000901795,
+        "success_count": 126,
+        "fail_count": 137
+      },
+      "dt:date:date_rus": {
+        "count": 284,
+        "success_rate": 0.7077464788732394,
+        "mean_time": 0.009034137739433044,
+        "median_time": 0.009775146000038148,
+        "success_count": 201,
+        "fail_count": 83
+      },
+      "dt:date:fr_base": {
+        "count": 328,
+        "success_rate": 0.975609756097561,
+        "mean_time": 0.003754177466469062,
+        "median_time": 0.004219437500069034,
+        "success_count": 320,
+        "fail_count": 8
+      },
+      "dt:date:de_base": {
+        "count": 476,
+        "success_rate": 0.9894957983193278,
+        "mean_time": 0.0012852135567370834,
+        "median_time": 0.0007151459999477083,
+        "success_count": 471,
+        "fail_count": 5
+      },
+      "dt:date:it_base_article": {
+        "count": 99,
+        "success_rate": 1.0,
+        "mean_time": 0.005346724393936224,
+        "median_time": 0.005678624999745807,
+        "success_count": 99,
+        "fail_count": 0
+      },
+      "dt:date:cz_base": {
+        "count": 58,
+        "success_rate": 1.0,
+        "mean_time": 0.0009740072069093755,
+        "median_time": 0.000786166999660054,
+        "success_count": 58,
+        "fail_count": 0
+      },
+      "dt:date:de_base_lc": {
+        "count": 110,
+        "success_rate": 0.9545454545454546,
+        "mean_time": 0.001030709099954534,
+        "median_time": 0.000851604000217776,
+        "success_count": 105,
+        "fail_count": 5
+      },
+      "dt:date:es_short": {
+        "count": 120,
+        "success_rate": 0.0,
+        "mean_time": 0.010402376083357012,
+        "median_time": 0.011012020999942251,
+        "success_count": 0,
+        "fail_count": 120
+      },
+      "dt:date:fr_base_article": {
+        "count": 134,
+        "success_rate": 1.0,
+        "mean_time": 0.0017776576567131942,
+        "median_time": 0.0021250209999834624,
+        "success_count": 134,
+        "fail_count": 0
+      },
+      "dt:date:pt_short_lc_monthfirst": {
+        "count": 92,
+        "success_rate": 0.15217391304347827,
+        "mean_time": 0.0033792554347705254,
+        "median_time": 0.00254372900008093,
+        "success_count": 14,
+        "fail_count": 78
+      },
+      "dt:date:de_short": {
+        "count": 130,
+        "success_rate": 0.8615384615384616,
+        "mean_time": 0.0007078166461724322,
+        "median_time": 0.0003313959998649807,
+        "success_count": 112,
+        "fail_count": 18
+      },
+      "dt:date:date_usa_1": {
+        "count": 125,
+        "success_rate": 1.0,
+        "mean_time": 0.00019300970402764506,
+        "median_time": 0.0001424590000169701,
+        "success_count": 125,
+        "fail_count": 0
+      },
+      "dt:date:fr_short_lc_monthfirst": {
+        "count": 126,
+        "success_rate": 0.05555555555555555,
+        "mean_time": 0.0033936775634686904,
+        "median_time": 0.0025975829998969857,
+        "success_count": 7,
+        "fail_count": 119
+      },
+      "dt:date:nl_base_lc": {
+        "count": 64,
+        "success_rate": 1.0,
+        "mean_time": 0.0017372818437308979,
+        "median_time": 0.0015282494998700713,
+        "success_count": 64,
+        "fail_count": 0
+      },
+      "dt:date:weekday_eng_short": {
+        "count": 60,
+        "success_rate": 0.7666666666666667,
+        "mean_time": 0.0010299125333403936,
+        "median_time": 0.0009921875000600267,
+        "success_count": 46,
+        "fail_count": 14
+      },
+      "dt:date:date_4": {
+        "count": 174,
+        "success_rate": 0.9830508474576272,
+        "mean_time": 0.000112692298875243,
+        "median_time": 9.785349993762793e-05,
+        "success_count": 174,
+        "fail_count": 3
+      },
+      "dt:date:bg_base": {
+        "count": 65,
+        "success_rate": 0.15384615384615385,
+        "mean_time": 0.005140542353840899,
+        "median_time": 0.004932665999604069,
+        "success_count": 10,
+        "fail_count": 55
+      },
+      "dt:date:date_3": {
+        "count": 148,
+        "success_rate": 1.0,
+        "mean_time": 0.00012299492566767554,
+        "median_time": 0.00010897949982791033,
+        "success_count": 148,
+        "fail_count": 0
+      },
+      "dt:date:pt_base_article": {
+        "count": 102,
+        "success_rate": 1.0,
+        "mean_time": 0.007775101362727475,
+        "median_time": 0.008284062500251821,
+        "success_count": 102,
+        "fail_count": 0
+      },
+      "dt:date:it_base_lc_article": {
+        "count": 88,
+        "success_rate": 1.0,
+        "mean_time": 0.005448543113650637,
+        "median_time": 0.005845771000167588,
+        "success_count": 88,
+        "fail_count": 0
+      },
+      "dt:date:date_eng2_short": {
+        "count": 111,
+        "success_rate": 1.0,
+        "mean_time": 0.0009831291351540196,
+        "median_time": 0.0010014589997808798,
+        "success_count": 111,
+        "fail_count": 0
+      },
+      "dt:date:it_rare_1": {
+        "count": 109,
+        "success_rate": 1.0,
+        "mean_time": 0.0014023348624029553,
+        "median_time": 0.0011580420000427694,
+        "success_count": 109,
+        "fail_count": 0
+      },
+      "dt:date:fr_short": {
+        "count": 136,
+        "success_rate": 0.4632352941176471,
+        "mean_time": 0.0018593186470939947,
+        "median_time": 0.0010354380001444952,
+        "success_count": 63,
+        "fail_count": 73
+      },
+      "dt:date:date_10": {
+        "count": 163,
+        "success_rate": 1.0,
+        "mean_time": 3.098980978337431e-05,
+        "median_time": 3.0374999823834514e-05,
+        "success_count": 163,
+        "fail_count": 0
+      },
+      "dt:date:rus_rare_5": {
+        "count": 122,
+        "success_rate": 0.860655737704918,
+        "mean_time": 0.00011607169673626514,
+        "median_time": 0.00012404150015754567,
+        "success_count": 105,
+        "fail_count": 17
+      },
+      "dt:date:es_base": {
+        "count": 116,
+        "success_rate": 1.0,
+        "mean_time": 0.0015752259137900245,
+        "median_time": 0.0011287709999123763,
+        "success_count": 116,
+        "fail_count": 0
+      },
+      "dt:date:es_rare_1": {
+        "count": 99,
+        "success_rate": 1.0,
+        "mean_time": 0.0010056872828169037,
+        "median_time": 0.0006124999999883585,
+        "success_count": 99,
+        "fail_count": 0
+      },
+      "dt:date:rus_rare_3": {
+        "count": 115,
+        "success_rate": 0.9565217391304348,
+        "mean_time": 0.0008928463217552749,
+        "median_time": 0.0008555829999750131,
+        "success_count": 110,
+        "fail_count": 5
+      },
+      "dt:date:pt_short_monthfirst": {
+        "count": 110,
+        "success_rate": 0.16363636363636364,
+        "mean_time": 0.0033004351818073535,
+        "median_time": 0.002789124999935666,
+        "success_count": 18,
+        "fail_count": 92
+      },
+      "dt:date:nl_base": {
+        "count": 59,
+        "success_rate": 1.0,
+        "mean_time": 0.0016101602542390938,
+        "median_time": 0.0011947500001951994,
+        "success_count": 59,
+        "fail_count": 0
+      },
+      "dt:date:pl_base": {
+        "count": 52,
+        "success_rate": 0.9807692307692307,
+        "mean_time": 0.0034652629230917087,
+        "median_time": 0.002880958499872577,
+        "success_count": 51,
+        "fail_count": 1
+      },
+      "dt:date:cz_base_lc": {
+        "count": 63,
+        "success_rate": 1.0,
+        "mean_time": 0.001064096571423891,
+        "median_time": 0.0008321669997712888,
+        "success_count": 63,
+        "fail_count": 0
+      },
+      "dt:date:weekday_rus": {
+        "count": 18,
+        "success_rate": 0.0,
+        "mean_time": 0.001921414333360695,
+        "median_time": 0.0019815205000668357,
+        "success_count": 0,
+        "fail_count": 18
+      },
+      "dt:date:tr_base_lc": {
+        "count": 53,
+        "success_rate": 1.0,
+        "mean_time": 0.002669524301922447,
+        "median_time": 0.0027355830002306902,
+        "success_count": 53,
+        "fail_count": 0
+      },
+      "dt:date:pl_base_lc": {
+        "count": 55,
+        "success_rate": 1.0,
+        "mean_time": 0.0032406802545582735,
+        "median_time": 0.0023932080002850853,
+        "success_count": 55,
+        "fail_count": 0
+      },
+      "dt:date:es_weekday": {
+        "count": 21,
+        "success_rate": 0.0,
+        "mean_time": 0.015254605142824099,
+        "median_time": 0.015207583000119484,
+        "success_count": 0,
+        "fail_count": 21
+      },
+      "dt:date:es_rare_2": {
+        "count": 118,
+        "success_rate": 1.0,
+        "mean_time": 0.0010757298474476618,
+        "median_time": 0.0007523540000420326,
+        "success_count": 118,
+        "fail_count": 0
+      },
+      "dt:date:tr_base": {
+        "count": 67,
+        "success_rate": 1.0,
+        "mean_time": 0.002733557208930913,
+        "median_time": 0.002765917000033369,
+        "success_count": 67,
+        "fail_count": 0
+      },
+      "dt:date:pt_base": {
+        "count": 105,
+        "success_rate": 1.0,
+        "mean_time": 0.0029513666952273826,
+        "median_time": 0.002394458999788185,
+        "success_count": 105,
+        "fail_count": 0
+      },
+      "dt:date:es_base_lc_article": {
+        "count": 114,
+        "success_rate": 1.0,
+        "mean_time": 0.0038246973421129887,
+        "median_time": 0.0037750624999262072,
+        "success_count": 114,
+        "fail_count": 0
+      },
+      "dt:date:es_base_lc": {
+        "count": 109,
+        "success_rate": 1.0,
+        "mean_time": 0.001552423504584054,
+        "median_time": 0.001177541000288329,
+        "success_count": 109,
+        "fail_count": 0
+      },
+      "dt:date:bg_base_lc": {
+        "count": 64,
+        "success_rate": 0.15625,
+        "mean_time": 0.005338966750009888,
+        "median_time": 0.0054399994999130286,
+        "success_count": 10,
+        "fail_count": 54
+      },
+      "dt:date:pt_base_lc_article": {
+        "count": 95,
+        "success_rate": 1.0,
+        "mean_time": 0.008031162757915329,
+        "median_time": 0.008645624999644497,
+        "success_count": 95,
+        "fail_count": 0
+      },
+      "dt:date:de_weekday": {
+        "count": 20,
+        "success_rate": 0.0,
+        "mean_time": 0.013134622849906918,
+        "median_time": 0.013475999999855048,
+        "success_count": 0,
+        "fail_count": 20
+      },
+      "dt:date:fr_weekday": {
+        "count": 11,
+        "success_rate": 0.0,
+        "mean_time": 0.0131679582727057,
+        "median_time": 0.013779791000160913,
+        "success_count": 0,
+        "fail_count": 11
+      }
+    }
+  },
+  "pattern_analysis": {
+    "operation": "pattern_analysis",
+    "total_patterns": 71,
+    "fastest_patterns": [
+      {
+        "pattern": "dt:date:date_10",
+        "mean_time": 3.098980978337431e-05,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_iso8601",
+        "mean_time": 4.5636454237416766e-05,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_usa",
+        "mean_time": 6.537914465675471e-05,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_2",
+        "mean_time": 0.00010060247160916692,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_iso8601_short",
+        "mean_time": 0.00011034819865689975,
+        "success_rate": 0.9931972789115646
+      },
+      {
+        "pattern": "dt:date:date_4",
+        "mean_time": 0.000112692298875243,
+        "success_rate": 0.9830508474576272
+      },
+      {
+        "pattern": "dt:date:rus_rare_5",
+        "mean_time": 0.00011607169673626514,
+        "success_rate": 0.860655737704918
+      },
+      {
+        "pattern": "dt:date:date_3",
+        "mean_time": 0.00012299492566767554,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_usa_1",
+        "mean_time": 0.00019300970402764506,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_eng3",
+        "mean_time": 0.0003107635299053601,
+        "success_rate": 1.0
+      }
+    ],
+    "slowest_patterns": [
+      {
+        "pattern": "dt:date:it_base_lc_article",
+        "mean_time": 0.005448543113650637,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_rus_lc2",
+        "mean_time": 0.006498528409085999,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:pt_base_article",
+        "mean_time": 0.007775101362727475,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:pt_base_lc_article",
+        "mean_time": 0.008031162757915329,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_rus2",
+        "mean_time": 0.008753257884219285,
+        "success_rate": 1.0
+      },
+      {
+        "pattern": "dt:date:date_rus",
+        "mean_time": 0.009034137739433044,
+        "success_rate": 0.7077464788732394
+      },
+      {
+        "pattern": "dt:date:es_short",
+        "mean_time": 0.010402376083357012,
+        "success_rate": 0.0
+      },
+      {
+        "pattern": "dt:date:de_weekday",
+        "mean_time": 0.013134622849906918,
+        "success_rate": 0.0
+      },
+      {
+        "pattern": "dt:date:fr_weekday",
+        "mean_time": 0.0131679582727057,
+        "success_rate": 0.0
+      },
+      {
+        "pattern": "dt:date:es_weekday",
+        "mean_time": 0.015254605142824099,
+        "success_rate": 0.0
+      }
+    ],
+    "pattern_time_stats": {
+      "mean": 0.0029133138771411595,
+      "median": 0.0017776576567131942,
+      "min": 3.098980978337431e-05,
+      "max": 0.015254605142824099
+    },
+    "pattern_success_stats": {
+      "mean": 0.7936340152224939,
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "batch_processing": {
+    "operation": "batch_processing",
+    "results": {
+      "batch_100": {
+        "batch_size": 100,
+        "total_time": 0.2551651670000865,
+        "throughput": 391.90302177869796,
+        "time_per_item": 0.002551651670000865
+      },
+      "batch_500": {
+        "batch_size": 500,
+        "total_time": 1.0900080419996812,
+        "throughput": 458.7122119601263,
+        "time_per_item": 0.0021800160839993625
+      },
+      "batch_1000": {
+        "batch_size": 1000,
+        "total_time": 2.128924999999981,
+        "throughput": 469.720633653139,
+        "time_per_item": 0.002128924999999981
+      },
+      "batch_5000": {
+        "batch_size": 5000,
+        "total_time": 11.005527291999897,
+        "throughput": 454.31716875888213,
+        "time_per_item": 0.0022011054583999795
+      }
+    }
+  }
+}

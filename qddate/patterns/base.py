@@ -5,6 +5,7 @@ from pyparsing import (
     oneOf,
     Optional,
     Literal,
+    White,
 )
 
 EN_NUMERIC_SUFFIXES = ["nd", "rd", "th", "st"]
@@ -15,25 +16,34 @@ BASE_DATE_PATTERNS = {
     "pat:date:d.m":
     Word(nums, exact=2) + Literal(".").suppress() + Word(nums, exact=2),
     "pat:date:d/m/yyyy":
-    Word(nums, min=1, max=2).setResultsName("day") + Literal("/").suppress() +
-    Word(nums, min=1, max=2).setResultsName("month") +
-    Literal("/").suppress() + Word(nums, exact=4).setResultsName("year"),
+    (Word(nums, min=1, max=2).setResultsName("day") + Literal("/").suppress() +
+     Word(nums, min=1, max=2).setResultsName("month") +
+     Literal("/").suppress() + Word(nums, exact=4).setResultsName("year")) |
+    (Word(nums, min=1, max=2).setResultsName("day") + White(" ").suppress() +
+     Word(nums, min=1, max=2).setResultsName("month") +
+     White(" ").suppress() + Word(nums, exact=4).setResultsName("year")),
     "pat:date:m/d/yy":
     Word(nums, min=1, max=2).setResultsName("month") +
     Literal("/").suppress() + Word(nums, min=1, max=2).setResultsName("day") +
     Literal("/").suppress() + Word(nums, exact=2).setResultsName("year"),
     "pat:date:d/m/yy":
-    Word(nums, min=1, max=2).setResultsName("day") + Literal("/").suppress() +
-    Word(nums, min=1, max=2).setResultsName("month") +
-    Literal("/").suppress() + Word(nums, exact=2).setResultsName("year"),
+    (Word(nums, min=1, max=2).setResultsName("day") + Literal("/").suppress() +
+     Word(nums, min=1, max=2).setResultsName("month") +
+     Literal("/").suppress() + Word(nums, exact=2).setResultsName("year")) |
+    (Word(nums, min=1, max=2).setResultsName("day") + White(" ").suppress() +
+     Word(nums, min=1, max=2).setResultsName("month") +
+     White(" ").suppress() + Word(nums, exact=2).setResultsName("year")),
     "pat:date:d.m.yyyy":
     Word(nums, min=1, max=2).setResultsName("day") + Literal(".").suppress() +
     Word(nums, min=1, max=2).setResultsName("month") +
     Literal(".").suppress() + Word(nums, exact=4).setResultsName("year"),
     "pat:date:yyyy/m/d":
-    Word(nums, exact=4).setResultsName("year") + "/" +
-    Word(nums, min=1, max=2).setResultsName("month") + "/" +
-    Word(nums, min=1, max=2).setResultsName("day"),
+    (Word(nums, exact=4).setResultsName("year") + "/" +
+     Word(nums, min=1, max=2).setResultsName("month") + "/" +
+     Word(nums, min=1, max=2).setResultsName("day")) |
+    (Word(nums, exact=4).setResultsName("year") + White(" ").suppress() +
+     Word(nums, min=1, max=2).setResultsName("month") + White(" ").suppress() +
+     Word(nums, min=1, max=2).setResultsName("day")),
     "pat:date:d.m.yy":
     Word(nums, min=1, max=2).setResultsName("day") + Literal(".").suppress() +
     Word(nums, min=1, max=2).setResultsName("month") +
@@ -148,22 +158,31 @@ ENG_WEEKDAYS = [
 ]
 ENG_WEEKDAYS_SHORT = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
+# English abbreviated months (3-letter)
+ENG_MONTHS_ABBREV = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+]
+
 # English months map
 en_mname2mon = dict((m, i + 1) for i, m in enumerate(ENG_MONTHS) if m)
 ensh_mname2mon = dict((m, i + 1) for i, m in enumerate(ENG_MONTHS_SHORT) if m)
 enlc_mname2mon = dict((m, i + 1) for i, m in enumerate(ENG_MONTHS_LC) if m)
+enabbrev_mname2mon = dict((m, i + 1) for i, m in enumerate(ENG_MONTHS_ABBREV) if m)
 ensh_wday2weekday = dict(
     (m, i + 1) for i, m in enumerate(ENG_WEEKDAYS_SHORT) if m)
 
 BASE_PATTERNS_EN = {
     "pat:eng:months":
-    oneOf(ENG_MONTHS, caseless=True).setParseAction(lambda t: en_mname2mon[t[0]]),
+    oneOf(ENG_MONTHS, caseless=True).setParseAction(lambda t: en_mname2mon[t[0].capitalize()]),
     "pat:eng:months:lc":
     oneOf(ENG_MONTHS_LC).setParseAction(lambda t: enlc_mname2mon[t[0]]),
     "pat:eng:months:short":
     oneOf(
         ENG_MONTHS_SHORT,
         caseless=True).setParseAction(lambda t: ensh_mname2mon[t[0].lower()]),
+    "pat:eng:months:abbrev":
+    oneOf(ENG_MONTHS_ABBREV, caseless=True).setParseAction(lambda t: enabbrev_mname2mon[t[0].capitalize()]),
     "pat:eng:day_postfix":
     PAT_EN_DAY_NUMERIC,
     "pat:eng:weekdays":
@@ -308,7 +327,7 @@ PATTERNS_EN = [
         Word(nums, min=1, max=2).setResultsName("day") +
         Optional(".").suppress() +
         BASE_PATTERNS_EN["pat:eng:months"].setResultsName("month") +
-        Optional(".").suppress() + Word(nums, exact=4).setResultsName("year"),
+        Optional(oneOf([".", ","])).suppress() + Word(nums, exact=4).setResultsName("year"),
         "length": {
             "min": 10,
             "max": 20
@@ -372,9 +391,12 @@ PATTERNS_EN = [
         "name":
         "Date with english month 2",
         "pattern":
-        BASE_PATTERNS_EN["pat:eng:months"].setResultsName("month") +
-        PAT_EN_DAY_NUMERIC +
-        Optional(",").suppress() + Word(nums, exact=4).setResultsName("year"),
+        (BASE_PATTERNS_EN["pat:eng:months"].setResultsName("month") +
+         PAT_EN_DAY_NUMERIC +
+         Optional(",").suppress() + Word(nums, exact=4).setResultsName("year")) |
+        (PAT_EN_DAY_NUMERIC +
+         BASE_PATTERNS_EN["pat:eng:months"].setResultsName("month") +
+         Word(nums, exact=4).setResultsName("year")),
         "length": {
             "min": 10,
             "max": 22
@@ -605,6 +627,141 @@ PATTERNS_EN = [
         },
         "format":
         "%d/%m/%Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:weekday_eng_mixed",
+        "name":
+        "Date with english full weekday and short month",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:weekdays"].suppress() +
+        Optional(",").suppress() +
+        Word(nums, min=1, max=2).setResultsName("day") +
+        BASE_PATTERNS_EN["pat:eng:months:short"].setResultsName("month") +
+        Optional(Literal(",")).suppress() +
+        Word(nums, exact=4).setResultsName("year"),
+        "length": {
+            "min": 13,
+            "max": 27
+        },
+        "format":
+        "%d %m %Y",
+        "filter":
+        1,
+    },
+    # English abbreviated month patterns
+    {
+        "key":
+        "dt:date:date_eng_abbrev1",
+        "name":
+        "Date with abbreviated English month (day first)",
+        "pattern":
+        Word(nums, min=1, max=2).setResultsName("day") +
+        BASE_PATTERNS_EN["pat:eng:months:abbrev"].setResultsName("month") +
+        Word(nums, exact=4).setResultsName("year"),
+        "length": {
+            "min": 9,
+            "max": 13
+        },
+        "format":
+        "%d %b %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:date_eng_abbrev2",
+        "name":
+        "Date with abbreviated English month (month first)",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:months:abbrev"].setResultsName("month") +
+        Word(nums, min=1, max=2).setResultsName("day") +
+        Literal(",").suppress() +
+        Word(nums, exact=4).setResultsName("year"),
+        "length": {
+            "min": 9,
+            "max": 15
+        },
+        "format":
+        "%b %d, %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:date_eng_abbrev3",
+        "name":
+        "Date with abbreviated English month and comma (day first)",
+        "pattern":
+        Word(nums, min=1, max=2).setResultsName("day") +
+        BASE_PATTERNS_EN["pat:eng:months:abbrev"].setResultsName("month") +
+        Literal(",").suppress() +
+        Word(nums, exact=4).setResultsName("year"),
+        "length": {
+            "min": 9,
+            "max": 15
+        },
+        "format":
+        "%d %b, %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:weekday_eng_abbrev1",
+        "name":
+        "Date with abbreviated English month and short weekday",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:weekdays:short"].suppress() +
+        Word(nums, min=1, max=2).setResultsName("day") +
+        BASE_PATTERNS_EN["pat:eng:months:abbrev"].setResultsName("month") +
+        Word(nums, exact=4).setResultsName("year"),
+        "length": {
+            "min": 13,
+            "max": 17
+        },
+        "format":
+        "%d %b %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:weekday_eng_abbrev2",
+        "name":
+        "Date with abbreviated English month, short weekday, and comma",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:weekdays:short"].suppress() +
+        Literal(",").suppress() +
+        Word(nums, min=1, max=2).setResultsName("day") +
+        BASE_PATTERNS_EN["pat:eng:months:abbrev"].setResultsName("month") +
+        Word(nums, exact=4).setResultsName("year"),
+        "length": {
+            "min": 13,
+            "max": 18
+        },
+        "format":
+        "%d %b %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:date_eng_abbrev_postfix",
+        "name":
+        "Date with abbreviated English month and day with ordinal suffix",
+        "pattern":
+        PAT_EN_DAY_NUMERIC +
+        BASE_PATTERNS_EN["pat:eng:months:abbrev"].setResultsName("month") +
+        Word(nums, exact=4).setResultsName("year"),
+        "length": {
+            "min": 11,
+            "max": 16
+        },
+        "format":
+        "%d %b %Y",
         "filter":
         1,
     },
