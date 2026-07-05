@@ -64,6 +64,9 @@ def fresh_parser():
         ("26 de julho de 2015", datetime.datetime(2015, 7, 26)),
         # Spanish formats
         ("17 de Junio de 2015", datetime.datetime(2015, 6, 17)),
+        ("03 de Julio, 2026", datetime.datetime(2026, 7, 3)),
+        ("30 de junio, 2026", datetime.datetime(2026, 6, 30)),
+        ("4 julio, 2026", datetime.datetime(2026, 7, 4)),
         ("junio 9, 2015", datetime.datetime(2015, 6, 9)),
         # Turkish formats
         ("17 Ocak 2015", datetime.datetime(2015, 1, 17)),
@@ -99,6 +102,9 @@ def fresh_parser():
         ("24 Jul 2015", datetime.datetime(2015, 7, 24)),
         ("Jan 15, 2020", datetime.datetime(2020, 1, 15)),
         ("Fri 24 Jul 2015", datetime.datetime(2015, 7, 24)),
+        ("Thursday, Jun 25, 2026", datetime.datetime(2026, 6, 25)),
+        ("Monday, Jun 22, 2026 - 13:46", datetime.datetime(2026, 6, 22)),
+        ("Tuesday, Mar 10, 2026 - 10:56", datetime.datetime(2026, 3, 10)),
         # Dutch formats
         ("15 Januari 2024", datetime.datetime(2024, 1, 15)),
         ("3 maart 2023", datetime.datetime(2023, 3, 3)),

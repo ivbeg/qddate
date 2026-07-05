@@ -2,6 +2,24 @@
 
 All notable changes to this project are tracked here.
 
+## 1.0.10 (2026-07-05)
+
+**English date patterns**
+- Added `dt:date:weekday_eng_abbrev3` for full weekday with abbreviated month-first dates, e.g. `Thursday, Jun 25, 2026 - 09:08`
+- Registered the new pattern in prefix matching for faster candidate filtering
+
+**Testing**
+- Added test cases for weekday + abbreviated month formats with optional trailing time
+
+## 1.0.9 (2026-07-05)
+
+**Spanish date patterns**
+- Extended `dt:date:es_base_article` and `dt:date:es_base_lc_article` to accept a comma before the year, e.g. `03 de Julio, 2026` (common on Latin American government sites)
+- Updated Spanish benchmark data generator to cover comma-before-year variants
+
+**Testing**
+- Added test cases for Spanish article dates with comma before the year
+
 ## 1.0.8 (2026-01-03)
 
 **Benchmarking Tools**

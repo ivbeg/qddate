@@ -177,7 +177,9 @@ def generate_spanish_dates(count=800):
         
         patterns = [
             (f"{day} de {MONTHS['es'][month_idx]} de {year}", 'dt:date:es_base_article'),
+            (f"{day} de {MONTHS['es'][month_idx]}, {year}", 'dt:date:es_base_article'),
             (f"{day} de {MONTHS['es_lc'][month_idx]} de {year}", 'dt:date:es_base_lc_article'),
+            (f"{day} de {MONTHS['es_lc'][month_idx]}, {year}", 'dt:date:es_base_lc_article'),
             (f"{day} de {MONTHS['es_short'][month_idx]} de {year}", 'dt:date:es_short'),
             (f"{MONTHS['es'][month_idx]} {day}, {year}", 'dt:date:es_rare_1'),
             (f"{MONTHS['es_lc'][month_idx]} {day}, {year}", 'dt:date:es_rare_2'),

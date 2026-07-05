@@ -749,6 +749,27 @@ PATTERNS_EN = [
     },
     {
         "key":
+        "dt:date:weekday_eng_abbrev3",
+        "name":
+        "Date with full english weekday and abbreviated month (month first)",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:weekdays"].suppress() +
+        Optional(",").suppress() +
+        BASE_PATTERNS_EN["pat:eng:months:abbrev"].setResultsName("month") +
+        Word(nums, min=1, max=2).setResultsName("day") +
+        Literal(",").suppress() +
+        Word(nums, exact=4).setResultsName("year"),
+        "length": {
+            "min": 18,
+            "max": 32
+        },
+        "format":
+        "%b %d, %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
         "dt:date:date_eng_abbrev_postfix",
         "name":
         "Date with abbreviated English month and day with ordinal suffix",

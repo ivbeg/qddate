@@ -22,6 +22,14 @@ Full documentation is automatically published at [Read the Docs](https://qddate.
 - Handles left-aligned dates with trailing text: `12.03.1999 some text here`
 - Prioritizes speed via pyparsing, hard-coded constants, and dirty tricks
 
+## Recent updates
+
+**1.0.10** — English weekday with abbreviated month-first dates, e.g. `Thursday, Jun 25, 2026` and `Monday, Jun 22, 2026 - 13:46`.
+
+**1.0.9** — Spanish article dates with a comma before the year, e.g. `03 de Julio, 2026` and `30 de junio, 2026` (common on Latin American government sites).
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+
 ## Limitations
 
 - Limited language coverage compared to larger projects
@@ -55,6 +63,8 @@ import qddate
 parser = qddate.DateParser()
 print(parser.parse('2012-12-15'))
 print(parser.parse('Fri, 12 Dec 2014 10:55:50'))
+print(parser.parse('Thursday, Jun 25, 2026'))
+print(parser.parse('03 de Julio, 2026'))
 print(parser.parse('пятница, июля 17, 2015'))
 ```
 

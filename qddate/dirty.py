@@ -22,6 +22,7 @@ _ALPHA_ENGLISH_BASEKEYS = [
     "dt:date:fr_base_lc_article",
     "dt:date:weekday_eng_mshort_wshort",
     "dt:date:weekday_eng_mixed",
+    "dt:date:weekday_eng_abbrev3",
 ]
 
 _PT_BASEKEYS = [

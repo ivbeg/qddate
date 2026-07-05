@@ -116,6 +116,7 @@ PATTERNS_ES = [
         "pattern":
         Word(nums, min=1, max=2).setResultsName("day") +
         BASE_PATTERNS_ES["pat:es:months"].setResultsName("month") +
+        Optional(Literal(",")).suppress() +
         Word(nums, exact=4).setResultsName("year"),
         "length": {
             "min": 11,
@@ -134,6 +135,7 @@ PATTERNS_ES = [
         "pattern":
         Word(nums, min=1, max=2).setResultsName("day") +
         BASE_PATTERNS_ES["pat:es:months_lc"].setResultsName("month") +
+        Optional(Literal(",")).suppress() +
         Word(nums, exact=4).setResultsName("year"),
         "length": {
             "min": 11,
@@ -153,7 +155,7 @@ PATTERNS_ES = [
         Word(nums, min=1, max=2).setResultsName("day") +
         CaselessLiteral("de").suppress() +
         BASE_PATTERNS_ES["pat:es:months"].setResultsName("month") +
-        CaselessLiteral("de").suppress() +
+        (CaselessLiteral("de").suppress() | Literal(",").suppress()) +
         Word(nums, exact=4).setResultsName("year"),
         "length": {
             "min": 11,
@@ -173,7 +175,7 @@ PATTERNS_ES = [
         Word(nums, min=1, max=2).setResultsName("day") +
         CaselessLiteral("de").suppress() +
         BASE_PATTERNS_ES["pat:es:months_lc"].setResultsName("month") +
-        CaselessLiteral("de").suppress() +
+        (CaselessLiteral("de").suppress() | Literal(",").suppress()) +
         Word(nums, exact=4).setResultsName("year"),
         "length": {
             "min": 11,
