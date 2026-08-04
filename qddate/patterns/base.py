@@ -71,13 +71,6 @@ BASE_DATE_PATTERNS = {
     "pat:date:mmyyyy":
     Word(nums, exact=2).setResultsName("month") +
     Word(nums, exact=4).setResultsName("year"),
-    "pat:date:ddmmyyyy":
-    Word(nums, exact=2).setResultsName("day") +
-    Word(nums, exact=2).setResultsName("month") +
-    Word(nums, exact=4).setResultsName("year"),
-    "pat:date:mmyyyy":
-    Word(nums, exact=2).setResultsName("month") +
-    Word(nums, exact=4).setResultsName("year"),
     "pat:date:yyyymmdd":
     Word(nums, exact=4).setResultsName("year") +
     Word(nums, exact=2).setResultsName("month") +
@@ -126,7 +119,7 @@ ENG_MONTHS_LC = [
     "april",
     "may",
     "june",
-    "jule",
+    "july",
     "august",
     "september",
     "october",
@@ -153,7 +146,7 @@ ENG_WEEKDAYS = [
     "Wednesday",
     "Thursday",
     "Friday",
-    "Satuday",
+    "Saturday",
     "Sunday",
 ]
 ENG_WEEKDAYS_SHORT = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]

@@ -41,6 +41,7 @@ def fresh_parser():
         ("5 August 2001", datetime.datetime(2001, 8, 5)),
         ("3 jun 2009", datetime.datetime(2009, 6, 3)),
         ("Thursday 4 April 2019", datetime.datetime(2019, 4, 4)),
+        ("Saturday 6 May 2023", datetime.datetime(2023, 5, 6)),
         ("July 01, 2015", datetime.datetime(2015, 7, 1)),
         ("Fri, 3 July 2015", datetime.datetime(2015, 7, 3)),
         ("Fri 24 Jul 2015", datetime.datetime(2015, 7, 24)),
@@ -102,6 +103,11 @@ def fresh_parser():
         ("24 Jul 2015", datetime.datetime(2015, 7, 24)),
         ("Jan 15, 2020", datetime.datetime(2020, 1, 15)),
         ("Fri 24 Jul 2015", datetime.datetime(2015, 7, 24)),
+        # Ordinal day with trailing text (left-aligned match)
+        ("14th April 2015:", datetime.datetime(2015, 4, 14)),
+        # German abbreviated months with period after day
+        ("15. Jul 2023", datetime.datetime(2023, 7, 15)),
+        ("5. jan 2020", datetime.datetime(2020, 1, 5)),
         ("Thursday, Jun 25, 2026", datetime.datetime(2026, 6, 25)),
         ("Monday, Jun 22, 2026 - 13:46", datetime.datetime(2026, 6, 22)),
         ("Tuesday, Mar 10, 2026 - 10:56", datetime.datetime(2026, 3, 10)),
@@ -126,11 +132,8 @@ def test_parse_supported_text(parser, text, expected):
         "",
         "   ",
         "26 / 06 15",
-        "14th April 2015:",
         "08 Jul, 2015",
         # These formats are not supported (German abbreviated months with periods)
-        "15. Jul 2023",
-        "5. jan 2020",
         "12. Dez 2022",
         # These formats are not supported (English abbreviated with comma/ordinal)
         "8 Sep, 2023",

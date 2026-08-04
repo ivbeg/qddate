@@ -4,27 +4,23 @@ __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
 import datetime
-import os
 import time
 import re
 
 from pyparsing import Optional, lineStart, oneOf, Literal, restOfLine, Word, nums, Regex
 
-try:
-   import dill
-   DILL_ENABLED = True
-except:
-   DILL_ENABLED = False
-
 # Enable packrat parsing for better performance
 try:
     from pyparsing import ParserElement
     ParserElement.enable_packrat()
-except:
+except Exception:
+    # Packrat is an optimization; if it is unavailable or fails, fall back to
+    # standard parsing rather than crashing on import.
     pass
 
 from .dirty import matchPrefix
-from .patterns import ALL_PATTERNS, BASE_TIME_PATTERNS, get_patterns_for_languages, SUPPORTED_LANGUAGES
+from .patterns import (ALL_PATTERNS, BASE_TIME_PATTERNS, get_patterns_for_languages,
+                       SUPPORTED_LANGUAGES, _PATTERN_METADATA, _NUMERIC_PATTERN_KEYS)
 
 # Pre-compiled month name sets for language detection (lowercase for fast matching)
 _RUSSIAN_MONTHS = frozenset(['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
@@ -93,6 +89,32 @@ LANGUAGE_CHAR_SETS = {
 }
 
 
+def _pattern_language(pattern):
+    """Return a pattern's language, resolving generated variants via ``basekey``.
+
+    Reads the explicit ``language`` field stamped from ``_PATTERN_METADATA``. For
+    patterns produced by ``DateParser.__generate`` (whose ``key`` is suffixed, e.g.
+    ``dt:date:de_base:time_1``), the field is inherited from the base pattern at
+    copy time; the ``basekey`` lookup is a fallback for safety.
+    """
+    lang = pattern.get("language")
+    if lang is not None:
+        return lang
+    basekey = pattern.get("basekey", pattern.get("key", ""))
+    entry = _PATTERN_METADATA.get(basekey)
+    return entry[0] if entry else None
+
+
+def _pattern_separator(pattern):
+    """Return a pattern's separator, resolving generated variants via ``basekey``."""
+    sep = pattern.get("separator")
+    if sep is not None:
+        return sep
+    basekey = pattern.get("basekey", pattern.get("key", ""))
+    entry = _PATTERN_METADATA.get(basekey)
+    return entry[1] if entry else "mixed"
+
+
 def scan_char_sets(text):
     """Single-pass scanner returning set of character categories present in text.
     
@@ -155,8 +177,20 @@ class DateParser:
         # Filter patterns by language if languages parameter is provided
         if languages is not None:
             patterns = get_patterns_for_languages(languages)
-        
+
         self.patterns = patterns
+        # Remember the user's language allow-list (normalized to a set) so that
+        # automatic language detection in the filter pipeline can never narrow the
+        # candidate set below what the caller explicitly requested. Fixes the
+        # regression where a shared month name (e.g. German/Dutch "Juli") caused
+        # a requested language's patterns to be dropped.
+        if languages is not None:
+            if isinstance(languages, str):
+                self._language_allowlist = {languages}
+            else:
+                self._language_allowlist = set(languages)
+        else:
+            self._language_allowlist = None
         self._current_year = datetime.datetime.now().year
         self._year_refresh_interval = 3600  # seconds
         self._next_year_refresh = time.monotonic() + self._year_refresh_interval
@@ -279,75 +313,26 @@ class DateParser:
 
     def _infer_char_sets(self, pattern):
         """Infer required character sets from pattern metadata.
-        
+
+        A pattern whose base key is in ``_NUMERIC_PATTERN_KEYS`` matches with digit
+        characters only (this includes language-tagged but numerically-formatted
+        patterns like ``date_usa``). All other patterns with a ``language`` carry
+        month names in that language's script, so they require that language's
+        character set.
+
         :param pattern: Pattern dictionary
         :type pattern: dict
         :return: Set of required character set constants
         :rtype: set
         """
-        key = pattern.get("key", "")
-        basekey = pattern.get("basekey", key)
-        
-        # Extract language from pattern key
-        # Pattern keys like "dt:date:date_rus" or "dt:date:date_eng1"
-        lang = None
-        if "_rus" in basekey or "rus_" in basekey:
-            lang = 'ru'
-        elif "_bg" in basekey or "bg_" in basekey:
-            lang = 'bg'
-        elif "_fr" in basekey or "fr_" in basekey:
-            lang = 'fr'
-        elif "_cz" in basekey or "cz_" in basekey:
-            lang = 'cz'
-        elif "_pl" in basekey or "pl_" in basekey:
-            lang = 'pl'
-        elif "_es" in basekey or "es_" in basekey:
-            lang = 'es'
-        elif "_it" in basekey or "it_" in basekey:
-            lang = 'it'
-        elif "_pt" in basekey or "pt_" in basekey:
-            lang = 'pt'
-        elif "_de" in basekey or "de_" in basekey:
-            lang = 'de'
-        elif "_tr" in basekey or "tr_" in basekey:
-            lang = 'tr'
-        elif "_nl" in basekey or "nl_" in basekey:
-            lang = 'nl'
-        elif "_eng" in basekey or "eng" in basekey or "date_usa" in basekey:
-            lang = 'en'
-        
-        # Check if pattern has month names (non-numeric patterns)
-        # Numeric-only patterns (like date_1, date_2, date_iso8601) only need digits
-        has_month_names = (
-            "eng" in basekey or
-            "rus" in basekey or
-            "fr" in basekey or
-            "es" in basekey or
-            "it" in basekey or
-            "pt" in basekey or
-            "de" in basekey or
-            "bg" in basekey or
-            "cz" in basekey or
-            "pl" in basekey or
-            "tr" in basekey or
-            "nl" in basekey or
-            "weekday" in basekey
-        )
-        
-        # If we found a language and it has month names, use language-specific sets
-        if lang and has_month_names:
-            return LANGUAGE_CHAR_SETS.get(lang, {CHAR_SET_DIGITS, CHAR_SET_LATIN})
-        
-        # Numeric-only patterns (like date_1, date_2, date_5, date_6, date_iso8601, date_usa)
-        # These patterns only contain digits and separators
-        if any(x in basekey for x in ["date_1", "date_2", "date_3", "date_4", "date_5", 
-                                      "date_6", "date_7", "date_8", "date_9", "date_10",
-                                      "date_iso8601", "date_iso8601_short", "date_usa", 
-                                      "date_usa_1", "noyear_1"]):
+        basekey = pattern.get("basekey", pattern.get("key", ""))
+        if basekey in _NUMERIC_PATTERN_KEYS:
             return {CHAR_SET_DIGITS}
-        
-        # Default: assume digits and latin (for English patterns without explicit markers)
-        return {CHAR_SET_DIGITS, CHAR_SET_LATIN}
+        lang = _pattern_language(pattern)
+        if lang is not None:
+            return LANGUAGE_CHAR_SETS.get(lang, {CHAR_SET_DIGITS, CHAR_SET_LATIN})
+        # Defensive fallback for any future language-neutral, non-numeric pattern.
+        return {CHAR_SET_DIGITS}
 
     def _build_length_index(self):
         """Pre-index patterns by length ranges for faster filtering"""
@@ -372,34 +357,11 @@ class DateParser:
         }
         
         for p in self.patterns:
-            key = p.get("key", "")
-            basekey = p.get("basekey", key)
-            
-            # Infer separator from pattern key or format
-            # Note: Check more specific patterns first (e.g., date_10 before date_1) to avoid substring matching issues
-            if any(x in basekey for x in ["date_10", "date_4_point", "date_rus3", "date_usa_1"]):
-                # More specific patterns first to avoid substring matching (e.g., date_1 matching date_10)
-                if "date_10" in basekey or "date_4_point" in basekey or "date_rus3" in basekey:
-                    self._patterns_by_separator['dot'].append(p)
-                elif "date_usa_1" in basekey:
-                    self._patterns_by_separator['slash'].append(p)
-            elif any(x in basekey for x in ["date_2", "date_4", "noyear_1", "rare_2", "rare_3", "rus_rare_2", "rus_rare_3", "date_eng1", "date_eng1_lc", "date_eng1_short"]):
-                self._patterns_by_separator['dot'].append(p)
-            elif any(x in basekey for x in ["date_1", "date_8", "date_usa", "rare_1"]):
-                self._patterns_by_separator['slash'].append(p)
-            elif any(x in basekey for x in ["date_3"]):
-                # date_3 (yyyy/m/d) can accept both / and space, index under slash for now
-                # The separator filter will handle space detection
-                self._patterns_by_separator['slash'].append(p)
-            elif any(x in basekey for x in ["date_iso8601", "date_iso8601_short", "date_9"]):
-                self._patterns_by_separator['dash'].append(p)
-            elif any(x in basekey for x in ["date_5", "date_6", "date_7"]):
-                self._patterns_by_separator['none'].append(p)
-            elif any(x in basekey for x in ["eng", "rus", "fr", "de", "es", "it", "pt", "bg", "cz", 
-                                             "pl", "tr", "nl", "weekday"]):
-                self._patterns_by_separator['space'].append(p)
-            else:
-                self._patterns_by_separator['mixed'].append(p)
+            # Read the authoritative separator (stamped from _PATTERN_METADATA);
+            # resolves generated variants via basekey. The old substring ladder is
+            # gone — adding/renaming a pattern no longer risks mis-bucketing it.
+            sep = _pattern_separator(p)
+            self._patterns_by_separator[sep].append(p)
 
     def _detect_separators(self, text):
         """Quickly detect separator types in text.
@@ -578,44 +540,18 @@ class DateParser:
         return detected_languages if detected_languages else None
 
     def _build_language_index(self):
-        """Pre-index patterns by language for faster filtering"""
+        """Pre-index patterns by language for faster filtering.
+
+        Reads the authoritative ``language`` field (stamped from
+        ``_PATTERN_METADATA``) rather than re-deriving it from key substrings.
+        Generated variants inherit the base pattern's language via ``basekey``.
+        """
         self._patterns_by_language = {}
-        
+
         for p in self.patterns:
-            key = p.get("key", "")
-            basekey = p.get("basekey", key)
-            
-            # Extract language from pattern basekey
-            lang = None
-            if "_rus" in basekey or "rus_" in basekey:
-                lang = 'ru'
-            elif "_bg" in basekey or "bg_" in basekey:
-                lang = 'bg'
-            elif "_fr" in basekey or "fr_" in basekey:
-                lang = 'fr'
-            elif "_cz" in basekey or "cz_" in basekey:
-                lang = 'cz'
-            elif "_pl" in basekey or "pl_" in basekey:
-                lang = 'pl'
-            elif "_es" in basekey or "es_" in basekey:
-                lang = 'es'
-            elif "_it" in basekey or "it_" in basekey:
-                lang = 'it'
-            elif "_pt" in basekey or "pt_" in basekey:
-                lang = 'pt'
-            elif "_de" in basekey or "de_" in basekey:
-                lang = 'de'
-            elif "_tr" in basekey or "tr_" in basekey:
-                lang = 'tr'
-            elif "_nl" in basekey or "nl_" in basekey:
-                lang = 'nl'
-            elif "_eng" in basekey or "eng" in basekey or "date_usa" in basekey:
-                lang = 'en'
-            
+            lang = _pattern_language(p)
             if lang:
-                if lang not in self._patterns_by_language:
-                    self._patterns_by_language[lang] = []
-                self._patterns_by_language[lang].append(p)
+                self._patterns_by_language.setdefault(lang, []).append(p)
 
     def _filter_patterns_hierarchical(self, text, n, noprefix=False, noyear=True, 
                                        nocharsetfilter=False, noseparatorfilter=False, 
@@ -743,6 +679,16 @@ class DateParser:
         # Only apply if we have high confidence (single language detected with month names)
         if n > 5 and not nolanguagefilter and hasattr(self, '_patterns_by_language'):
             detected_languages = self._detect_language(text)
+            # When the caller supplied a languages= allow-list, intersect the
+            # detected set with it so we never drop a language the caller requested.
+            # (This is what fixes the German "Juli" -> detected as Dutch -> German
+            # patterns dropped regression: Dutch is filtered out by the allow-list,
+            # leaving detection with no high-confidence single language, so we skip
+            # the narrowing instead of discarding valid candidates.)
+            if self._language_allowlist is not None and detected_languages:
+                detected_languages = [
+                    lang for lang in detected_languages if lang in self._language_allowlist
+                ]
             # Only filter if we detected exactly one language (high confidence)
             # Multiple languages or None means we're not confident, so don't filter
             if detected_languages and len(detected_languages) == 1:
@@ -754,12 +700,12 @@ class DateParser:
                     if pat_key not in language_pat_keys:
                         language_pats.append(p)
                         language_pat_keys.add(pat_key)
-                
+
                 if language_pat_keys:
                     pats = [p for p in pats if p.get("key") in language_pat_keys]
                 else:
                     pats = []
-            
+
             if not pats:
                 return None
         
@@ -826,7 +772,8 @@ class DateParser:
             score += 75
         elif any(x in basekey for x in ["date_3", "date_4", "date_5", "date_6"]):
             score += 70
-        elif any(x in basekey for x in ["eng", "rus", "fr", "de", "es", "it", "pt"]):
+        elif _pattern_language(pattern) is not None:
+            # Month-name patterns in any language rank just below the numeric cores.
             score += 60
         
         # Boost if separator matches (optimized: check separator first, then pattern types)
@@ -840,11 +787,8 @@ class DateParser:
             if "date_iso8601" in basekey or "date_9" in basekey:
                 score += 20
         elif ' ' in text:
-            # Use 'in' checks directly instead of any() for common patterns
-            if ("eng" in basekey or "rus" in basekey or "fr" in basekey or "de" in basekey or 
-                "es" in basekey or "it" in basekey or "pt" in basekey or "bg" in basekey or 
-                "cz" in basekey or "pl" in basekey or "tr" in basekey or "nl" in basekey or 
-                "weekday" in basekey):
+            # Month-name patterns (any language) are the likely match for spaced text.
+            if _pattern_language(pattern) is not None:
                 score += 20
         
         # Boost if length is exact match (more likely to be correct)
@@ -998,87 +942,20 @@ class DateParser:
 
 
 if __name__ == "__main__":
-
-    tests = [
+    # Minimal smoke demo. The canonical test runner is `pytest tests/`; this block
+    # exists only for a quick `python -m qddate.qdparser` sanity check. It must never
+    # reference `r` before assignment or import optional deps unguarded.
+    samples = [
         "01.12.2009",
         "2013-01-12",
-        "31.05.2001",
-        "7/12/2009",
         "6 Jan 2009",
-        "Jan 8, 1098",
-        "JAN 1, 2001",
         "3 Января 2003 года",
-        "05 Января 2003",
-        "12.03.1999 Hello people",
-        "15 февраля 2007 года",
-        "5 August 2001",
-        "3 jun 2009",
-        "16 May 2009 14:10",
-        "01 february 2009",
-        "01.03.2009 14:53",
-        "01.03.2009 14:53:12",
-        "22.12.2009 17:56",
-        "05/16/99",
-        "11/29/1991",
-        "Thursday 4 April 2019",
-        "July 01, 2015",
-        "Fri, 3 July 2015",
-        "2 Июня 2015",
-        "9 июля 2015 г.",
-        "26 / 06 ‘15",
-        "09.июля.2015",
-        "14th April 2015:",
-        "23 Jul 2015, 09:00 BST",
-        "пятница, июля 17, 2015",
-        "Июль 16, 2015",
-        "Le 8 juillet 2015",
-        "8 juillet 2015",
-        "Fri 24 Jul 2015",
-        "26 de julho de 2015",
-        "17 de Junio de 2015",
         "28. Juli 2015",
-        "21 Фeвpyapи 2015",
-        "1 нoeмвpи 2013",
-        "23 июня 2015",
-        "3 Июля, 2015",
-        "7 August, 2015",
-        "Wednesday 22 Apr 2015",
-        "12-08-2015 - 09:00",
-        "08 Jul, 2015",
-        "August 10th, 2015",
-        "junio 9, 2015",
-        "Авг 11, 2015",
-        "Вторник, 18 Август 2015 18:51",
-        "Июль 16th, 2012 | 11:08 пп",
-        "19 август в 16:03",
-        "7 August, 2015",
-        "9 Июля 2015 [11:23]",
+        "Thursday, Jun 25, 2026",
+        "03 de Julio, 2026",
     ]
+    parser = DateParser(generate=True)
+    print("Generated patterns:", len(parser.patterns))
+    for text in samples:
+        print(f"{text!r:32} -> {parser.parse(text)}")
 
-    #    print list(calendar.month_abbr)[1:]
-    ind = DateParser(generate=True)
-    #    for i in ind.patterns:
-    #        print i
-    print(len(ind.patterns))
-    for text in tests:
-        res = ind.match(text)
-        print(r)
-        if r:
-            r = res["values"]
-            p = res["pattern"]
-            d = {"month": 0, "day": 0, "year": 0}
-            if "noyear" in p and p["noyear"] == True:
-                d["year"] = datetime.datetime.now().year
-            for k, v in list(r.items()):
-                d[k] = int(v)
-            dt = datetime.datetime(**d)
-        else:
-            pass
-
-    #    for p in ind.patterns:
-    #        pprint(p)
-
-    for text in tests:
-        pass
-        # print(dateparser.parse(text))
-#    ind.patterns = DATE_DATA_TYPES_RAW
