@@ -2,6 +2,62 @@
 
 All notable changes to this project are tracked here.
 
+## Unreleased
+
+**Refactor (behavior-preserving)**
+- Replaced the three duplicated copies of substring-based language/separator
+  inference in `qdparser.py` (`_infer_char_sets`, `_build_language_index`,
+  `_build_separator_index`) with reads from a single authoritative
+  `_PATTERN_METADATA` table in `qddate.patterns`. Net ~120 lines removed from
+  `qdparser.py`. Adding or renaming a pattern no longer requires editing multiple
+  inference sites.
+- Simplified `_calculate_pattern_priority` to use the stamped `language` field
+  instead of substring matching.
+- `_infer_char_sets` now distinguishes numeric-only patterns (including the
+  language-tagged but numerically-formatted `date_usa`/`date_usa_1`) via an
+  explicit `_NUMERIC_PATTERN_KEYS` set, eliminating the old `has_month_names`
+  heuristic.
+- Added `tests/test_pattern_metadata.py`: safety-net tests proving the stamped
+  fields reproduce the pre-refactor inference bit-for-bit (language, separator,
+  and charset oracles), plus reachability tests ensuring every generated pattern
+  is findable through each filter index.
+
+**Correctness**
+- Fixed `languages=` regression: automatic language detection no longer drops a
+  language the caller explicitly requested. Previously, a shared month name (e.g.
+  German/Dutch "Juli") could cause `DateParser(languages=["en","de"]).parse("28. Juli 2015")`
+  to return `None`; it now correctly returns `2015-07-28`.
+- Fixed `ENG_WEEKDAYS` typo: `"Satuday"` → `"Saturday"`, so full-weekday strings
+  like `Saturday 6 May 2023` now match.
+- Fixed `ENG_MONTHS_LC` typo: `"jule"` → `"july"`.
+- Replaced the broken `__main__` block in `qdparser.py` (it referenced an undefined
+  `r` and imported an optional dependency unguarded) with a working smoke demo.
+
+**Testing**
+- Reconciled three "should return None" tests that drifted after 1.0.7 added German
+  short-month and English ordinal patterns (`14th April 2015:`, `15. Jul 2023`,
+  `5. jan 2020` now asserted as valid).
+- Added regression test for the `languages=` allow-list vs. auto-detection.
+- Added `Saturday` full-weekday test.
+
+**Packaging & hygiene**
+- Moved `dateparser` from a hard runtime dependency to an optional `bench` extra
+  (`pip install -e ".[bench]"`). The library never imported it at runtime; it is only
+  used by `benchmarks/`. Runtime deps are now `pyparsing` only.
+- Guarded the unguarded `import dateparser` in `benchmarks/bench.py`.
+- Removed unused `dill` import and `DILL_ENABLED` flag from `qdparser.py`.
+- Narrowed bare `except:` clauses to `except Exception:`.
+- Removed unused `os` import from `qdparser.py`.
+- Deduplicated `BASE_DATE_PATTERNS` entries (`pat:date:ddmmyyyy`, `pat:date:mmyyyy`
+  were each defined twice).
+- Stopped tracking build artifacts in git (`profile_results/`, root `tests.py`,
+  `reproduce_issues.py`); extended `.gitignore` (`.venv-*/`, `profile_results/`).
+
+**Documentation**
+- README: corrected pattern counts (124 base → 992 generated, previously "712+ / 89"),
+  added the missing Dutch language to the supported-languages list, and documented
+  the `languages=` parameter with a usage example.
+
 ## 1.0.10 (2026-07-05)
 
 **English date patterns**

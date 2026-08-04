@@ -6,11 +6,16 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import importlib
-import dateparser
 import datetime
 from pprint import pprint
 import pyparsing
 from timeit import timeit
+
+try:
+    import dateparser
+    DATEPARSER_AVAILABLE = True
+except ImportError:
+    DATEPARSER_AVAILABLE = False
 
 try:
     from dateutil import parser as dateutil_parser
@@ -87,6 +92,8 @@ TESTS = ['01.12.2009',
          ]
 
 def _run_dateparser():
+    if not DATEPARSER_AVAILABLE:
+        return datetime.timedelta(0)
     dates = []
     start = datetime.datetime.now()
     for text in TESTS:

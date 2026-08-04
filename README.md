@@ -17,9 +17,10 @@ Full documentation is automatically published at [Read the Docs](https://qddate.
 
 ## Features
 
-- 712+ date patterns (expanded from 89 base patterns) and growing on demand
-- Multi-language parsing (English, Russian, Spanish, Portuguese, and more)
+- 992+ generated date patterns (from 124 base patterns) and growing on demand
+- Multi-language parsing (12 languages: English, Russian, Spanish, Portuguese, and more)
 - Handles left-aligned dates with trailing text: `12.03.1999 some text here`
+- Configurable language subsets via the `languages=` parameter
 - Prioritizes speed via pyparsing, hard-coded constants, and dirty tricks
 
 ## Recent updates
@@ -70,14 +71,38 @@ print(parser.parse('пятница, июля 17, 2015'))
 
 The parser auto-detects languages for each string and returns `datetime.datetime` instances when it finds a match.
 
+To restrict parsing to a subset of languages (faster, and avoids cross-language
+ambiguity), pass the `languages` parameter:
+
+```python
+import qddate
+
+# Only English and German patterns are loaded
+parser = qddate.DateParser(languages=["en", "de"])
+print(parser.parse("28. Juli 2015"))   # 2015-07-28 00:00:00
+print(parser.parse("6 Jan 2009"))       # 2009-01-06 00:00:00
+print(parser.parse("3 Января 2003 года"))  # None (Russian not in the allow-list)
+```
+
+`languages` accepts a single code (`"ru"`), a list (`["en", "de"]`), or `None`
+(default: all supported languages).
+
 ## Dependencies
 
-- [pyparsing](https://pypi.python.org/pypi/pyparsing)
+- [pyparsing](https://pypi.python.org/pypi/pyparsing) — the only runtime dependency.
+
+Benchmarking against other date libraries is optional. Install the `bench` extra to
+run the comparison scripts in `benchmarks/`:
+
+```bash
+pip install -e ".[bench]"   # adds dateparser, python-dateutil, arrow, pendulum
+```
 
 ## Supported Languages
 
 - Bulgarian
 - Czech
+- Dutch
 - English
 - French
 - German

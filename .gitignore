@@ -5,6 +5,7 @@ __pycache__/
 # Virtual environments
 .env
 .venv/
+.venv-*/
 env/
 venv/
 ENV/
@@ -59,3 +60,6 @@ docs/_build
 
 # Project specific
 qddate.egg-info/
+
+# Profiling output
+profile_results/
