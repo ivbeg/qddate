@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build docs clean
+.PHONY: clean-pyc clean-build docs docs-serve docs-patterns clean
 SHELL := /bin/bash
 
 help:
@@ -8,7 +8,9 @@ help:
 	@echo "clean-test - remove test and coverage artifacts"
 	@echo "lint - check style with flake8"
 	@echo "coverage - check code coverage quickly with the default Python"
-	@echo "docs - generate Sphinx HTML documentation, including API docs"
+	@echo "docs - build the Docusaurus documentation site"
+	@echo "docs-serve - serve the documentation site locally"
+	@echo "docs-patterns - regenerate language pattern pages"
 	@echo "release - package and upload a release"
 	@echo "dist - package"
 
@@ -18,6 +20,8 @@ clean-build:
 	rm -fr build/
 	rm -fr dist/
 	rm -fr *.egg-info
+	rm -fr docs/build/
+	rm -fr docs/.docusaurus/
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -37,10 +41,14 @@ coverage:
 	pytest --cov=qddate --cov-report=term-missing --cov-report=html
 	python3 -m webbrowser htmlcov/index.html
 
-docs:
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
-	python3 -m webbrowser docs/_build/html/index.html
+docs: ## Build documentation site (Docusaurus)
+	cd docs && npm ci && npm run build
+
+docs-serve: ## Serve documentation locally (Docusaurus)
+	cd docs && npm start
+
+docs-patterns: ## Regenerate language pattern pages
+	python3 scripts/generate_pattern_docs.py
 
 release: clean
 	python3 -m build

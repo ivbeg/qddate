@@ -56,7 +56,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/ivbeg/qddate"
-Documentation = "https://qddate.readthedocs.org/en/latest/"
+Documentation = "https://ivbeg.github.io/qddate/"
 Repository = "https://github.com/ivbeg/qddate"
 Issues = "https://github.com/ivbeg/qddate/issues"
 

@@ -55,8 +55,13 @@ htmlcov
 *.mo
 
 
-# Sphinx
+# Sphinx (legacy)
 docs/_build
+
+# Docusaurus
+docs/node_modules/
+docs/build/
+docs/.docusaurus/
 
 # Project specific
 qddate.egg-info/

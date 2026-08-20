@@ -1,0 +1,42 @@
+# qddate
+
+Python library for parsing left-aligned date strings extracted from messy HTML as fast as possible. Runtime depends on pyparsing only. Public API: `qddate.DateParser` with `parse()` and `match()`.
+
+Site: https://ivbeg.github.io/qddate/
+Install: `pip install qddate`
+
+## Getting started
+
+- [Installation](https://ivbeg.github.io/qddate/getting-started/installation)
+- [Quick start](https://ivbeg.github.io/qddate/getting-started/quick-start)
+- [When to use](https://ivbeg.github.io/qddate/getting-started/when-to-use) — qddate vs dateparser vs dateutil
+- [Cookbook](https://ivbeg.github.io/qddate/getting-started/cookbook)
+- [Basic usage](https://ivbeg.github.io/qddate/getting-started/basic-usage)
+- [Performance](https://ivbeg.github.io/qddate/getting-started/performance)
+- [Troubleshooting](https://ivbeg.github.io/qddate/getting-started/troubleshooting)
+- [Best practices](https://ivbeg.github.io/qddate/getting-started/best-practices)
+
+## API
+
+- [API overview](https://ivbeg.github.io/qddate/api/)
+- [DateParser](https://ivbeg.github.io/qddate/api/dateparser)
+- [parse()](https://ivbeg.github.io/qddate/api/parse)
+- [match()](https://ivbeg.github.io/qddate/api/match)
+- [languages=](https://ivbeg.github.io/qddate/api/languages)
+
+## Languages
+
+- [Language overview](https://ivbeg.github.io/qddate/languages/)
+- Supported codes: bg, cz, de, en, es, fr, it, nl, pl, pt, ro, ru, tr, uk
+
+## Use cases
+
+- [Web scraping](https://ivbeg.github.io/qddate/use-cases/web-scraping)
+- [Bulk processing](https://ivbeg.github.io/qddate/use-cases/bulk-processing)
+- [News aggregation](https://ivbeg.github.io/qddate/use-cases/news-aggregation)
+
+## Development
+
+- [Contributing](https://ivbeg.github.io/qddate/development/contributing)
+- [Adding languages](https://ivbeg.github.io/qddate/development/adding-languages)
+- [License](https://ivbeg.github.io/qddate/license)

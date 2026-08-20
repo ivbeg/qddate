@@ -1,35 +1,29 @@
 @ECHO OFF
+REM Build or serve the Docusaurus documentation site (requires Node.js 18+).
 
-pushd %~dp0
+if "%1"=="docs" goto docs
+if "%1"=="docs-serve" goto docs_serve
+if "%1"=="docs-patterns" goto docs_patterns
 
-REM Command file for Sphinx documentation
-
-if "%SPHINXBUILD%" == "" (
-	set SPHINXBUILD=sphinx-build
-)
-set SOURCEDIR=source
-set BUILDDIR=build
-
-if "%1" == "" goto help
-
-%SPHINXBUILD% >NUL 2>NUL
-if errorlevel 9009 (
-	echo.
-	echo.The 'sphinx-build' command was not found. Make sure you have Sphinx
-	echo.installed, then set the SPHINXBUILD environment variable to point
-	echo.to the full path of the 'sphinx-build' executable. Alternatively you
-	echo.may add the Sphinx directory to PATH.
-	echo.
-	echo.If you don't have Sphinx installed, grab it from
-	echo.http://sphinx-doc.org/
-	exit /b 1
-)
-
-%SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+echo Available targets: docs, docs-serve, docs-patterns
+echo Use Makefile on Unix: make docs
 goto end
 
-:help
-%SPHINXBUILD% -M help %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+:docs
+cd docs
+call npm ci
+call npm run build
+cd ..
+goto end
+
+:docs_serve
+cd docs
+call npm start
+cd ..
+goto end
+
+:docs_patterns
+python scripts/generate_pattern_docs.py
+goto end
 
 :end
-popd

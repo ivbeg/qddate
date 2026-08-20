@@ -4,6 +4,19 @@ All notable changes to this project are tracked here.
 
 ## Unreleased
 
+- Replaced the Sphinx/Read the Docs pages with a Docusaurus site in `docs/`, organized like undatum (getting started, use cases, API, languages, development) and ready for GitHub Pages.
+
+- Added Ukrainian (`uk`) month-name and abbreviated date patterns, including genitive forms.
+
+**Romanian language support**
+- Added full and CLDR-abbreviated Romanian month-name patterns in lowercase and
+  title case, including generated time and trailing-text variants.
+- Added `ro` to `SUPPORTED_LANGUAGES` and the `languages=` filter, with explicit
+  metadata, prefix, character-set, and automatic-detection integration.
+- Kept shared `Mai` and `August` tokens ambiguous for unrestricted parsing while
+  making their Romanian pattern identity deterministic under `languages="ro"`.
+- Added fixture-backed regression coverage for the data.gov.ro date corpus.
+
 **Refactor (behavior-preserving)**
 - Replaced the three duplicated copies of substring-based language/separator
   inference in `qdparser.py` (`_infer_char_sets`, `_build_language_index`,

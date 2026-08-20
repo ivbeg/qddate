@@ -3,7 +3,7 @@
 
 [![CI](https://github.com/ivbeg/qddate/workflows/CI/badge.svg)](https://github.com/ivbeg/qddate/actions)
 [![PyPI Version](https://img.shields.io/pypi/v/qddate.svg?style=flat-square)](https://pypi.python.org/pypi/qddate)
-[![Docs](https://readthedocs.org/projects/qddate/badge/?version=latest)](https://qddate.readthedocs.org/en/latest/)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://ivbeg.github.io/qddate/)
 [![Coverage](https://codecov.io/gh/ivbeg/qddate/branch/master/graph/badge.svg)](https://codecov.io/gh/ivbeg/qddate)
 [![Gitter](https://badges.gitter.im/qddate/Lobby.svg)](https://gitter.im/qddate/Lobby)
 
@@ -13,12 +13,12 @@ If you need broader language coverage (but can trade speed for flexibility), che
 
 ## Documentation
 
-Full documentation is automatically published at [Read the Docs](https://qddate.readthedocs.org/en/latest/).
+Full documentation is published at [ivbeg.github.io/qddate](https://ivbeg.github.io/qddate/). The site lives in `docs/` (Docusaurus); run `make docs-serve` to preview it locally.
 
 ## Features
 
-- 992+ generated date patterns (from 124 base patterns) and growing on demand
-- Multi-language parsing (12 languages: English, Russian, Spanish, Portuguese, and more)
+- 1024+ generated date patterns (from 128 base patterns) and growing on demand
+- Multi-language parsing (14 languages: English, Romanian, Ukrainian, Russian, Spanish, and more)
 - Handles left-aligned dates with trailing text: `12.03.1999 some text here`
 - Configurable language subsets via the `languages=` parameter
 - Prioritizes speed via pyparsing, hard-coded constants, and dirty tricks
@@ -109,9 +109,11 @@ pip install -e ".[bench]"   # adds dateparser, python-dateutil, arrow, pendulum
 - Italian
 - Polish
 - Portuguese
+- Romanian
 - Russian
 - Spanish
 - Turkish
+- Ukrainian
 
 ## Thanks
 
