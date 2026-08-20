@@ -4,7 +4,7 @@
 Script to generate comprehensive pattern documentation for qddate.
 
 This script extracts pattern information from all pattern modules and
-generates markdown documentation with detailed tables organized by language.
+generates Docusaurus pages under docs/docs/languages/<code>.md.
 """
 
 import sys
@@ -23,6 +23,7 @@ from qddate.patterns import (
     PATTERNS_ES,
     PATTERNS_FR,
     PATTERNS_IT,
+    PATTERNS_NL,
     PATTERNS_PL,
     PATTERNS_PT,
     PATTERNS_RU,
@@ -30,8 +31,21 @@ from qddate.patterns import (
 )
 
 # Import month and weekday names for example generation
-from qddate.patterns import base
-from qddate.patterns import ru, de, fr, es, it, pt, bg, cz, pl, tr
+from qddate.patterns import base, bg, cz, de, es, fr, it, nl, pl, pt, ru, tr
+
+try:
+    from qddate.patterns import PATTERNS_RO
+    from qddate.patterns import ro as ro_mod
+except ImportError:
+    PATTERNS_RO = []
+    ro_mod = None
+
+try:
+    from qddate.patterns import PATTERNS_UK
+    from qddate.patterns import uk as uk_mod
+except ImportError:
+    PATTERNS_UK = []
+    uk_mod = None
 
 # Language mapping
 LANGUAGE_NAMES = {
@@ -41,11 +55,14 @@ LANGUAGE_NAMES = {
     'fr': 'French',
     'es': 'Spanish',
     'it': 'Italian',
+    'nl': 'Dutch',
     'pt': 'Portuguese',
     'bg': 'Bulgarian',
     'cz': 'Czech',
     'pl': 'Polish',
+    'ro': 'Romanian',
     'tr': 'Turkish',
+    'uk': 'Ukrainian',
 }
 
 # Pattern collections by language
@@ -57,10 +74,13 @@ PATTERN_COLLECTIONS = {
     'es': PATTERNS_ES,
     'fr': PATTERNS_FR,
     'it': PATTERNS_IT,
+    'nl': PATTERNS_NL,
     'pl': PATTERNS_PL,
     'pt': PATTERNS_PT,
+    'ro': PATTERNS_RO,
     'ru': PATTERNS_RU,
     'tr': PATTERNS_TR,
+    'uk': PATTERNS_UK,
 }
 
 
@@ -72,6 +92,7 @@ LANG_MONTHS = {
     'fr': {'full': fr.FR_MONTHS, 'lc': fr.FR_MONTHS_LC},
     'es': {'full': es.ES_MONTHS, 'lc': es.ES_MONTHS_LC},
     'it': {'full': it.IT_MONTHS, 'lc': it.IT_MONTHS_LC},
+    'nl': {'full': nl.NL_MONTHS, 'lc': nl.NL_MONTHS_LC, 'short': nl.NL_MONTHS_SHORT, 'short_lc': nl.NL_MONTHS_SHORT_LC},
     'pt': {'full': pt.PT_MONTHS, 'lc': pt.PT_MONTHS_LC},
     'bg': {'full': bg.BG_MONTHS, 'lc': bg.BG_MONTHS_LC},
     'cz': {'full': cz.CZ_MONTHS, 'lc': cz.CZ_MONTHS_LC, 'gen': cz.CZ_MONTHS_GEN, 'gen_lc': cz.CZ_MONTHS_GEN_LC},
@@ -79,11 +100,30 @@ LANG_MONTHS = {
     'tr': {'full': tr.TR_MONTHS, 'lc': tr.TR_MONTHS_LC},
 }
 
+if ro_mod is not None:
+    LANG_MONTHS['ro'] = {
+        'full': ro_mod.RO_MONTHS,
+        'lc': ro_mod.RO_MONTHS_LC,
+        'short': ro_mod.RO_MONTHS_SHORT,
+        'short_lc': ro_mod.RO_MONTHS_SHORT_LC,
+    }
+
+if uk_mod is not None:
+    LANG_MONTHS['uk'] = {
+        'full': uk_mod.UK_MONTHS,
+        'lc': uk_mod.UK_MONTHS_LC,
+        'gen': uk_mod.UK_MONTHS_GEN,
+        'gen_lc': uk_mod.UK_MONTHS_GEN_LC,
+        'short': uk_mod.UK_MONTHS_SHORT,
+        'short_lc': uk_mod.UK_MONTHS_SHORT_LC,
+    }
+
 LANG_WEEKDAYS = {
     'en': {'full': base.ENG_WEEKDAYS, 'short': base.ENG_WEEKDAYS_SHORT},
     'ru': {'full': ru.RUS_WEEKDAYS, 'lc': ru.RUS_WEEKDAYS_LC},
     'de': {'full': de.DE_WEEKDAYS, 'lc': de.DE_WEEKDAYS_LC},
     'it': {'full': it.IT_WEEKDAYS, 'lc': it.IT_WEEKDAYS_LC},
+    'nl': {'full': nl.NL_WEEKDAYS, 'lc': nl.NL_WEEKDAYS_LC},
     'cz': {'full': cz.CZ_WEEKDAYS, 'lc': cz.CZ_WEEKDAYS_LC},
 }
 
@@ -111,7 +151,11 @@ def generate_examples(pattern, lang_code):
     if lang_code in LANG_MONTHS:
         lang_months = LANG_MONTHS[lang_code]
         if 'short' in name or 'abbrev' in name:
-            months_to_use = lang_months.get('short') or lang_months.get('abbrev') or lang_months.get('full')
+            if 'lc' in name or 'lowcase' in name or 'lowercase' in name:
+                months_to_use = lang_months.get('short_lc') or lang_months.get('short')
+            else:
+                months_to_use = lang_months.get('short') or lang_months.get('abbrev')
+            months_to_use = months_to_use or lang_months.get('full')
         elif 'lc' in name or 'lowcase' in name or 'lowercase' in name:
             months_to_use = lang_months.get('lc') or lang_months.get('full')
         elif 'gen' in name and 'gen' in lang_months:
@@ -320,99 +364,55 @@ def generate_markdown_table(patterns_info):
     return "\n".join(lines) + "\n"
 
 
-def generate_documentation():
-    """Generate the complete documentation."""
-    lines = []
-    
-    # Header
-    lines.append("# qddate Pattern Documentation")
-    lines.append("")
-    lines.append("This document provides comprehensive information about all date parsing patterns")
-    lines.append("supported by qddate, organized by language.")
-    lines.append("")
-    
-    # Calculate statistics
-    total_patterns = sum(len(patterns) for patterns in PATTERN_COLLECTIONS.values())
-    total_languages = len([lang for lang, patterns in PATTERN_COLLECTIONS.items() if patterns])
-    
-    lines.append("## Summary")
-    lines.append("")
-    lines.append(f"- **Total Patterns**: {total_patterns}")
-    lines.append(f"- **Supported Languages**: {total_languages}")
-    lines.append("")
-    lines.append("---")
-    lines.append("")
-    
-    # Generate sections for each language
-    for lang_code in sorted(PATTERN_COLLECTIONS.keys()):
-        patterns = PATTERN_COLLECTIONS[lang_code]
-        if not patterns:
-            continue
-        
-        lang_name = LANGUAGE_NAMES.get(lang_code, lang_code.upper())
-        pattern_count = len(patterns)
-        
-        lines.append(f"## {lang_name} ({lang_code.upper()})")
-        lines.append("")
-        lines.append(f"**Pattern Count**: {pattern_count}")
-        lines.append("")
-        
-        # Extract pattern information
-        patterns_info = [extract_pattern_info(p, lang_code) for p in patterns]
-        
-        # Generate table
-        lines.append(generate_markdown_table(patterns_info))
-        lines.append("")
-    
-    # Add notes section
-    lines.append("---")
-    lines.append("")
-    lines.append("## Notes")
-    lines.append("")
-    lines.append("### Pattern Flags")
-    lines.append("")
-    lines.append("- **Year Short**: Indicates that the pattern handles 2-digit years (e.g., '99' for 1999)")
-    lines.append("- **No Year**: Indicates that the pattern matches dates without a year component")
-    lines.append("- **Filter**: Filter level used for pattern matching optimization (1 = stricter filtering)")
-    lines.append("")
-    lines.append("### Format Strings")
-    lines.append("")
-    lines.append("Format strings use Python's `strftime` format codes:")
-    lines.append("- `%d` - Day of the month (01-31)")
-    lines.append("- `%m` - Month as a number (01-12)")
-    lines.append("- `%Y` - Year with century (e.g., 2024)")
-    lines.append("- `%y` - Year without century (00-99)")
-    lines.append("- `%b` - Abbreviated month name")
-    lines.append("")
-    lines.append("### Length Constraints")
-    lines.append("")
-    lines.append("Each pattern specifies minimum and maximum string lengths to optimize")
-    lines.append("pattern matching performance. Patterns are only tested against strings")
-    lines.append("that fall within these length constraints.")
-    lines.append("")
-    
+def generate_language_page(lang_code, patterns):
+    """Generate a Docusaurus markdown page for one language catalog."""
+    lang_name = LANGUAGE_NAMES.get(lang_code, lang_code.upper())
+    pattern_count = len(patterns)
+    patterns_info = [extract_pattern_info(p, lang_code) for p in patterns]
+    table = generate_markdown_table(patterns_info)
+
+    lines = [
+        "---",
+        f'title: "{lang_name}"',
+        f'description: "Base date patterns for {lang_name} ({lang_code})"',
+        "---",
+        "",
+        f"<!-- Generated by scripts/generate_pattern_docs.py. Do not edit by hand. -->",
+        "",
+        f"# {lang_name} (`{lang_code}`)",
+        "",
+        f"**Base patterns:** {pattern_count}. Time-of-day and trailing-text variants are generated at "
+        f"`DateParser` construction. See the [language overview](/languages/) for flags and format codes.",
+        "",
+        table,
+        "See also: [languages=](/api/languages), [adding languages](/development/adding-languages).",
+        "",
+    ]
     return "\n".join(lines)
 
 
 def main():
-    """Main entry point."""
-    output_path = os.path.join(os.path.dirname(__file__), '..', 'docs', 'PATTERNS.md')
-    output_dir = os.path.dirname(output_path)
-    
-    # Create docs directory if it doesn't exist
+    """Write per-language Docusaurus pages under docs/docs/languages/."""
+    output_dir = os.path.join(
+        os.path.dirname(__file__), "..", "docs", "docs", "languages"
+    )
     os.makedirs(output_dir, exist_ok=True)
-    
-    # Generate documentation
-    doc_content = generate_documentation()
-    
-    # Write to file
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(doc_content)
-    
-    print(f"Documentation generated successfully: {output_path}")
-    print(f"Total patterns documented: {sum(len(patterns) for patterns in PATTERN_COLLECTIONS.values())}")
+
+    written = 0
+    total_patterns = 0
+    for lang_code in sorted(PATTERN_COLLECTIONS.keys()):
+        patterns = PATTERN_COLLECTIONS[lang_code]
+        if not patterns:
+            continue
+        output_path = os.path.join(output_dir, f"{lang_code}.md")
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(generate_language_page(lang_code, patterns))
+        written += 1
+        total_patterns += len(patterns)
+        print(f"Wrote {output_path} ({len(patterns)} patterns)")
+
+    print(f"Documentation generated: {written} language pages, {total_patterns} base patterns")
 
 
 if __name__ == '__main__':
     main()
-

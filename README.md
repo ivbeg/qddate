@@ -3,7 +3,7 @@
 
 [![CI](https://github.com/ivbeg/qddate/workflows/CI/badge.svg)](https://github.com/ivbeg/qddate/actions)
 [![PyPI Version](https://img.shields.io/pypi/v/qddate.svg?style=flat-square)](https://pypi.python.org/pypi/qddate)
-[![Docs](https://readthedocs.org/projects/qddate/badge/?version=latest)](https://qddate.readthedocs.org/en/latest/)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://ivbeg.github.io/qddate/)
 [![Coverage](https://codecov.io/gh/ivbeg/qddate/branch/master/graph/badge.svg)](https://codecov.io/gh/ivbeg/qddate)
 [![Gitter](https://badges.gitter.im/qddate/Lobby.svg)](https://gitter.im/qddate/Lobby)
 
@@ -13,13 +13,14 @@ If you need broader language coverage (but can trade speed for flexibility), che
 
 ## Documentation
 
-Full documentation is automatically published at [Read the Docs](https://qddate.readthedocs.org/en/latest/).
+Full documentation is published at [ivbeg.github.io/qddate](https://ivbeg.github.io/qddate/). The site lives in `docs/` (Docusaurus); run `make docs-serve` to preview it locally.
 
 ## Features
 
-- 712+ date patterns (expanded from 89 base patterns) and growing on demand
-- Multi-language parsing (English, Russian, Spanish, Portuguese, and more)
+- 1024+ generated date patterns (from 128 base patterns) and growing on demand
+- Multi-language parsing (14 languages: English, Romanian, Ukrainian, Russian, Spanish, and more)
 - Handles left-aligned dates with trailing text: `12.03.1999 some text here`
+- Configurable language subsets via the `languages=` parameter
 - Prioritizes speed via pyparsing, hard-coded constants, and dirty tricks
 
 ## Recent updates
@@ -70,23 +71,49 @@ print(parser.parse('пятница, июля 17, 2015'))
 
 The parser auto-detects languages for each string and returns `datetime.datetime` instances when it finds a match.
 
+To restrict parsing to a subset of languages (faster, and avoids cross-language
+ambiguity), pass the `languages` parameter:
+
+```python
+import qddate
+
+# Only English and German patterns are loaded
+parser = qddate.DateParser(languages=["en", "de"])
+print(parser.parse("28. Juli 2015"))   # 2015-07-28 00:00:00
+print(parser.parse("6 Jan 2009"))       # 2009-01-06 00:00:00
+print(parser.parse("3 Января 2003 года"))  # None (Russian not in the allow-list)
+```
+
+`languages` accepts a single code (`"ru"`), a list (`["en", "de"]`), or `None`
+(default: all supported languages).
+
 ## Dependencies
 
-- [pyparsing](https://pypi.python.org/pypi/pyparsing)
+- [pyparsing](https://pypi.python.org/pypi/pyparsing) — the only runtime dependency.
+
+Benchmarking against other date libraries is optional. Install the `bench` extra to
+run the comparison scripts in `benchmarks/`:
+
+```bash
+pip install -e ".[bench]"   # adds dateparser, python-dateutil, arrow, pendulum
+```
 
 ## Supported Languages
 
 - Bulgarian
 - Czech
+- Dutch
 - English
 - French
 - German
 - Italian
 - Polish
 - Portuguese
+- Romanian
 - Russian
 - Spanish
 - Turkish
+- Ukrainian
 
 ## Thanks
 

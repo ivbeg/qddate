@@ -33,7 +33,6 @@ classifiers = [
     "Topic :: Text Processing :: General",
 ]
 dependencies = [
-    "dateparser>=1.2.0",
     "pyparsing>=3.1.0",
 ]
 
@@ -41,6 +40,12 @@ dependencies = [
 test = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
+]
+bench = [
+    "dateparser>=1.2.0",
+    "python-dateutil",
+    "arrow",
+    "pendulum",
 ]
 dev = [
     "ruff",
@@ -51,7 +56,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/ivbeg/qddate"
-Documentation = "https://qddate.readthedocs.org/en/latest/"
+Documentation = "https://ivbeg.github.io/qddate/"
 Repository = "https://github.com/ivbeg/qddate"
 Issues = "https://github.com/ivbeg/qddate/issues"
 
