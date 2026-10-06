@@ -8,12 +8,10 @@ detailed reports showing where time is spent in the codebase.
 """
 
 import cProfile
-import pstats
 import io
-import sys
-import os
 import json
-import time
+import pstats
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -85,7 +83,7 @@ def profile_parse_operations(parser, test_cases, iterations=10):
                 except Exception:
                     # Continue profiling even if some parses fail
                     pass
-    
+
     profiler = cProfile.Profile()
     profiler.enable()
     run_parses()
@@ -103,7 +101,7 @@ def profile_match_operations(parser, test_cases, iterations=10):
                 except Exception:
                     # Continue profiling even if some matches fail
                     pass
-    
+
     profiler = cProfile.Profile()
     profiler.enable()
     run_matches()
@@ -117,7 +115,7 @@ def profile_match_prefix(test_cases, iterations=100):
         for _ in range(iterations):
             for text in test_cases:
                 matchPrefix(text[:6] if len(text) > 6 else text)
-    
+
     profiler = cProfile.Profile()
     profiler.enable()
     run_match_prefix()
@@ -130,7 +128,7 @@ def profile_initialization(iterations=10):
     def run_init():
         for _ in range(iterations):
             DateParser()
-    
+
     profiler = cProfile.Profile()
     profiler.enable()
     run_init()
@@ -142,7 +140,7 @@ def analyze_profile(profiler, top_n=20):
     """Analyze profile and return statistics."""
     stats = pstats.Stats(profiler)
     stats.sort_stats('cumulative')
-    
+
     # Capture stats output
     output = io.StringIO()
     old_stdout = sys.stdout
@@ -152,7 +150,7 @@ def analyze_profile(profiler, top_n=20):
     finally:
         sys.stdout = old_stdout
     stats_output = output.getvalue()
-    
+
     # Get function statistics
     func_stats = []
     for func_name, (cc, nc, tt, ct, callers) in stats.stats.items():
@@ -165,10 +163,10 @@ def analyze_profile(profiler, top_n=20):
             'cumulative_time': ct,
             'per_call': tt / nc if nc > 0 else 0,
         })
-    
+
     # Sort by cumulative time
     func_stats.sort(key=lambda x: x['cumulative_time'], reverse=True)
-    
+
     return {
         'stats_text': stats_output,
         'top_functions': func_stats[:top_n],
@@ -180,42 +178,42 @@ def generate_report(profiles, output_dir='profile_results'):
     """Generate comprehensive profiling report."""
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
-    
+
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
+
     # Generate individual reports
     reports = {}
     for profile_name, profiler in profiles.items():
         analysis = analyze_profile(profiler, top_n=30)
         reports[profile_name] = analysis
-        
+
         # Write text report
         report_file = output_path / f'{profile_name}_{timestamp}.txt'
         with open(report_file, 'w') as f:
             f.write(f"Profile Report: {profile_name}\n")
             f.write("=" * 80 + "\n\n")
             f.write(analysis['stats_text'])
-        
+
         print(f"Generated report: {report_file}")
-    
+
     # Generate JSON summary
     summary = {
         'timestamp': timestamp,
         'profiles': {}
     }
-    
+
     for profile_name, analysis in reports.items():
         summary['profiles'][profile_name] = {
             'top_functions': analysis['top_functions'][:10],
             'total_calls': analysis['total_calls'],
         }
-    
+
     summary_file = output_path / f'summary_{timestamp}.json'
     with open(summary_file, 'w') as f:
         json.dump(summary, f, indent=2)
-    
+
     print(f"Generated summary: {summary_file}")
-    
+
     # Print summary to console
     print("\n" + "=" * 80)
     print("PROFILING SUMMARY")
@@ -223,12 +221,12 @@ def generate_report(profiles, output_dir='profile_results'):
     for profile_name, analysis in reports.items():
         print(f"\n{profile_name}:")
         print(f"  Total calls: {analysis['total_calls']}")
-        print(f"  Top 5 functions by cumulative time:")
+        print("  Top 5 functions by cumulative time:")
         for i, func in enumerate(analysis['top_functions'][:5], 1):
             print(f"    {i}. {func['function']} ({func['file']}:{func['line']})")
             print(f"       Calls: {func['calls']}, Total: {func['total_time']:.4f}s, "
                   f"Cumulative: {func['cumulative_time']:.4f}s")
-    
+
     return reports
 
 
@@ -237,52 +235,52 @@ def main():
     print("Starting performance profiling...")
     print(f"Python version: {sys.version}")
     print(f"Test cases: {len(TESTS)}")
-    
+
     profiles = {}
-    
+
     # Profile initialization
     print("\n1. Profiling parser initialization...")
     profiles['initialization'] = profile_initialization(iterations=5)
-    
+
     # Create parser once for other profiles
     print("2. Creating parser instance...")
     parser = DateParser()
-    
+
     # Profile matchPrefix
     print("3. Profiling matchPrefix...")
     profiles['match_prefix'] = profile_match_prefix(TESTS, iterations=50)
-    
+
     # Profile match operations
     print("4. Profiling match operations...")
     profiles['match'] = profile_match_operations(parser, TESTS, iterations=5)
-    
+
     # Profile parse operations
     print("5. Profiling parse operations...")
     profiles['parse'] = profile_parse_operations(parser, TESTS, iterations=5)
-    
+
     # Generate reports
     print("\n6. Generating reports...")
     reports = generate_report(profiles)
-    
+
     # Analyze pyparsing vs Python code
     print("\n7. Analyzing pyparsing vs Python code split...")
     parse_analysis = reports['parse']
     pyparsing_time = 0
     python_time = 0
-    
+
     for func in parse_analysis['top_functions']:
         if 'pyparsing' in func['file'].lower() or 'pyparsing' in func['function'].lower():
             pyparsing_time += func['cumulative_time']
         else:
             python_time += func['cumulative_time']
-    
+
     total_time = pyparsing_time + python_time
     if total_time > 0:
         pyparsing_pct = (pyparsing_time / total_time) * 100
         python_pct = (python_time / total_time) * 100
         print(f"  Pyparsing: {pyparsing_pct:.1f}% ({pyparsing_time:.4f}s)")
         print(f"  Python code: {python_pct:.1f}% ({python_time:.4f}s)")
-    
+
     print("\nProfiling complete!")
 
 

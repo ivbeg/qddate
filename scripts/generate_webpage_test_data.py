@@ -10,12 +10,11 @@ This script:
 4. Generates a CSV file with columns: text, pattern_key (empty if no match)
 """
 
-import sys
-import os
-import csv
-import re
 import argparse
-from urllib.parse import urlparse
+import csv
+import os
+import re
+import sys
 
 # Add parent directory to path to import qddate
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -36,7 +35,6 @@ except ImportError:
 
 from qddate import DateParser
 
-
 # Default list of webpages to scrape (government agencies and international organizations)
 DEFAULT_URLS = [
     # International Organizations
@@ -55,7 +53,7 @@ DEFAULT_URLS = [
     'https://www.osce.org',
     'https://www.coe.int',
     'https://www.iaea.org',
-    
+
     # European Government Sites
     'https://www.gov.uk',
     'https://data.gov.uk',
@@ -75,14 +73,14 @@ DEFAULT_URLS = [
     'https://www.government.ie',
     'https://www.gov.pt',
     'https://www.government.es',
-    
+
     # North American Government Sites
     'https://www.usa.gov',
     'https://www.data.gov',
     'https://www.canada.ca',
     'https://open.canada.ca',
     'https://www.gob.mx',
-    
+
     # Asian Government Sites
     'https://www.gov.sg',
     'https://data.gov.sg',
@@ -95,7 +93,7 @@ DEFAULT_URLS = [
     'https://www.gov.kr',
     'https://www.data.go.kr',
     'https://www.gov.jp',
-    
+
     # Other Government Sites
     'https://www.gov.za',
 ]
@@ -104,7 +102,7 @@ DEFAULT_URLS = [
 def fetch_url(url, timeout=10):
     """
     Fetch HTML content from a URL.
-    
+
     :param url: URL to fetch
     :type url: str
     :param timeout: Request timeout in seconds
@@ -115,7 +113,7 @@ def fetch_url(url, timeout=10):
     if not REQUESTS_AVAILABLE:
         print(f"Error: requests library required to fetch {url}")
         return None
-    
+
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -131,7 +129,7 @@ def fetch_url(url, timeout=10):
 def extract_text_snippets(html_content, max_length=50):
     """
     Extract text snippets from HTML content.
-    
+
     :param html_content: HTML content as string
     :type html_content: str
     :param max_length: Maximum length of text snippets to extract
@@ -156,10 +154,10 @@ def extract_text_snippets(html_content, max_length=50):
             script.decompose()
         # Get text
         text = soup.get_text(separator=' ', strip=True)
-    
+
     # Split text into snippets of appropriate length
     snippets = set()  # Use set to avoid duplicates
-    
+
     # First, split by common punctuation that might separate date strings
     # This helps isolate potential date strings
     for separator in ['.', ',', ';', ':', '|', '\n', '\t']:
@@ -168,7 +166,7 @@ def extract_text_snippets(html_content, max_length=50):
             part = part.strip()
             if part and len(part) < max_length and len(part) >= 3:
                 snippets.add(part)
-    
+
     # Also extract words and short phrases (2-3 words) for date detection
     words = text.split()
     for i, word in enumerate(words):
@@ -176,19 +174,19 @@ def extract_text_snippets(html_content, max_length=50):
         word = word.strip()
         if word and len(word) < max_length and len(word) >= 3:
             snippets.add(word)
-        
+
         # Try 2-word combinations (common for dates like "Jan 2024")
         if i < len(words) - 1:
             phrase = f"{word} {words[i+1]}".strip()
             if len(phrase) < max_length and len(phrase) >= 3:
                 snippets.add(phrase)
-        
+
         # Try 3-word combinations (common for dates like "Jan 15, 2024")
         if i < len(words) - 2:
             phrase = f"{word} {words[i+1]} {words[i+2]}".strip()
             if len(phrase) < max_length and len(phrase) >= 3:
                 snippets.add(phrase)
-    
+
     # Filter and clean snippets
     cleaned_snippets = []
     for snippet in snippets:
@@ -197,14 +195,14 @@ def extract_text_snippets(html_content, max_length=50):
         # Skip if too short or empty
         if len(snippet) >= 3 and len(snippet) < max_length:
             cleaned_snippets.append(snippet)
-    
+
     return cleaned_snippets
 
 
 def process_urls(urls, parser):
     """
     Process URLs and extract date detection results.
-    
+
     :param urls: List of URLs to process
     :type urls: list[str]
     :param parser: qddate DateParser instance
@@ -213,16 +211,16 @@ def process_urls(urls, parser):
     :rtype: list[tuple]
     """
     results = []
-    
+
     for url in urls:
         print(f"Processing {url}...")
         html_content = fetch_url(url)
         if not html_content:
             continue
-        
+
         snippets = extract_text_snippets(html_content, max_length=50)
         print(f"  Extracted {len(snippets)} text snippets")
-        
+
         for snippet in snippets:
             try:
                 match_result = parser.match(snippet)
@@ -235,16 +233,16 @@ def process_urls(urls, parser):
                 # If there's an error, still record the snippet with empty pattern
                 print(f"  Warning: Error processing snippet '{snippet[:30]}...': {e}")
                 results.append((snippet, '', url))
-        
+
         print(f"  Processed {len(snippets)} snippets from {url}")
-    
+
     return results
 
 
 def write_csv(results, output_file, include_url=True):
     """
     Write results to CSV file.
-    
+
     :param results: List of tuples (text, pattern_key, url)
     :type results: list[tuple]
     :param output_file: Output CSV file path
@@ -257,10 +255,10 @@ def write_csv(results, output_file, include_url=True):
             fieldnames = ['text', 'pattern_key', 'url']
         else:
             fieldnames = ['text', 'pattern_key']
-        
+
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        
+
         for result in results:
             if include_url:
                 writer.writerow({
@@ -303,43 +301,43 @@ def main():
         default=50,
         help='Maximum length of text snippets to extract (default: 50)'
     )
-    
+
     args = parser_arg.parse_args()
-    
+
     # Check dependencies
     if not REQUESTS_AVAILABLE:
         print("Error: requests library is required. Install it with: pip install requests")
         sys.exit(1)
-    
+
     if not BS4_AVAILABLE:
         print("Warning: beautifulsoup4 is recommended for better HTML parsing.")
         print("Install it with: pip install beautifulsoup4")
-    
+
     # Initialize qddate parser
     print("Initializing qddate parser...")
     qddate_parser = DateParser()
-    
+
     # Get URLs
     urls = args.urls if args.urls else DEFAULT_URLS
     print(f"Processing {len(urls)} URLs...")
-    
+
     # Process URLs
     results = process_urls(urls, qddate_parser)
-    
+
     print(f"\nTotal snippets processed: {len(results)}")
-    
+
     # Count matches
     matches = sum(1 for r in results if r[1])
     print(f"Snippets with date matches: {matches}")
     print(f"Snippets without matches: {len(results) - matches}")
-    
+
     # Write CSV
     output_path = args.output
     # Ensure output directory exists
     output_dir = os.path.dirname(output_path)
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    
+
     print(f"\nWriting results to {output_path}...")
     write_csv(results, output_path, include_url=not args.no_url_column)
     print(f"Done! Results written to {output_path}")

@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qddate"
-version = "1.0.10"
+version = "1.0.15"
 description = "Quick and dirty date parsing Python library to parse HTML dates really fast"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {text = "BSD"}
 authors = [
     {name = "Ivan Begtin", email = "ivan@begtin.tech"}
@@ -22,11 +22,11 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -67,15 +67,23 @@ include-package-data = true
 zip-safe = false
 
 [tool.setuptools.package-data]
+"qddate" = ["py.typed", "*.md", "*.txt"]
 "*" = ["*.md", "*.txt"]
 
 [tool.ruff]
-line-length = 100
-target-version = "py38"
+line-length = 120
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+# Pattern-table and docs-generator scripts contain long, unbreakable
+# structure-driven lines; they are not source-of-truth Python.
+"scripts/generate_pattern_docs.py" = ["E501"]
+"scripts/generate_webpage_test_data.py" = ["E501"]
+"qddate/patterns/*.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

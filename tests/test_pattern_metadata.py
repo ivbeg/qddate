@@ -5,9 +5,8 @@ and `separator` fields stamped on each pattern must reproduce exactly what the o
 substring-based inference produced. They also guard the single-source-of-truth table
 so a new pattern without a metadata entry is caught.
 """
-import pytest
 
-from qddate.patterns import ALL_PATTERNS, SUPPORTED_LANGUAGES, _PATTERN_METADATA
+from qddate.patterns import _PATTERN_METADATA, ALL_PATTERNS, SUPPORTED_LANGUAGES
 
 
 # ---------------------------------------------------------------------------
@@ -32,6 +31,10 @@ def _legacy_infer_language(basekey):
         return "it"
     elif "_pt" in basekey or "pt_" in basekey:
         return "pt"
+    elif "_ro" in basekey or "ro_" in basekey:
+        return "ro"
+    elif "_uk" in basekey or "uk_" in basekey:
+        return "uk"
     elif "_de" in basekey or "de_" in basekey:
         return "de"
     elif "_tr" in basekey or "tr_" in basekey:
@@ -61,8 +64,8 @@ def _legacy_infer_separator(basekey):
         return "dash"
     if any(x in basekey for x in ["date_5", "date_6", "date_7"]):
         return "none"
-    if any(x in basekey for x in ["eng", "rus", "fr", "de", "es", "it", "pt", "bg",
-                                  "cz", "pl", "tr", "nl", "weekday"]):
+    if any(x in basekey for x in ["eng", "rus", "fr", "de", "es", "it", "pt", "ro",
+                                  "bg", "cz", "pl", "tr", "nl", "ro", "uk", "weekday"]):
         return "space"
     return "mixed"
 
@@ -97,13 +100,25 @@ def test_stamped_language_matches_legacy_inference():
 
 
 def test_stamped_separator_matches_legacy_inference():
-    """Stamped separator must equal what the old substring inference produced."""
+    """Stamped separator must equal what the old substring inference produced,
+    except for the intentional post-refactor corrections listed in
+    ``_INTENTIONAL_SEPARATOR_OVERRIDES`` (legacy values that were outright wrong
+    and made the pattern unreachable for its real input shape)."""
     mismatches = []
     for p in ALL_PATTERNS:
-        expected = _legacy_infer_separator(p["key"])
+        expected = _INTENTIONAL_SEPARATOR_OVERRIDES.get(
+            p["key"], _legacy_infer_separator(p["key"]))
         if p["separator"] != expected:
             mismatches.append((p["key"], p["separator"], expected))
     assert not mismatches, f"Separator field mismatches (got, expected): {mismatches}"
+
+
+# Intentional post-refactor separator corrections:
+# - date_eng4_short parses "25-Dec-20" (dashes); legacy inference stamped 'space'
+#   via the "eng" substring, so the separator filter discarded it for dashed input.
+_INTENTIONAL_SEPARATOR_OVERRIDES = {
+    "dt:date:date_eng4_short": "dash",
+}
 
 
 def test_metadata_languages_are_supported_or_none():
@@ -145,8 +160,12 @@ def test_infer_char_sets_matches_legacy_output():
     """DateParser._infer_char_sets must reproduce the pre-refactor charset for every
     generated pattern (resolved via basekey)."""
     from qddate import DateParser
-    from qddate.qdparser import (CHAR_SET_DIGITS, CHAR_SET_LATIN, CHAR_SET_CYRILLIC,
-                                 CHAR_SET_ACCENTED)
+    from qddate.qdparser import (
+        CHAR_SET_ACCENTED,
+        CHAR_SET_CYRILLIC,
+        CHAR_SET_DIGITS,
+        CHAR_SET_LATIN,
+    )
 
     parser = DateParser()
     expected_map = {
@@ -163,7 +182,8 @@ def test_infer_char_sets_matches_legacy_output():
         lang = _legacy_infer_language(basekey)
         script = {"ru": "cyrillic", "bg": "cyrillic", "fr": "accented", "cz": "accented",
                   "pl": "accented", "es": "accented", "it": "accented", "pt": "accented",
-                  "de": "latin", "tr": "latin", "en": "latin", "nl": "latin"}.get(lang)
+                  "de": "latin", "tr": "latin", "en": "latin", "nl": "latin",
+                  "ro": "latin", "uk": "cyrillic"}.get(lang)
         return expected_map.get(script, expected_map["latin"])
 
     mismatches = []

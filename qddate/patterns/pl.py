@@ -1,73 +1,29 @@
 # -*- coding: utf-8 -*-
+"""Polish month-name date patterns.
+
+Month-name data is sourced from the canonical ``MONTHS_BY_LANGUAGE`` table in
+``qddate/patterns/months``. Legacy ``PL_MONTHS*`` constants are re-exported;
+``pl_mname2mon`` is the unified lookup across nominative and genitive variants.
+"""
+
 from pyparsing import (
-    Word,
-    nums,
-    oneOf,
     CaselessLiteral,
     Optional,
+    Word,
+    nums,
+    one_of,
 )
 
-PL_MONTHS = [
-    "Styczeń",
-    "Luty",
-    "Marzec",
-    "Kwiecień",
-    "Maj",
-    "Czerwiec",
-    "Lipiec",
-    "Sierpień",
-    "Wrzesień",
-    "Październik",
-    "Listopad",
-    "Grudzień",
-]
+from .months import MONTHS_BY_LANGUAGE
 
-PL_MONTHS_LC = [
-    "styczeń",
-    "luty",
-    "marzec",
-    "kwiecień",
-    "maj",
-    "czerwiec",
-    "lipiec",
-    "sierpień",
-    "wrzesień",
-    "październik",
-    "listopad",
-    "grudzień",
-]
+_PL = MONTHS_BY_LANGUAGE["pl"]
 
-PL_MONTHS_GEN = [
-    "Stycznia",
-    "Lutego",
-    "Marca",
-    "Kwietnia",
-    "Maja",
-    "Czerwca",
-    "Lipca",
-    "Sierpnia",
-    "Września",
-    "Października",
-    "Listopada",
-    "Grudnia",
-]
+PL_MONTHS = list(_PL.full)
+PL_MONTHS_LC = list(_PL.full_lc)
+PL_MONTHS_GEN = list(_PL.genitive or ())
+PL_MONTHS_GEN_LC = list(_PL.genitive_lc or ())
 
-PL_MONTHS_GEN_LC = [
-    "stycznia",
-    "lutego",
-    "marca",
-    "kwietnia",
-    "maja",
-    "czerwca",
-    "lipca",
-    "sierpnia",
-    "września",
-    "października",
-    "listopada",
-    "grudnia",
-]
-
-# Build a lookup map that understands all supported labels
+# Unified lookup: every variant → month number. Built once at import.
 pl_mname2mon = {}
 for idx in range(12):
     for name_list in (
@@ -80,16 +36,15 @@ for idx in range(12):
         if name:
             pl_mname2mon[name] = idx + 1
 
-
 BASE_PATTERNS_PL = {
     "pat:pl:months":
-    oneOf(PL_MONTHS).setParseAction(lambda t: pl_mname2mon[t[0]]),
+    one_of(PL_MONTHS).set_parse_action(lambda t: pl_mname2mon[t[0]]),
     "pat:pl:months_lc":
-    oneOf(PL_MONTHS_LC).setParseAction(lambda t: pl_mname2mon[t[0]]),
+    one_of(PL_MONTHS_LC).set_parse_action(lambda t: pl_mname2mon[t[0]]),
     "pat:pl:months_gen":
-    oneOf(PL_MONTHS_GEN).setParseAction(lambda t: pl_mname2mon[t[0]]),
+    one_of(PL_MONTHS_GEN).set_parse_action(lambda t: pl_mname2mon[t[0]]),
     "pat:pl:months_gen_lc":
-    oneOf(PL_MONTHS_GEN_LC).setParseAction(lambda t: pl_mname2mon[t[0]]),
+    one_of(PL_MONTHS_GEN_LC).set_parse_action(lambda t: pl_mname2mon[t[0]]),
     "pat:pl:year_suffix":
     Optional(
         (
@@ -108,9 +63,9 @@ PATTERNS_PL = [
         "name":
         "Base polish date with month name (nominative)",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PL["pat:pl:months"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year") +
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PL["pat:pl:months"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],
         "length": {
             "min": 11,
@@ -127,9 +82,9 @@ PATTERNS_PL = [
         "name":
         "Base polish date with month name lower-case (nominative)",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PL["pat:pl:months_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year") +
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PL["pat:pl:months_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],
         "length": {
             "min": 11,
@@ -146,9 +101,9 @@ PATTERNS_PL = [
         "name":
         "Polish date with month name in genitive form",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PL["pat:pl:months_gen"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year") +
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PL["pat:pl:months_gen"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],
         "length": {
             "min": 11,
@@ -165,9 +120,9 @@ PATTERNS_PL = [
         "name":
         "Polish date with month name in genitive form (lower-case)",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PL["pat:pl:months_gen_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year") +
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PL["pat:pl:months_gen_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],
         "length": {
             "min": 11,
@@ -179,4 +134,3 @@ PATTERNS_PL = [
         1,
     },
 ]
-

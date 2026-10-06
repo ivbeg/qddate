@@ -1,48 +1,31 @@
 # -*- coding: utf-8 -*-
-from pyparsing import Word, nums, oneOf, Optional
+"""Turkish month-name date patterns.
 
-TR_MONTHS = [
-    "Ocak",
-    "Şubat",
-    "Mart",
-    "Nisan",
-    "Mayıs",
-    "Haziran",
-    "Temmuz",
-    "Ağustos",
-    "Eylül",
-    "Ekim",
-    "Kasım",
-    "Aralık",
-]
+Month-name data is sourced from the canonical ``MONTHS_BY_LANGUAGE`` table in
+``qddate/patterns/months``. Legacy ``TR_MONTHS*`` constants are re-exported.
+"""
 
-TR_MONTHS_LC = [
-    "ocak",
-    "şubat",
-    "mart",
-    "nisan",
-    "mayıs",
-    "haziran",
-    "temmuz",
-    "ağustos",
-    "eylül",
-    "ekim",
-    "kasım",
-    "aralık",
-]
+from pyparsing import Optional, Word, nums, one_of
+
+from .months import MONTHS_BY_LANGUAGE
+
+_TR = MONTHS_BY_LANGUAGE["tr"]
+
+TR_MONTHS = list(_TR.full)
+TR_MONTHS_LC = list(_TR.full_lc)
 
 tr_mname2mon = dict((m, i + 1) for i, m in enumerate(TR_MONTHS) if m)
 trlc_mname2mon = dict((m, i + 1) for i, m in enumerate(TR_MONTHS_LC) if m)
 
 BASE_PATTERNS_TR = {
     "pat:tr:months":
-    oneOf(TR_MONTHS).setParseAction(lambda t: tr_mname2mon[t[0]]),
+    one_of(TR_MONTHS).set_parse_action(lambda t: tr_mname2mon[t[0]]),
     "pat:tr:months_lc":
-    oneOf(TR_MONTHS_LC).setParseAction(lambda t: trlc_mname2mon[t[0]]),
+    one_of(TR_MONTHS_LC).set_parse_action(lambda t: trlc_mname2mon[t[0]]),
 }
 
 TURKISH_SUFFIX = Optional(
-    oneOf(["tarihinde", "tarihli"], caseless=True)).suppress()
+    one_of(["tarihinde", "tarihli"], caseless=True)).suppress()
 
 PATTERNS_TR = [
     {
@@ -51,9 +34,9 @@ PATTERNS_TR = [
         "name":
         "Base Turkish date with capitalized month",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_TR["pat:tr:months"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year") + TURKISH_SUFFIX,
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_TR["pat:tr:months"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year") + TURKISH_SUFFIX,
         "length": {
             "min": 11,
             "max": 32
@@ -69,9 +52,9 @@ PATTERNS_TR = [
         "name":
         "Base Turkish date with lowercase month",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_TR["pat:tr:months_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year") + TURKISH_SUFFIX,
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_TR["pat:tr:months_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year") + TURKISH_SUFFIX,
         "length": {
             "min": 11,
             "max": 32
@@ -82,4 +65,3 @@ PATTERNS_TR = [
         1,
     },
 ]
-

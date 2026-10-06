@@ -10,14 +10,16 @@ contract of automatic language detection used internally for pattern filtering.
 
 ---
 
+## Requirements
+
 ### Requirement: Supported languages
 
 The library SHALL support exactly the following language codes: `bg`, `cz`, `de`,
-`en`, `es`, `fr`, `it`, `nl`, `pl`, `pt`, `ru`, `tr`.
+`en`, `es`, `fr`, `it`, `nl`, `pl`, `pt`, `ro`, `ru`, `tr`, `uk`.
 
 #### Scenario: Querying supported languages
 - **WHEN** the list of supported languages is read
-- **THEN** it SHALL contain all twelve codes listed above
+- **THEN** it SHALL contain all fourteen codes listed above
 
 ---
 

@@ -11,7 +11,7 @@ Define the externally observable behavior of `qddate.DateParser.parse()` and
 contract.
 
 ---
-
+## Requirements
 ### Requirement: Parse date into datetime
 
 The parser SHALL accept any human-readable string and return a
@@ -132,3 +132,192 @@ invocations on the same parser instance.
 #### Scenario: Repeated calls are consistent
 - **WHEN** `parse("01.12.2009")` is called three times
 - **THEN** all three results SHALL be equal
+
+### Requirement: Relative date parsing for English and Russian
+
+`DateParser` SHALL expose `parse_relative(text, *, reference=None)` that
+resolves common English and Russian relative-date phrases against a
+reference time (default: `datetime.now()`).
+
+`DateParser(relative=True)` SHALL make `parse()` also try the relative grammar
+when the absolute grammar returns `None`. The default behaviour (without
+`relative=True`) is unchanged.
+
+#### Scenario: parse_relative resolves "today"
+- **WHEN** `parser.parse_relative("today")` is called with no reference
+- **THEN** the returned `datetime` SHALL have today's calendar date and
+  midnight hour
+- **AND** the call SHALL NOT raise
+
+#### Scenario: parse_relative resolves "yesterday"
+- **WHEN** `parser.parse_relative("yesterday")` is called
+- **THEN** the returned `datetime` SHALL be `reference.date - 1 day` with
+  midnight hour
+
+#### Scenario: parse_relative resolves N-days-ago
+- **WHEN** `parser.parse_relative("3 days ago")` is called
+- **THEN** the returned `datetime` SHALL be `reference.date - 3 days`
+
+#### Scenario: parse_relative with pinned reference is deterministic
+- **GIVEN** `reference = datetime(2020, 6, 15, 0, 0)`
+- **WHEN** `parser.parse_relative("yesterday", reference=reference)` is called
+- **THEN** the result SHALL equal `datetime(2020, 6, 14, 0, 0)`
+
+#### Scenario: parse_relative resolves Russian phrases
+- **WHEN** `parser.parse_relative("сегодня")` is called
+- **THEN** the result SHALL be today at midnight
+- **WHEN** `parser.parse_relative("3 дня назад")` is called
+- **THEN** the result SHALL be `reference.date - 3 days`
+
+#### Scenario: parse() does not match relative phrases by default
+- **GIVEN** `parser = DateParser()` (no `relative=True`)
+- **WHEN** `parser.parse("today")` is called
+- **THEN** the result SHALL be `None` (back-compat preserved)
+
+#### Scenario: parse() matches relative phrases when relative=True
+- **GIVEN** `parser = DateParser(relative=True)`
+- **WHEN** `parser.parse("yesterday")` is called
+- **THEN** the result SHALL be `datetime.now().date() - 1 day`
+
+### Requirement: Filter pipeline is documented
+
+The public documentation SHALL include a description of the six-level
+filter pipeline used by `DateParser.match()` and friends, and SHALL link to
+it from `match.md` and `parse.md`.
+
+#### Scenario: docs/docs/api/filter-pipeline.md exists
+- **WHEN** the docs site is built
+- **THEN** the page `docs/docs/api/filter-pipeline.md` SHALL be present
+- **AND** it SHALL be reachable from the API reference sidebar
+
+#### Scenario: Page lists the six filter levels
+- **WHEN** the page is rendered
+- **THEN** it SHALL describe each of the six filters (length, separator,
+  year format, language, character set, prefix bucket)
+- **AND** it SHALL describe the keyword arguments (`noprefix`,
+  `nocharsetfilter`, `noseparatorfilter`, `noyearformatfilter`,
+  `nolanguagefilter`) that disable them
+- **AND** it SHALL be honest about the cost (slower parses when filters
+  are disabled)
+
+### Requirement: Reachability oracle test
+
+The test suite SHALL include a reachability oracle that asserts every base
+pattern in `ALL_PATTERNS` is the *winning* match for at least one fixture
+string, with one fixture dedicated to exercising each base pattern.
+
+#### Scenario: Every base pattern wins a probe
+- **GIVEN** the canonical pattern table `qddate.patterns.ALL_PATTERNS`
+- **WHEN** the reachability oracle runs over a curated probe corpus
+- **THEN** every basekey in `ALL_PATTERNS` SHALL appear as the winning match
+  for at least one probe string
+- **AND** every probe string SHALL produce a non-None parse result
+
+#### Scenario: New pattern breaks the oracle loudly
+- **GIVEN** a new pattern is added to `ALL_PATTERNS` without a matching probe
+- **WHEN** the reachability oracle runs
+- **THEN** the test SHALL fail with a message naming the new pattern key
+- **AND** the fix SHALL be to add a probe, not to weaken the oracle
+
+### Requirement: Pattern fingerprint index
+
+Each pattern SHALL carry a precomputed fingerprint derived from
+`len(qax)`, `separator`, `language`, `chars`, `year_format`, and length
+range. The set of all fingerprints SHALL be exposed as
+`qddate.patterns._PATTERN_FINGERPRINTS`, mapping each unique fingerprint
+tuple to the frozenset of pattern keys that share it.
+
+#### Scenario: Fingerprint is deterministic
+- **WHEN** `compute_pattern_fingerprint(p)` is called twice on the same
+  pattern dict
+- **THEN** the result SHALL be `==` to itself (hashable, equality-stable)
+
+#### Scenario: Every pattern is in the index
+- **WHEN** the fingerprint index is built at import time
+- **THEN** every key in `ALL_PATTERNS` SHALL appear in exactly one bucket
+  of `_PATTERN_FINGERPRINTS`
+
+### Requirement: Legacy buckets are projections of the index
+
+The per-instance buckets `_patterns_by_length`, `_patterns_by_separator`,
+`_patterns_by_language`, and `_patterns_by_year_format` SHALL be
+derivable from `_PATTERN_FINGERPRINTS` by a single dimension-projection
+loop. The index SHALL NOT carry any pattern that is missing from the
+legacy buckets.
+
+#### Scenario: Length bucket projection
+- **GIVEN** the set of pattern keys whose pattern has
+  `length_min ≤ len(text) ≤ length_max`
+- **THEN** that set SHALL equal the union of `_PATTERN_FINGERPRINTS` entries
+  whose `length_min ≤ len(text) ≤ length_max`
+
+### Requirement: Intersection candidate set
+
+`intersect_fingerprints(text_fingerprint, allowed_chars)` SHALL return the
+union of `_PATTERN_FINGERPRINTS` entries whose key is satisfied by the
+text's fingerprint (length match, chars match with `ACCENTED → LATIN`
+substitution, separator subset, language subset, year-format subset).
+The returned set SHALL be a superset-or-equal of the candidate set
+returned by the existing 6-level filter pipeline for the same input.
+
+#### Scenario: Accented-vs-Latin substitution preserved
+- **GIVEN** a pattern whose required chars include `CHAR_SET_ACCENTED`
+- **WHEN** the text contains only `CHAR_SET_LATIN`
+- **THEN** `intersect_fingerprints` SHALL still include this pattern in
+  the result
+
+### Requirement: Fingerprint-based candidate selection is the default
+
+`DateParser.__init__` SHALL accept a `use_fingerprint: bool = True`
+parameter (default since ``1.0.14``). When the caller explicitly passes
+``False``, the constructor SHALL emit a ``DeprecationWarning`` noting
+that the legacy 6-level filter will be removed in ``v2.0.0``. Passing
+``True`` (or omitting the argument) SHALL be silent.
+
+#### Scenario: Default behaviour uses fingerprint
+- **WHEN** ``DateParser()`` is constructed with no arguments
+- **THEN** ``use_fingerprint`` SHALL be ``True``
+- **AND** the fingerprint-based filter SHALL run
+- **AND** no ``DeprecationWarning`` SHALL be emitted
+
+#### Scenario: Feature flag explicitly disabled
+- **GIVEN** a ``DateParser(use_fingerprint=False)``
+- **WHEN** ``match()`` / ``match_all()`` / ``parse()`` is called
+- **THEN** the legacy 6-level filter SHALL produce the candidate set
+
+#### Scenario: Explicit opt-in emits a warning
+- **GIVEN** ``warnings.simplefilter("always")`` is in effect
+- **WHEN** ``DateParser(use_fingerprint=False)`` is constructed
+- **THEN** a ``DeprecationWarning`` SHALL be emitted with a message that
+  mentions ``v2.0.0`` as the removal milestone
+
+### Requirement: Fingerprint-based filter is exactly equivalent to the legacy filter
+
+For every input string the fingerprint-based filter SHALL return a
+candidate pattern set that is **equal** to the candidate set the
+existing 6-level filter would have returned for the same input. The
+equality MUST hold under any combination of filter toggles
+(``noprefix``, ``allow_no_year``, ``nocharsetfilter``,
+``noseparatorfilter``, ``noyearformatfilter``, ``nolanguagefilter``).
+
+#### Scenario: Equality on the extended probe corpus
+- **GIVEN** any string from the extended probe corpus (the union of the
+  reachability probes and the regression corpus — 165 strings covering
+  every shipped language, every separator, every year-format bucket,
+  weekday + short + compact + edge cases)
+- **WHEN** the same string is fed to both filters
+- **THEN** the two candidate sets SHALL be equal (no additions, no removals)
+
+### Requirement: Toggles preservation across filter toggles
+
+The fingerprint-based filter SHALL honour the existing filter toggles
+(``noprefix``, ``allow_no_year``, ``nocharsetfilter``, ``noseparatorfilter``,
+``noyearformatfilter``, ``nolanguagefilter``) and SHALL produce the same
+candidate set as the legacy filter under the same toggles.
+
+#### Scenario: Disabling nocharsetfilter widens the candidate set symmetrically
+- **GIVEN** two parsers (``use_fingerprint=True`` and ``use_fingerprint=False``)
+  both with ``nocharsetfilter=True``
+- **WHEN** the same text is fed to both
+- **THEN** both candidate sets SHALL be equal
+

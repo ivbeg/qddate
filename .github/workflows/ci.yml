@@ -10,30 +10,36 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-        
+
     - name: Install dependencies
+      env:
+        # Enable the perf smoke test on CI runners. Set to 0 to skip.
+        QDDATE_PERF: "1"
       run: |
         python -m pip install --upgrade pip
         pip install -e .[test]
         pip install ruff pytest pytest-cov
-        
+
     - name: Lint with Ruff
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        # ruff check . --select=E9,F63,F7,F82 --show-source
-        # exit-zero treats all errors as warnings.
-        ruff check . --exit-zero
-        
+        # Ruff is now a gate (not advisory). Real bugs / undefined names
+        # plus the configured rule set fail the build.
+        ruff check qddate tests scripts
+
     - name: Test with pytest
+      env:
+        QDDATE_PERF: "1"
       run: |
-        pytest --cov=qddate --cov-report=xml
+        # Coverage gate: fail the build if line coverage drops below 85%.
+        pytest --cov=qddate --cov-report=xml --cov-fail-under=85

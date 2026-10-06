@@ -38,8 +38,8 @@ These out-of-scope items are revisited as proposed changes under `openspec/chang
 
 ## Current capabilities (at a glance)
 
-- 124 base patterns → 992 generated patterns (numeric + time variants).
-- 12 languages: bg, cz, de, en, es, fr, it, nl, pl, pt, ru, tr.
+- 128 base patterns → 1024 generated patterns (numeric + time variants).
+- 14 languages: bg, cz, de, en, es, fr, it, nl, pl, pt, ro, ru, tr, uk.
 - See `openspec/specs/` for the authoritative behavioral specification.
 
 ## Specification pointers

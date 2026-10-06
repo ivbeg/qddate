@@ -7,19 +7,19 @@ This script extracts pattern information from all pattern modules and
 generates Docusaurus pages under docs/docs/languages/<code>.md.
 """
 
-import sys
 import os
-import re
+import sys
 
 # Add parent directory to path to import qddate
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+# Import month and weekday names for example generation
 from qddate.patterns import (
-    PATTERNS_EN,
     INTEGER_LIKE_PATTERNS,
     PATTERNS_BG,
     PATTERNS_CZ,
     PATTERNS_DE,
+    PATTERNS_EN,
     PATTERNS_ES,
     PATTERNS_FR,
     PATTERNS_IT,
@@ -28,10 +28,19 @@ from qddate.patterns import (
     PATTERNS_PT,
     PATTERNS_RU,
     PATTERNS_TR,
+    base,
+    bg,
+    cz,
+    de,
+    es,
+    fr,
+    it,
+    nl,
+    pl,
+    pt,
+    ru,
+    tr,
 )
-
-# Import month and weekday names for example generation
-from qddate.patterns import base, bg, cz, de, es, fr, it, nl, pl, pt, ru, tr
 
 try:
     from qddate.patterns import PATTERNS_RO
@@ -135,19 +144,19 @@ def generate_examples(pattern, lang_code):
     fmt = pattern.get('format', '')
     yearshort = pattern.get('yearshort', False)
     noyear = pattern.get('noyear', False)
-    
+
     examples = []
-    
+
     # Sample dates to use
     day1, day2, day3 = '15', '3', '28'
     month_num1, month_num2, month_num3 = '03', '12', '07'
     year_full1, year_full2, year_full3 = '2024', '2023', '2025'
     year_short1, year_short2, year_short3 = '24', '23', '25'
-    
+
     # Determine month names to use based on pattern
     months_to_use = None
     weekdays_to_use = None
-    
+
     if lang_code in LANG_MONTHS:
         lang_months = LANG_MONTHS[lang_code]
         if 'short' in name or 'abbrev' in name:
@@ -164,7 +173,7 @@ def generate_examples(pattern, lang_code):
             months_to_use = lang_months.get('orig') or lang_months.get('full')
         else:
             months_to_use = lang_months.get('full') or lang_months.get('lc')
-    
+
     if lang_code in LANG_WEEKDAYS:
         lang_wdays = LANG_WEEKDAYS[lang_code]
         if 'short' in name:
@@ -173,7 +182,7 @@ def generate_examples(pattern, lang_code):
             weekdays_to_use = lang_wdays.get('lc') or lang_wdays.get('full')
         else:
             weekdays_to_use = lang_wdays.get('full')
-    
+
     # Generate examples based on format and pattern characteristics
     if noyear:
         # Patterns without year
@@ -243,7 +252,7 @@ def generate_examples(pattern, lang_code):
             month1 = months_to_use[2] if len(months_to_use) > 2 else months_to_use[0]
             month2 = months_to_use[11] if len(months_to_use) > 11 else months_to_use[1]
             month3 = months_to_use[6] if len(months_to_use) > 6 else months_to_use[2]
-            
+
             # Check for articles (de, le)
             article = ''
             if 'article' in name and 'not article' not in name and 'no article' not in name:
@@ -251,25 +260,25 @@ def generate_examples(pattern, lang_code):
                     article = 'de '
                 elif lang_code == 'fr':
                     article = 'le '
-            
+
             # Check for weekday
             weekday_prefix = ''
             if 'weekday' in name and weekdays_to_use:
                 weekday1 = weekdays_to_use[0] if len(weekdays_to_use) > 0 else ''
-                weekday2 = weekdays_to_use[1] if len(weekdays_to_use) > 1 else ''
-                weekday3 = weekdays_to_use[2] if len(weekdays_to_use) > 2 else ''
+                weekdays_to_use[1] if len(weekdays_to_use) > 1 else ''
+                weekdays_to_use[2] if len(weekdays_to_use) > 2 else ''
                 weekday_prefix = f'{weekday1}, ' if weekday1 else ''
-            
+
             # Check for year suffix (Russian)
             year_suffix = ''
             if 'year' in name and lang_code == 'ru':
                 year_suffix = ' г.'
-            
+
             # Check for Turkish suffix
             tr_suffix = ''
             if lang_code == 'tr' and 'tarihinde' in key or 'tarihli' in key:
                 tr_suffix = ' tarihinde'
-            
+
             examples = [
                 f'{weekday_prefix}{day1} {article}{month1} {year_full1}{year_suffix}{tr_suffix}'.strip(),
                 f'{weekday_prefix}{day2} {article}{month2} {year_full2}{year_suffix}{tr_suffix}'.strip(),
@@ -285,7 +294,7 @@ def generate_examples(pattern, lang_code):
             month2 = months_to_use[11] if len(months_to_use) > 11 else months_to_use[1]
             month3 = months_to_use[6] if len(months_to_use) > 6 else months_to_use[2]
             examples = [f'{month1} {day1}, {year_full1}', f'{month2} {day2}, {year_full2}', f'{month3} {day3}, {year_full3}']
-    
+
     # Fallback: generate simple numeric examples if nothing matched
     if not examples:
         if noyear:
@@ -294,7 +303,7 @@ def generate_examples(pattern, lang_code):
             examples = ['15/03/24', '3/12/23', '28/7/25']
         else:
             examples = ['15/03/2024', '3/12/2023', '28/7/2025']
-    
+
     # Limit to 2-3 examples
     return examples[:3]
 
@@ -331,12 +340,12 @@ def generate_markdown_table(patterns_info):
     """Generate a markdown table from pattern information."""
     if not patterns_info:
         return "No patterns available.\n"
-    
+
     # Table header
     lines = []
     lines.append("| Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |")
     lines.append("|-------------|------|--------|------------|------------|------------|---------|--------|----------|")
-    
+
     # Table rows
     for info in patterns_info:
         notes = []
@@ -344,15 +353,15 @@ def generate_markdown_table(patterns_info):
             notes.append("2-digit year")
         if info['noyear']:
             notes.append("No year")
-        notes_str = ", ".join(notes) if notes else ""
-        
+        ", ".join(notes) if notes else ""
+
         # Format examples
         examples = info.get('examples', [])
         if examples:
             examples_str = "`" + "`, `".join(examples) + "`"
         else:
             examples_str = ""
-        
+
         row = (
             f"| `{info['key']}` | {info['name']} | `{info['format']}` | "
             f"{format_table_value(info['min_length'])} | {format_table_value(info['max_length'])} | "
@@ -360,7 +369,7 @@ def generate_markdown_table(patterns_info):
             f"{format_table_value(info['filter'])} | {examples_str} |"
         )
         lines.append(row)
-    
+
     return "\n".join(lines) + "\n"
 
 
@@ -377,7 +386,7 @@ def generate_language_page(lang_code, patterns):
         f'description: "Base date patterns for {lang_name} ({lang_code})"',
         "---",
         "",
-        f"<!-- Generated by scripts/generate_pattern_docs.py. Do not edit by hand. -->",
+        "<!-- Generated by scripts/generate_pattern_docs.py. Do not edit by hand. -->",
         "",
         f"# {lang_name} (`{lang_code}`)",
         "",

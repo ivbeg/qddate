@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
-__version__ = "0.1.1"
 __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
-from .base import PATTERNS_EN, BASE_TIME_PATTERNS, INTEGER_LIKE_PATTERNS
+from .base import BASE_TIME_PATTERNS, INTEGER_LIKE_PATTERNS, PATTERNS_EN  # noqa: F401
 from .bg import PATTERNS_BG
 from .cz import PATTERNS_CZ
 from .de import PATTERNS_DE
 from .es import PATTERNS_ES
 from .fr import PATTERNS_FR
 from .it import PATTERNS_IT
+from .months import MONTHS_BY_LANGUAGE, get_months  # noqa: F401
 from .nl import PATTERNS_NL
 from .pl import PATTERNS_PL
 from .pt import PATTERNS_PT
+from .ro import PATTERNS_RO
 from .ru import PATTERNS_RU
 from .tr import PATTERNS_TR
+from .uk import PATTERNS_UK
 
 ALL_PATTERNS = (PATTERNS_EN + INTEGER_LIKE_PATTERNS + PATTERNS_BG +
                 PATTERNS_CZ + PATTERNS_DE + PATTERNS_ES + PATTERNS_FR +
                 PATTERNS_IT + PATTERNS_NL + PATTERNS_PL + PATTERNS_PT +
-                PATTERNS_RU + PATTERNS_TR)
+                PATTERNS_RO + PATTERNS_RU + PATTERNS_TR + PATTERNS_UK)
 
 
 # Authoritative per-pattern metadata: basekey -> (language, separator).
@@ -64,7 +66,10 @@ _PATTERN_METADATA = {
     'dt:date:date_eng2_short': ('en', 'space'),
     'dt:date:date_eng3': ('en', 'space'),
     'dt:date:date_eng3_nolc': ('en', 'space'),
-    'dt:date:date_eng4_short': ('en', 'space'),
+    # "25-Dec-20" style: dashes, not spaces. The legacy inference stamped 'space'
+    # (substring "eng"), which made the separator filter discard it for dashed
+    # input — see the intentional override in tests/test_pattern_metadata.py.
+    'dt:date:date_eng4_short': ('en', 'dash'),
     'dt:date:weekday_eng': ('en', 'space'),
     'dt:date:weekday_eng_lc': ('en', 'space'),
     'dt:date:weekday_eng_wshort': ('en', 'space'),
@@ -160,6 +165,18 @@ _PATTERN_METADATA = {
     'dt:date:pt_weekday_lc': ('pt', 'space'),
     'dt:date:pt_weekday_short': ('pt', 'space'),
     'dt:date:pt_weekday_short_lc': ('pt', 'space'),
+    # Romanian (ro.py)
+    'dt:date:ro_base': ('ro', 'space'),
+    'dt:date:ro_base_lc': ('ro', 'space'),
+    'dt:date:ro_short': ('ro', 'space'),
+    'dt:date:ro_short_lc': ('ro', 'space'),
+    # Ukrainian (uk.py)
+    'dt:date:uk_base': ('uk', 'space'),
+    'dt:date:uk_base_lc': ('uk', 'space'),
+    'dt:date:uk_gen': ('uk', 'space'),
+    'dt:date:uk_gen_lc': ('uk', 'space'),
+    'dt:date:uk_short': ('uk', 'space'),
+    'dt:date:uk_short_lc': ('uk', 'space'),
     # Russian (ru.py)
     'dt:date:date_rus': ('ru', 'space'),
     'dt:date:date_rus2': ('ru', 'space'),
@@ -179,22 +196,28 @@ _PATTERN_METADATA = {
 
 
 def annotate_patterns(patterns):
-    """Stamp explicit ``language`` and ``separator`` fields onto each pattern.
+    """Stamp explicit ``language``, ``separator`` and ``required_chars`` fields
+    onto each pattern.
 
-    Idempotent: skips patterns that already carry both fields. Falls back to the
-    ``mixed`` separator and ``None`` language when a key is not in the metadata
-    table, so a missing entry degrades gracefully rather than crashing (the
-    coverage test flags any such gap).
+    Idempotent: skips patterns that already carry the relevant fields. Falls
+    back to the ``mixed`` separator and ``None`` language when a key is not in
+    the metadata table, so a missing entry degrades gracefully rather than
+    crashing (the coverage test flags any such gap).
+
+    The ``required_chars`` field is also stamped here so ``DateParser`` no
+    longer needs to mutate ``ALL_PATTERNS`` during construction.
 
     :param patterns: iterable of pattern dicts (mutated in place)
     :return: the same list (for chaining)
     """
     for pat in patterns:
         if "language" in pat and "separator" in pat:
-            continue
-        lang, sep = _PATTERN_METADATA.get(pat["key"], (None, "mixed"))
-        pat.setdefault("language", lang)
-        pat.setdefault("separator", sep)
+            lang, sep = None, None
+        else:
+            lang, sep = _PATTERN_METADATA.get(pat["key"], (None, "mixed"))
+            pat.setdefault("language", lang)
+            pat.setdefault("separator", sep)
+        pat.setdefault("required_chars", _infer_required_chars(pat))
     return patterns
 
 
@@ -209,6 +232,55 @@ _NUMERIC_PATTERN_KEYS = frozenset({
     "dt:date:date_4_point", "dt:date:date_5", "dt:date:date_6",
     "dt:date:date_usa_1", "dt:date:date_usa",
 })
+
+
+# Character-set constants used by the charset prefilter. They are also re-defined
+# in ``qddate.qdparser`` for back-compat (callers may import them from either
+# location); the canonical definitions live here.
+CHAR_SET_DIGITS = "digits"
+CHAR_SET_LATIN = "latin"
+CHAR_SET_CYRILLIC = "cyrillic"
+CHAR_SET_ACCENTED = "accented"
+CHAR_SET_SEPARATORS = "separators"
+
+
+# Mapping from language code to the character set(s) a pattern of that language
+# requires. Mirrors ``qddate.qdparser.LANGUAGE_CHAR_SETS``; the duplicates are
+# intentional so ``annotate_patterns`` can run without importing the parser.
+LANGUAGE_CHAR_SETS = {
+    "ru": frozenset({CHAR_SET_DIGITS, CHAR_SET_CYRILLIC}),
+    "bg": frozenset({CHAR_SET_DIGITS, CHAR_SET_CYRILLIC}),
+    "fr": frozenset({CHAR_SET_DIGITS, CHAR_SET_ACCENTED}),
+    "cz": frozenset({CHAR_SET_DIGITS, CHAR_SET_ACCENTED}),
+    "pl": frozenset({CHAR_SET_DIGITS, CHAR_SET_ACCENTED}),
+    "es": frozenset({CHAR_SET_DIGITS, CHAR_SET_ACCENTED}),
+    "it": frozenset({CHAR_SET_DIGITS, CHAR_SET_ACCENTED}),
+    "pt": frozenset({CHAR_SET_DIGITS, CHAR_SET_ACCENTED}),
+    "de": frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}),
+    "nl": frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}),
+    "en": frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}),
+    "tr": frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}),
+    "ro": frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}),
+    "uk": frozenset({CHAR_SET_DIGITS, CHAR_SET_CYRILLIC}),
+}
+
+
+def _infer_required_chars(pattern):
+    """Infer the character set(s) a pattern requires to match.
+
+    A pattern whose key is in :data:`_NUMERIC_PATTERN_KEYS` matches with digits
+    only. Patterns carrying a ``language`` tag require that language's script
+    (plus digits). All other patterns default to digits only (defensive).
+
+    Pure function: reads from the pattern dict, returns a frozenset.
+    """
+    basekey = pattern.get("basekey", pattern.get("key", ""))
+    if basekey in _NUMERIC_PATTERN_KEYS:
+        return frozenset({CHAR_SET_DIGITS})
+    lang = pattern.get("language")
+    if lang is not None:
+        return LANGUAGE_CHAR_SETS.get(lang, frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}))
+    return frozenset({CHAR_SET_DIGITS})
 
 
 # Stamp metadata onto the canonical pattern list once at import, so every consumer
@@ -226,8 +298,10 @@ SUPPORTED_LANGUAGES = [
     "nl",
     "pl",
     "pt",
+    "ro",
     "ru",
     "tr",
+    "uk",
 ]
 
 # Mapping of language codes to their pattern lists
@@ -242,14 +316,16 @@ PATTERNS_BY_LANGUAGE = {
     "nl": PATTERNS_NL,
     "pl": PATTERNS_PL,
     "pt": PATTERNS_PT,
+    "ro": PATTERNS_RO,
     "ru": PATTERNS_RU,
     "tr": PATTERNS_TR,
+    "uk": PATTERNS_UK,
 }
 
 
 def get_patterns_for_languages(languages):
     """Get patterns for specified languages.
-    
+
     :param languages: Language code (str) or list of language codes (list of str).
                      If None or empty, returns all patterns.
     :type languages: str|list|None
@@ -259,16 +335,16 @@ def get_patterns_for_languages(languages):
     """
     if languages is None:
         return ALL_PATTERNS
-    
+
     # Normalize to list
     if isinstance(languages, str):
         languages = [languages]
     elif not isinstance(languages, (list, tuple)):
         raise TypeError("languages must be a string, list of strings, or None")
-    
+
     if len(languages) == 0:
         return ALL_PATTERNS
-    
+
     # Validate all language codes
     invalid_languages = [lang for lang in languages if lang not in SUPPORTED_LANGUAGES]
     if invalid_languages:
@@ -276,10 +352,10 @@ def get_patterns_for_languages(languages):
             f"Unsupported language(s): {invalid_languages}. "
             f"Supported languages: {SUPPORTED_LANGUAGES}"
         )
-    
+
     # Combine patterns for specified languages
     patterns = []
     for lang in languages:
         patterns.extend(PATTERNS_BY_LANGUAGE[lang])
-    
+
     return patterns

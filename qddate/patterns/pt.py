@@ -1,70 +1,27 @@
 # -*- coding: utf-8 -*-
+"""Portuguese month-name date patterns.
+
+Month-name data is sourced from the canonical ``MONTHS_BY_LANGUAGE`` table in
+``qddate/patterns/months``. Legacy ``PT_MONTHS*`` constants are re-exported.
+"""
+
 from pyparsing import (
+    CaselessLiteral,
+    Literal,
+    Optional,
     Word,
     nums,
-    oneOf,
-    CaselessLiteral,
-    Optional,
-    Literal,
+    one_of,
 )
 
-PT_MONTHS = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-]
-PT_MONTHS_LC = [
-    "janeiro",
-    "fevereiro",
-    "março",
-    "abril",
-    "maio",
-    "junho",
-    "julho",
-    "agosto",
-    "setembro",
-    "outubro",
-    "novembro",
-    "dezembro",
-]
+from .months import MONTHS_BY_LANGUAGE
 
-PT_MONTHS_SHORT = [
-    "Jan",
-    "Fev",
-    "Mar",
-    "Abr",
-    "Mai",
-    "Jun",
-    "Jul",
-    "Ago",
-    "Set",
-    "Out",
-    "Nov",
-    "Dez",
-]
-PT_MONTHS_SHORT_LC = [
-    "jan",
-    "fev",
-    "mar",
-    "abr",
-    "mai",
-    "jun",
-    "jul",
-    "ago",
-    "set",
-    "out",
-    "nov",
-    "dez",
-]
+_PT = MONTHS_BY_LANGUAGE["pt"]
+
+PT_MONTHS = list(_PT.full)
+PT_MONTHS_LC = list(_PT.full_lc)
+PT_MONTHS_SHORT = list(_PT.abbrev)
+PT_MONTHS_SHORT_LC = list(_PT.abbrev_lc)
 
 PT_WEEKDAYS = [
     "Segunda-feira",
@@ -103,7 +60,6 @@ PT_WEEKDAYS_SHORT_LC = [
     "dom",
 ]
 
-# Portugal months map
 pt_mname2mon = dict((m, i + 1) for i, m in enumerate(PT_MONTHS) if m)
 ptlc_mname2mon = dict((m, i + 1) for i, m in enumerate(PT_MONTHS_LC) if m)
 ptshort_mname2mon = dict((m, i + 1) for i, m in enumerate(PT_MONTHS_SHORT) if m)
@@ -111,21 +67,21 @@ ptshortlc_mname2mon = dict((m, i + 1) for i, m in enumerate(PT_MONTHS_SHORT_LC) 
 
 BASE_PATTERNS_PT = {
     "pat:pt:months":
-    oneOf(PT_MONTHS).setParseAction(lambda t: pt_mname2mon[t[0]]),
+    one_of(PT_MONTHS).set_parse_action(lambda t: pt_mname2mon[t[0]]),
     "pat:pt:months_lc":
-    oneOf(PT_MONTHS_LC).setParseAction(lambda t: ptlc_mname2mon[t[0]]),
+    one_of(PT_MONTHS_LC).set_parse_action(lambda t: ptlc_mname2mon[t[0]]),
     "pat:pt:months_short":
-    oneOf(PT_MONTHS_SHORT, caseless=True).setParseAction(lambda t: ptshort_mname2mon[t[0].capitalize()]),
+    one_of(PT_MONTHS_SHORT, caseless=True).set_parse_action(lambda t: ptshort_mname2mon[t[0].capitalize()]),
     "pat:pt:months_short_lc":
-    oneOf(PT_MONTHS_SHORT_LC).setParseAction(lambda t: ptshortlc_mname2mon[t[0]]),
+    one_of(PT_MONTHS_SHORT_LC).set_parse_action(lambda t: ptshortlc_mname2mon[t[0]]),
     "pat:pt:weekdays":
-    oneOf(PT_WEEKDAYS),
+    one_of(PT_WEEKDAYS),
     "pat:pt:weekdays_lc":
-    oneOf(PT_WEEKDAYS_LC),
+    one_of(PT_WEEKDAYS_LC),
     "pat:pt:weekdays_short":
-    oneOf(PT_WEEKDAYS_SHORT, caseless=True),
+    one_of(PT_WEEKDAYS_SHORT, caseless=True),
     "pat:pt:weekdays_short_lc":
-    oneOf(PT_WEEKDAYS_SHORT_LC),
+    one_of(PT_WEEKDAYS_SHORT_LC),
 }
 
 PATTERNS_PT = [
@@ -136,9 +92,9 @@ PATTERNS_PT = [
         "name":
         "Base portugal date with month name not article",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PT["pat:pt:months"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PT["pat:pt:months"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 11,
             "max": 22
@@ -154,9 +110,9 @@ PATTERNS_PT = [
         "name":
         "Base portugal date with month name and lowcase, no article",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PT["pat:pt:months_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PT["pat:pt:months_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 11,
             "max": 22
@@ -172,11 +128,11 @@ PATTERNS_PT = [
         "name":
         "Base portugal date with month name and articles",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         CaselessLiteral("de").suppress() +
-        BASE_PATTERNS_PT["pat:pt:months"].setResultsName("month") +
+        BASE_PATTERNS_PT["pat:pt:months"].set_results_name("month") +
         CaselessLiteral("de").suppress() +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 11,
             "max": 26
@@ -192,11 +148,11 @@ PATTERNS_PT = [
         "name":
         "Base portugal date with month name and articles and lowcase",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         CaselessLiteral("de").suppress() +
-        BASE_PATTERNS_PT["pat:pt:months_lc"].setResultsName("month") +
+        BASE_PATTERNS_PT["pat:pt:months_lc"].set_results_name("month") +
         CaselessLiteral("de").suppress() +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 11,
             "max": 26
@@ -213,9 +169,9 @@ PATTERNS_PT = [
         "name":
         "Portuguese date with abbreviated month",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PT["pat:pt:months_short"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PT["pat:pt:months_short"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 9,
             "max": 13
@@ -231,9 +187,9 @@ PATTERNS_PT = [
         "name":
         "Portuguese date with abbreviated month lowercase",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PT["pat:pt:months_short_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PT["pat:pt:months_short_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 9,
             "max": 13
@@ -249,14 +205,14 @@ PATTERNS_PT = [
         "name":
         "Portuguese date with abbreviated month (month first)",
         "pattern":
-        (BASE_PATTERNS_PT["pat:pt:months_short"].setResultsName("month") +
-         Word(nums, min=1, max=2).setResultsName("day") +
+        (BASE_PATTERNS_PT["pat:pt:months_short"].set_results_name("month") +
+         Word(nums, min=1, max=2).set_results_name("day") +
          Literal(",").suppress() +
-         Word(nums, exact=4).setResultsName("year")) |
-        (BASE_PATTERNS_PT["pat:pt:months"].setResultsName("month") +
-         Word(nums, min=1, max=2).setResultsName("day") +
+         Word(nums, exact=4).set_results_name("year")) |
+        (BASE_PATTERNS_PT["pat:pt:months"].set_results_name("month") +
+         Word(nums, min=1, max=2).set_results_name("day") +
          Literal(",").suppress() +
-         Word(nums, exact=4).setResultsName("year")),
+         Word(nums, exact=4).set_results_name("year")),
         "length": {
             "min": 9,
             "max": 25
@@ -272,14 +228,14 @@ PATTERNS_PT = [
         "name":
         "Portuguese date with abbreviated month lowercase (month first)",
         "pattern":
-        (BASE_PATTERNS_PT["pat:pt:months_short_lc"].setResultsName("month") +
-         Word(nums, min=1, max=2).setResultsName("day") +
+        (BASE_PATTERNS_PT["pat:pt:months_short_lc"].set_results_name("month") +
+         Word(nums, min=1, max=2).set_results_name("day") +
          Literal(",").suppress() +
-         Word(nums, exact=4).setResultsName("year")) |
-        (BASE_PATTERNS_PT["pat:pt:months_lc"].setResultsName("month") +
-         Word(nums, min=1, max=2).setResultsName("day") +
+         Word(nums, exact=4).set_results_name("year")) |
+        (BASE_PATTERNS_PT["pat:pt:months_lc"].set_results_name("month") +
+         Word(nums, min=1, max=2).set_results_name("day") +
          Literal(",").suppress() +
-         Word(nums, exact=4).setResultsName("year")),
+         Word(nums, exact=4).set_results_name("year")),
         "length": {
             "min": 9,
             "max": 25
@@ -298,9 +254,9 @@ PATTERNS_PT = [
         "pattern":
         BASE_PATTERNS_PT["pat:pt:weekdays"].suppress() +
         Optional(Literal(",")).suppress() +
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PT["pat:pt:months"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PT["pat:pt:months"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 20,
             "max": 40
@@ -318,9 +274,9 @@ PATTERNS_PT = [
         "pattern":
         BASE_PATTERNS_PT["pat:pt:weekdays_lc"].suppress() +
         Optional(Literal(",")).suppress() +
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PT["pat:pt:months_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PT["pat:pt:months_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 20,
             "max": 40
@@ -338,9 +294,9 @@ PATTERNS_PT = [
         "pattern":
         BASE_PATTERNS_PT["pat:pt:weekdays_short"].suppress() +
         Optional(Literal(",")).suppress() +
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PT["pat:pt:months"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PT["pat:pt:months"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 13,
             "max": 20
@@ -358,9 +314,9 @@ PATTERNS_PT = [
         "pattern":
         BASE_PATTERNS_PT["pat:pt:weekdays_short_lc"].suppress() +
         Optional(Literal(",")).suppress() +
-        Word(nums, min=1, max=2).setResultsName("day") +
-        BASE_PATTERNS_PT["pat:pt:months_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_PT["pat:pt:months_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 13,
             "max": 20

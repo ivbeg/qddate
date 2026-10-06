@@ -17,13 +17,26 @@ Full documentation is published at [ivbeg.github.io/qddate](https://ivbeg.github
 
 ## Features
 
-- 1024+ generated date patterns (from 128 base patterns) and growing on demand
-- Multi-language parsing (14 languages: English, Romanian, Ukrainian, Russian, Spanish, and more)
+<!-- BEGIN qddate-stats -->
+- 1,072 generated date patterns (from 134 base patterns)
+- 14 supported languages
+<!-- END qddate-stats -->
+- Multi-language parsing (English, Romanian, Ukrainian, Russian, Spanish, and more)
 - Handles left-aligned dates with trailing text: `12.03.1999 some text here`
 - Configurable language subsets via the `languages=` parameter
 - Prioritizes speed via pyparsing, hard-coded constants, and dirty tricks
 
 ## Recent updates
+
+**1.0.15** — `DateParser(use_fingerprint=False)` is now deprecated; the legacy 6-level filter will be removed in `v2.0.0`. The fingerprint-based matcher (`1.0.14`) has been the default since the previous release.
+
+**1.0.14** — Fingerprint-based matcher is now the default. The 6-level filter (`length → charset → separator → language → year_format → prefix`) collapses into a single-walk intersection over a precomputed fingerprint index. Exactly equivalent to the legacy path on the extended probe corpus (165 strings).
+
+**1.0.13** — Single source of truth for month names: a new `qddate.patterns.months.MONTHS_BY_LANGUAGE` table is the canonical source for every language's month-name variants. `qdparser._detect_language` and all 14 per-language pattern modules consume from it. Legacy `*_MONTHS` / `*_mname2mon` constants are preserved as re-exports.
+
+**1.0.12** — `DateParser.parse_relative()` for English and Russian relative-date phrases (`today`, `yesterday`, `N days ago`, `через N дней`, …). Filter pipeline documentation under `docs/docs/api/filter-pipeline.md`.
+
+**1.0.11** — Auto-generated README pattern counts; opt-in relative-date parsing; new `format_date()` round-trip helper; type hints on the public API; `py.typed` marker; `noyear=` deprecated in favour of `allow_no_year=`.
 
 **1.0.10** — English weekday with abbreviated month-first dates, e.g. `Thursday, Jun 25, 2026` and `Monday, Jun 22, 2026 - 13:46`.
 
@@ -36,7 +49,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 - Limited language coverage compared to larger projects
 - Adding new languages requires editing pattern tables manually
 - Rare/odd formats may still slip through
-- No relative date parsing or calendar support
+- No calendar support
 
 ## Speed Optimization
 
@@ -118,3 +131,8 @@ pip install -e ".[bench]"   # adds dateparser, python-dateutil, arrow, pendulum
 ## Thanks
 
 The original parser dates back to 2008 and evolved from regular expressions into pyparsing over time. Thanks to the [ScrapingHub](https://github.com/scrapinghub/dateparser) team for the inspiration to clean up the code, documentation, and build tooling, and for motivating the public release.
+
+<!-- BEGIN qddate-stats -->
+- 1,072 generated date patterns (from 134 base patterns)
+- 14 supported languages
+<!-- END qddate-stats -->

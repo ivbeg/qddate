@@ -2,6 +2,139 @@
 
 All notable changes to this project are tracked here.
 
+## 1.0.15 (2026-10-06)
+
+**Deprecations**
+- `DateParser(use_fingerprint=False)` is **deprecated**. The legacy
+  6-level filter (`_filter_patterns_hierarchical`) is superseded by
+  the fingerprint-based path that became the default in `1.0.14`.
+  Constructing a parser with `use_fingerprint=False` emits a
+  `DeprecationWarning`; the legacy path will be **removed in v2.0.0**.
+  Omit the parameter (or pass `True`) to silence the warning.
+
+**No user-visible API changes.**
+
+## 1.0.14 (2026-10-06)
+
+**Performance — single-walk fingerprint filter is now the default**
+- `DateParser.__init__` accepts `use_fingerprint: bool = True` (default
+  flipped from `False` in this release). When `True` (the default),
+  `match()` / `match_all()` / `parse()` route through the new
+  `_filter_patterns_fingerprint` — a single-walk intersection over the
+  precomputed `qddate.patterns.fingerprint._PATTERN_FINGERPRINTS` index
+  — instead of the 6-level `_filter_patterns_hierarchical` filter.
+- The fingerprint path is **exactly equivalent** to the legacy path on
+  the extended probe corpus (165 strings covering every shipped
+  language, every separator, every year-format bucket, weekday + short +
+  compact + edge cases). The equivalence is locked by
+  `tests/test_fingerprint_parity.py`.
+- Three pipeline simplifications fall out of the new path:
+  1. Length filter is implicit (the index doesn't contain patterns
+     with a mismatched length range at all).
+  2. Charset filter is a single index walk over `<= text_char_sets`
+     buckets (vs. a per-pattern loop).
+  3. Separator, language, and year-format filters collapse into one
+     per-dimension intersection.
+- Set `DateParser(use_fingerprint=False)` to opt back into the legacy
+  6-level filter; useful when debugging the matcher itself.
+
+**No user-visible API changes.**
+
+## 1.0.13 (2026-10-05)
+
+**Internal — single source of truth for month names**
+- New `qddate.patterns.months.MONTHS_BY_LANGUAGE` table is the canonical
+  source for every supported language's month-name variants (full, lowercase,
+  abbreviated, genitive where the language distinguishes case, plus a
+  `detect_excludes` allow-list for cross-language collisions like Romanian
+  *mai* / *august*).
+- `qddate.qdparser._detect_language` now derives its per-language detection
+  sets from the same table (intentionally skipping abbreviations to avoid
+  false-positive language detection on shared 3-letter forms like *Jan*).
+- All 14 per-language pattern modules (`base`, `bg`, `cz`, `de`, `es`, `fr`,
+  `it`, `nl`, `pl`, `pt`, `ro`, `ru`, `tr`, `uk`) now source their `*_MONTHS`
+  lists and `*_mname2mon` dicts from the table. The legacy constants are
+  preserved as re-exports so existing tests and downstream consumers keep
+  working unchanged.
+- 72 parity tests in `tests/test_months_table.py` lock equivalence: every
+  legacy `*_mname2mon` pair (across all variants) is either present in
+  `MONTHS_BY_LANGUAGE` or, for the Bulgarian mixed-script legacy forms,
+  maps cleanly to a canonical Cyrillic entry.
+
+No user-visible API changes.
+
+## 1.0.11 (2026-10-05)
+
+**API additions**
+- Added `qddate.format_date(dt, pattern_key)` and `DateMatch.format_date()` for
+  locale-aware round-trip of a parsed `datetime` back to a string the parser
+  accepts again. `DateParser.format_date(dt, pattern_key)` is exposed as an
+  instance method.
+- Added type hints on the public surface (`DateParser.__init__`, `parse`,
+  `match`, `match_all`, `match_typed`, `parse_many`, `start_session`,
+  `end_session`, `format_date`; `DateMatch.format_date`, `to_dict`). `mypy
+  qddate/__init__.py qddate/qdparser.py` is now clean.
+
+**Internal hardening**
+- `qddate.dirty.matchPrefix` prefix-bucket lists are now derived from
+  `_PATTERN_METADATA` at import time. Adding a pattern no longer requires
+  editing `dirty.py` (closes bug class 4.4 from `IMPROVEMENT_PLAN.md`).
+- `qddate.qdparser._DateParser__generate` is now strictly read-only against
+  `ALL_PATTERNS`. The `required_chars` stamping was moved into
+  `annotate_patterns()` so constructing any number of `DateParser()` instances
+  leaves `ALL_PATTERNS` byte-identical (new `tests/test_pattern_immutability.py`
+  regression net).
+- Reachability oracle `test_every_pattern_matches_some_probe` now uses
+  `match_all()` (set membership) instead of `match()` (winner only). The
+  probe corpus was extended from 70 to ~150 strings, each carrying an inline
+  `# basekey=…` comment. Patterns that are intentionally shadowed (rare-X
+  variants that always lose to a higher-priority equivalent) live in
+  `_KNOWN_SHADOWED` with one-line reasons.
+
+**Repository hygiene**
+- `benchmarks/results/` and `benchmarks/baseline_test.json` are git-ignored
+  (105 regenerable benchmark outputs removed from the index).
+- `requirements.txt` reduced to `-e .[dev,test,bench]` plus a header pointing
+  to `pyproject.toml` as the canonical dependency declaration.
+- `README.md` pattern counts updated to `1,072 generated date patterns (from
+  134 base patterns)` (matching current `ALL_PATTERNS`).
+- Root-level scratch files (`tests.py`, `dateparser.code-workspace`,
+  `reproduce_issues.py`) removed or moved to `scripts/repro_2026_09_weekday_bug.py`.
+
+**CI / lint**
+- GitHub Actions CI: Ruff is now a gate (`ruff check qddate tests scripts`),
+  refresh Python matrix `[3.10, 3.11, 3.12, 3.13, 3.14]`, coverage gate at
+  `--cov-fail-under=85`, `QDDATE_PERF=1` so the new
+  `tests/test_performance_smoke.py` runs on every CI invocation.
+- `pyproject.toml`: `requires-python = ">=3.10"`; classifiers refreshed;
+  Ruff `line-length = 120` with per-file ignores for pattern-table scripts.
+- `tox.ini` envlist updated to `py310,py311,py312,py313,py314`.
+- Lint baseline: 0 ruff errors (down from 355).
+
+## 1.0.12 (2026-10-05)
+
+**New features**
+- Added `DateParser.parse_relative(text, reference=None)` that resolves
+  common English and Russian relative-date phrases:
+  - English: `today`, `yesterday`, `tomorrow`, `N day(s) ago`, `(in) N day(s)`
+    (and the same for weeks/months/years); both digit-form and word-form
+    numbers (`three days ago`).
+  - Russian: `сегодня`, `вчера`, `завтра`, `N <unit> назад`, `через N <unit>`.
+  - `reference` defaults to `datetime.now()`; pass an explicit value for
+    deterministic tests.
+- README pattern counts are now generated by
+  `scripts/generate_readme_stats.py` from the canonical pattern table —
+  they cannot drift again.
+
+**Quality**
+- Migrated pattern files off pyparsing 3 camelCase aliases (`oneOf`) onto
+  `one_of`. `python -W error::DeprecationWarning -c "import qddate"` is
+  now silent.
+- Renamed `noyear=` keyword argument on `parse`/`match`/`match_all` to
+  `allow_no_year=` (the old name was the opposite of the semantic
+  intent). `noyear=` continues to work as a deprecated alias emitting
+  `DeprecationWarning`.
+
 ## Unreleased
 
 - Replaced the Sphinx/Read the Docs pages with a Docusaurus site in `docs/`, organized like undatum (getting started, use cases, API, languages, development) and ready for GitHub Pages.
