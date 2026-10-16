@@ -294,7 +294,7 @@ def parse_relative(text: str, reference: datetime.datetime) -> Optional[datetime
         return None
     # Require the match to consume the whole input (no trailing text).
     try:
-        tokens = _RELATIVE_GRAMMAR.parseString(text, parseAll=True)
+        tokens = _RELATIVE_GRAMMAR.parse_string(text, parse_all=True)
     except Exception:
         return None
     if not tokens:

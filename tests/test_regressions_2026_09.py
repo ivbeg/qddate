@@ -461,3 +461,29 @@ def test_dirty_buckets_derive_to_superset_of_snapshot():
         "Derived `matchPrefix()` is missing basekeys that the legacy buckets "
         f"returned: {regressions[:5]} ..."
     )
+
+
+# ---------------------------------------------------------------------------
+# Signed timezone offsets
+# ---------------------------------------------------------------------------
+
+def test_timezone_aware_negative_offset():
+    """A -HHMM suffix yields a negative UTC offset, not a positive one."""
+    parser = DateParser(tz_aware=True)
+    dt = parser.parse("2013-01-12 10:55:50-0500")
+    assert dt is not None
+    assert dt.utcoffset() == -datetime.timedelta(hours=5)
+    assert (dt.hour, dt.minute, dt.second) == (10, 55, 50)
+
+
+def test_timezone_aware_positive_offset_with_space():
+    parser = DateParser(tz_aware=True)
+    dt = parser.parse("2013-01-12 10:55:50 +0530")
+    assert dt is not None
+    assert dt.utcoffset() == datetime.timedelta(hours=5, minutes=30)
+
+
+def test_match_exposes_signed_timezone_token(parser):
+    res = parser.match("2013-01-12 10:55:50-0500")
+    assert res is not None
+    assert res["values"]["timezone"] == "-0500"

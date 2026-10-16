@@ -2,6 +2,22 @@
 
 All notable changes to this project are tracked here.
 
+## Unreleased
+
+**Compatibility**
+- Use pyparsing's snake_case API (`scan_string`, `max_matches`,
+  `parse_string`, `as_dict`). pyparsing 3.3 deprecates the camelCase names
+  and pyparsing 4 removes them; downstream test suites saw tens of thousands
+  of `PyparsingDeprecationWarning`s per run.
+
+**Fixes**
+- `HH:MM:SS` timestamps accept signed offsets: `-0500` now produces a
+  negative UTC offset with `tz_aware=True` (previously only `+HHMM` was
+  recognised). The `timezone` match value now includes its sign
+  (`"+0300"`, `"-0500"`).
+- An offset separated from the time by a space (`10:55:50 +0530`) no longer
+  falls back to the `HH:MM` variant and drops the seconds.
+
 ## 1.0.15 (2026-10-06)
 
 **Deprecations**

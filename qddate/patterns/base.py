@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-                6
 from pyparsing import (
+    Combine,
     Literal,
     Optional,
     White,
@@ -95,8 +96,7 @@ BASE_TIME_PATTERNS = {
     Word(nums, exact=2).set_results_name("hour") + Literal(":").suppress() +
     Word(nums, exact=2).set_results_name("minute") + Literal(":").suppress() +
     Word(nums, exact=2).set_results_name("second") + Optional(
-        Literal("+").suppress() +
-        Word(nums, min=3, max=4).set_results_name("timezone")),
+        Combine(one_of("+ -") + Word(nums, min=3, max=4)).set_results_name("timezone")),
 }
 
 # English month data is sourced from the canonical `MONTHS_BY_LANGUAGE` table
