@@ -1,0 +1,9 @@
+# Source distribution: the package, its tests and the project documents only.
+include README.md LICENSE CHANGELOG.md
+recursive-include tests *.py *.json
+prune docs
+prune openspec
+prune benchmarks
+prune dev
+prune scripts
+global-exclude __pycache__ *.py[cod] .DS_Store

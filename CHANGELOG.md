@@ -28,6 +28,12 @@ First PyPI release since 1.0.10: it also ships the changes listed under
   measure the best of several runs, so shared-runner noise no longer turns
   the build red. Thresholds are unchanged.
 - Wheels are tagged `py3` (the legacy `setup.cfg` marked them `py2.py3`).
+- Packaging: the wheel contains only the `qddate` package. Package
+  discovery treated every directory as a namespace package, so a build from
+  a working copy shipped `docs/` (including `node_modules`), `openspec/` and
+  `benchmarks/` (3.8 MB instead of 65 KB). The sdist now carries the
+  sources, tests with their fixtures, README, LICENSE and CHANGELOG. A CI job
+  builds both and checks their contents.
 - Language detection matches month names as whole words. French "mai" no
   longer claims Portuguese "maio", which made every `... de maio de ...` date
   unparseable.

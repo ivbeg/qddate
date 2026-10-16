@@ -61,14 +61,17 @@ Repository = "https://github.com/ivbeg/qddate"
 Issues = "https://github.com/ivbeg/qddate/issues"
 
 [tool.setuptools]
-# Automatically discover packages, excluding tests
-packages = {find = {exclude = ["tests", "tests.*"]}}
 include-package-data = true
 zip-safe = false
 
+[tool.setuptools.packages.find]
+# Only the qddate package. pyproject-based discovery treats every directory
+# as a namespace package by default, which pulled docs/, openspec/,
+# benchmarks/ and docs/node_modules/ into the wheel.
+include = ["qddate", "qddate.*"]
+
 [tool.setuptools.package-data]
-"qddate" = ["py.typed", "*.md", "*.txt"]
-"*" = ["*.md", "*.txt"]
+"qddate" = ["py.typed"]
 
 [tool.ruff]
 line-length = 120
