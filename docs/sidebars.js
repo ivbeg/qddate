@@ -47,6 +47,7 @@ const sidebars = {
         'api/parse',
         'api/match',
         'api/languages',
+        'api/filter-pipeline',
       ],
     },
     {
@@ -77,6 +78,7 @@ const sidebars = {
         'development/contributing',
         'development/adding-languages',
         'development/community',
+        'development/deprecation-policy',
       ],
     },
     'license',

@@ -64,7 +64,7 @@ ruff check qddate tests
 pytest
 ```
 
-   We use `max-line-length = 100` (configured in `pyproject.toml` and `setup.cfg`).
+   We use `max-line-length = 100` (configured in `pyproject.toml`).
 
 6. Commit your changes and push your branch:
 

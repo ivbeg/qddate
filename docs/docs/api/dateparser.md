@@ -53,8 +53,51 @@ Keep one instance for the lifetime of the worker. Construction compiles
 grammars, builds length indexes, and stamps language/separator metadata onto
 generated variants.
 
+## Relative date parsing
+
+`DateParser.parse_relative(text, reference=None)` resolves common English
+and Russian relative-date phrases against a reference time. Default
+`reference` is `datetime.now()`.
+
+```python
+from datetime import datetime
+from qddate import DateParser
+
+parser = DateParser()
+
+# Reference is pinned for deterministic tests / scraping historic content.
+ref = datetime(2026, 6, 15, 12, 0, 0)
+
+parser.parse_relative("today", ref)            # 2026-06-15 12:00:00
+parser.parse_relative("yesterday", ref)        # 2026-06-14 12:00:00
+parser.parse_relative("3 days ago", ref)       # 2026-06-12 12:00:00
+parser.parse_relative("in 5 days", ref)        # 2026-06-20 12:00:00
+parser.parse_relative("two weeks ago", ref)    # word-form numbers
+parser.parse_relative("сегодня", ref)            # Russian today
+parser.parse_relative("3 дня назад", ref)       # Russian 3 days ago
+parser.parse_relative("через 5 дней", ref)     # Russian in 5 days
+parser.parse_relative("not a date", ref)       # None
+```
+
+Supported phrases:
+
+| Direction | English | Russian |
+|---|---|---|
+| Anchors | `today`, `yesterday`, `tomorrow` | `сегодня`, `вчера`, `завтра` |
+| Past | `N unit(s) ago` | `N <unit> назад` |
+| Future | `(in) N unit(s)` | `через N <unit>` |
+
+Units: `day(s)` / `days`; `week(s)`; `month(s)`; `year(s)`; and Russian
+`день`/`дня`/`дней`, `неделю`/`недели`/`недель`, `месяц`/`месяца`/`месяцев`,
+`год`/`года`/`лет`. Both digit-form (`3`) and word-form (`three`) numbers are
+accepted for English.
+
+**The default `parse()` does NOT match relative phrases.** Opt in via
+`DateParser(relative=True)` or call `parse_relative()` explicitly.
+
 ## Related
 
 - [parse()](/api/parse)
 - [match()](/api/match)
+- [Filter pipeline](/api/filter-pipeline)
 - [Adding languages](/development/adding-languages)

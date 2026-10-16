@@ -4,12 +4,12 @@ import pytest
 
 from qddate import DateParser
 from qddate.qdparser import (
-    scan_char_sets,
+    CHAR_SET_ACCENTED,
+    CHAR_SET_CYRILLIC,
     CHAR_SET_DIGITS,
     CHAR_SET_LATIN,
-    CHAR_SET_CYRILLIC,
-    CHAR_SET_ACCENTED,
     CHAR_SET_SEPARATORS,
+    scan_char_sets,
 )
 
 
@@ -41,6 +41,7 @@ def fresh_parser():
         ("5 August 2001", datetime.datetime(2001, 8, 5)),
         ("3 jun 2009", datetime.datetime(2009, 6, 3)),
         ("Thursday 4 April 2019", datetime.datetime(2019, 4, 4)),
+        ("Saturday 6 May 2023", datetime.datetime(2023, 5, 6)),
         ("July 01, 2015", datetime.datetime(2015, 7, 1)),
         ("Fri, 3 July 2015", datetime.datetime(2015, 7, 3)),
         ("Fri 24 Jul 2015", datetime.datetime(2015, 7, 24)),
@@ -102,6 +103,11 @@ def fresh_parser():
         ("24 Jul 2015", datetime.datetime(2015, 7, 24)),
         ("Jan 15, 2020", datetime.datetime(2020, 1, 15)),
         ("Fri 24 Jul 2015", datetime.datetime(2015, 7, 24)),
+        # Ordinal day with trailing text (left-aligned match)
+        ("14th April 2015:", datetime.datetime(2015, 4, 14)),
+        # German abbreviated months with period after day
+        ("15. Jul 2023", datetime.datetime(2023, 7, 15)),
+        ("5. jan 2020", datetime.datetime(2020, 1, 5)),
         ("Thursday, Jun 25, 2026", datetime.datetime(2026, 6, 25)),
         ("Monday, Jun 22, 2026 - 13:46", datetime.datetime(2026, 6, 22)),
         ("Tuesday, Mar 10, 2026 - 10:56", datetime.datetime(2026, 3, 10)),
@@ -112,6 +118,15 @@ def fresh_parser():
         # Bulgarian formats
         ("15 Мapт 2024", datetime.datetime(2024, 3, 15)),
         ("3 дeкeмвpи 2023", datetime.datetime(2023, 12, 3)),
+        # English abbreviated-month patterns (reachable since the 2026-09 prefix
+        # bucket fix; the patterns existed but were filtered out before)
+        ("08 Jul, 2015", datetime.datetime(2015, 7, 8)),
+        ("8 Sep, 2023", datetime.datetime(2023, 9, 8)),
+        ("8th Jul 2015", datetime.datetime(2015, 7, 8)),
+        ("Mon, 5 Jan 2020", datetime.datetime(2020, 1, 5)),
+        # German short months (de_short was unreachable before the 2026-09
+        # prefix bucket fix)
+        ("12. Dez 2022", datetime.datetime(2022, 12, 12)),
     ],
 )
 def test_parse_supported_text(parser, text, expected):
@@ -126,16 +141,8 @@ def test_parse_supported_text(parser, text, expected):
         "",
         "   ",
         "26 / 06 15",
-        "14th April 2015:",
-        "08 Jul, 2015",
         # These formats are not supported (German abbreviated months with periods)
-        "15. Jul 2023",
-        "5. jan 2020",
-        "12. Dez 2022",
-        # These formats are not supported (English abbreviated with comma/ordinal)
-        "8 Sep, 2023",
-        "Mon, 5 Jan 2020",
-        "8th Jul 2015",
+        "12. Dez. 2022",
         # These formats are not supported (German weekday with abbreviated months)
         "Montag, 28. Juli 2015",
         "Freitag, 3. August 2018",
@@ -164,12 +171,12 @@ def test_match_method(parser):
     """Test that match method returns correct structure"""
     text = "01.12.2009"
     result = parser.match(text)
-    
+
     assert result is not None
     assert "values" in result
     assert "pattern" in result
     assert "key" in result["pattern"]
-    
+
     # Verify the values can be used to construct datetime
     d = {"month": 0, "day": 0, "year": 0}
     for k, v in list(result["values"].items()):
@@ -189,7 +196,7 @@ def test_match_with_noprefix(parser):
     text = "01.12.2009"
     result_with_prefix = parser.match(text)
     result_without_prefix = parser.match(text, noprefix=True)
-    
+
     # Both should succeed, but may match different patterns
     assert result_with_prefix is not None
     assert result_without_prefix is not None
@@ -206,25 +213,25 @@ def test_match_with_noyear(parser):
 def test_start_session_end_session(fresh_parser):
     """Test session caching functionality"""
     text = "01.12.2009"
-    
+
     # First, get a successful match to find pattern keys
     result = fresh_parser.match(text)
     assert result is not None
     pattern_key = result["pattern"]["key"]
-    
+
     # Start session with cached patterns
     fresh_parser.startSession([pattern_key])
     assert fresh_parser.cachedpats is not None
     assert len(fresh_parser.cachedpats) > 0
-    
+
     # Should still work with cached patterns
     result2 = fresh_parser.parse(text)
     assert result2 == datetime.datetime(2009, 12, 1)
-    
+
     # End session
     fresh_parser.endSession()
     assert fresh_parser.cachedpats is None
-    
+
     # Should still work after ending session
     result3 = fresh_parser.parse(text)
     assert result3 == datetime.datetime(2009, 12, 1)
@@ -265,7 +272,7 @@ def test_parser_handles_unicode(parser):
         ("9 июля 2015 г.", datetime.datetime(2015, 7, 9)),
         ("Le 8 juillet 2015", datetime.datetime(2015, 7, 8)),
     ]
-    
+
     for text, expected in unicode_tests:
         result = parser.parse(text)
         assert result == expected
@@ -277,7 +284,7 @@ def test_parser_consistency(parser):
     result1 = parser.parse(text)
     result2 = parser.parse(text)
     result3 = parser.parse(text)
-    
+
     assert result1 == result2 == result3
     assert result1 == datetime.datetime(2009, 12, 1)
 
@@ -288,7 +295,7 @@ def test_language_filtering_single_language():
     parser_ru = DateParser(languages="ru")
     assert parser_ru.parse("3 Января 2003 года") == datetime.datetime(2003, 1, 3)
     assert parser_ru.parse("15 февраля 2007 года") == datetime.datetime(2007, 2, 15)
-    
+
     # Russian-only parser should NOT parse English dates
     assert parser_ru.parse("6 Jan 2009") is None
     assert parser_ru.parse("January 3, 2003") is None
@@ -298,14 +305,14 @@ def test_language_filtering_multiple_languages():
     """Test that language filtering works with multiple languages"""
     # English and German parser should parse both
     parser_en_de = DateParser(languages=["en", "de"])
-    
+
     # English dates should work
     assert parser_en_de.parse("6 Jan 2009") == datetime.datetime(2009, 1, 6)
     assert parser_en_de.parse("January 3, 2003") == datetime.datetime(2003, 1, 3)
-    
+
     # German dates should work
     assert parser_en_de.parse("28. Juli 2015") == datetime.datetime(2015, 7, 28)
-    
+
     # Russian dates should NOT work
     assert parser_en_de.parse("3 Января 2003 года") is None
 
@@ -313,12 +320,12 @@ def test_language_filtering_multiple_languages():
 def test_language_filtering_english_only():
     """Test that English-only parser works correctly"""
     parser_en = DateParser(languages="en")
-    
+
     # English dates should work
     assert parser_en.parse("6 Jan 2009") == datetime.datetime(2009, 1, 6)
     assert parser_en.parse("01.12.2009") == datetime.datetime(2009, 12, 1)  # Numeric format
     assert parser_en.parse("2013-01-12") == datetime.datetime(2013, 1, 12)  # ISO format
-    
+
     # Russian dates should NOT work
     assert parser_en.parse("3 Января 2003 года") is None
 
@@ -326,7 +333,7 @@ def test_language_filtering_english_only():
 def test_language_filtering_backward_compatibility():
     """Test that default behavior (no languages parameter) uses all languages"""
     parser_all = DateParser()
-    
+
     # Should parse dates from multiple languages
     assert parser_all.parse("6 Jan 2009") == datetime.datetime(2009, 1, 6)  # English
     assert parser_all.parse("3 Января 2003 года") == datetime.datetime(2003, 1, 3)  # Russian
@@ -337,7 +344,7 @@ def test_language_filtering_invalid_language():
     """Test that invalid language codes raise ValueError"""
     with pytest.raises(ValueError, match="Unsupported language"):
         DateParser(languages="invalid")
-    
+
     with pytest.raises(ValueError, match="Unsupported language"):
         DateParser(languages=["en", "invalid"])
 
@@ -345,7 +352,7 @@ def test_language_filtering_invalid_language():
 def test_language_filtering_empty_list():
     """Test that empty languages list uses all patterns (backward compatible)"""
     parser = DateParser(languages=[])
-    
+
     # Should parse dates from multiple languages (all patterns)
     assert parser.parse("6 Jan 2009") == datetime.datetime(2009, 1, 6)  # English
     assert parser.parse("3 Января 2003 года") == datetime.datetime(2003, 1, 3)  # Russian
@@ -357,7 +364,7 @@ def test_language_filtering_with_numeric_formats():
     parser_en = DateParser(languages="en")
     assert parser_en.parse("01.12.2009") == datetime.datetime(2009, 12, 1)
     assert parser_en.parse("2013-01-12") == datetime.datetime(2013, 1, 12)
-    
+
     # Should also work with Russian parser (if numeric patterns are included)
     parser_ru = DateParser(languages="ru")
     # Russian parser might not have numeric patterns, so this might be None
@@ -398,7 +405,7 @@ def test_scan_char_sets_cyrillic():
 
 def test_scan_char_sets_accented():
     """Test character set scanning with accented characters"""
-    result = scan_char_sets("juillet")
+    scan_char_sets("juillet")
     # Check for French accented characters
     result2 = scan_char_sets("července")
     assert CHAR_SET_ACCENTED in result2 or CHAR_SET_LATIN in result2
@@ -468,7 +475,7 @@ def test_pattern_filtering_cyrillic_input(parser):
     # Russian date should match
     result = parser.parse("3 Января 2003 года")
     assert result == datetime.datetime(2003, 1, 3)
-    
+
     # English date should still work (has Latin characters)
     result2 = parser.parse("6 Jan 2009")
     assert result2 == datetime.datetime(2009, 1, 6)
@@ -491,7 +498,7 @@ def test_pattern_filtering_preserves_matches(parser):
         ("8 juillet 2015", datetime.datetime(2015, 7, 8)),
         ("15 Leden 2015", datetime.datetime(2015, 1, 15)),
     ]
-    
+
     for text, expected in test_cases:
         result = parser.parse(text)
         assert result == expected, f"Failed for: {text}"

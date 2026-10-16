@@ -68,3 +68,11 @@ qddate.egg-info/
 
 # Profiling output
 profile_results/
+
+# Benchmarks (regenerable output; not source of truth)
+benchmarks/results/
+benchmarks/baseline_test.json
+
+# Personal editor files (VS Code workspace, JetBrains extras, …)
+*.code-workspace
+.idea/workspace.xml

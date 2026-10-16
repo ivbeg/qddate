@@ -26,7 +26,7 @@ ruff check qddate tests
 pytest
 ```
 
-Line length is 100 (Ruff / `setup.cfg`).
+Line length is 100 (Ruff, configured in `pyproject.toml`).
 
 ## Pull requests
 

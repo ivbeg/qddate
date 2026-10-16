@@ -1,0 +1,35 @@
+{
+  "full_months": [
+    {"lower": "ianuarie", "title": "Ianuarie", "month": 1},
+    {"lower": "februarie", "title": "Februarie", "month": 2},
+    {"lower": "martie", "title": "Martie", "month": 3},
+    {"lower": "aprilie", "title": "Aprilie", "month": 4},
+    {"lower": "mai", "title": "Mai", "month": 5},
+    {"lower": "iunie", "title": "Iunie", "month": 6},
+    {"lower": "iulie", "title": "Iulie", "month": 7},
+    {"lower": "august", "title": "August", "month": 8},
+    {"lower": "septembrie", "title": "Septembrie", "month": 9},
+    {"lower": "octombrie", "title": "Octombrie", "month": 10},
+    {"lower": "noiembrie", "title": "Noiembrie", "month": 11},
+    {"lower": "decembrie", "title": "Decembrie", "month": 12}
+  ],
+  "abbreviated_months": [
+    {"lower": "ian.", "title": "Ian.", "month": 1},
+    {"lower": "feb.", "title": "Feb.", "month": 2},
+    {"lower": "mar.", "title": "Mar.", "month": 3},
+    {"lower": "apr.", "title": "Apr.", "month": 4},
+    {"lower": "mai", "title": "Mai", "month": 5},
+    {"lower": "iun.", "title": "Iun.", "month": 6},
+    {"lower": "iul.", "title": "Iul.", "month": 7},
+    {"lower": "aug.", "title": "Aug.", "month": 8},
+    {"lower": "sept.", "title": "Sept.", "month": 9},
+    {"lower": "oct.", "title": "Oct.", "month": 10},
+    {"lower": "nov.", "title": "Nov.", "month": 11},
+    {"lower": "dec.", "title": "Dec.", "month": 12}
+  ],
+  "listing_regressions": [
+    {"text": "19 Februarie 2026", "year": 2026, "month": 2, "day": 19},
+    {"text": "4 Decembrie 2025", "year": 2025, "month": 12, "day": 4},
+    {"text": "21 Mai 2026", "year": 2026, "month": 5, "day": 21}
+  ]
+}

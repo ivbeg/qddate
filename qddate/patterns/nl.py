@@ -1,40 +1,24 @@
 # -*- coding: utf-8 -*-
+"""Dutch month-name date patterns.
+
+Month-name data is sourced from the canonical ``MONTHS_BY_LANGUAGE`` table in
+``qddate/patterns/months``. Legacy ``NL_MONTHS*`` constants are re-exported.
+"""
+
 from pyparsing import (
+    Literal,
+    Optional,
     Word,
     nums,
-    oneOf,
-    Optional,
-    Literal,
+    one_of,
 )
 
-NL_MONTHS = [
-    "Januari",
-    "Februari",
-    "Maart",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Augustus",
-    "September",
-    "Oktober",
-    "November",
-    "December",
-]
-NL_MONTHS_LC = [
-    "januari",
-    "februari",
-    "maart",
-    "april",
-    "mei",
-    "juni",
-    "juli",
-    "augustus",
-    "september",
-    "oktober",
-    "november",
-    "december",
-]
+from .months import MONTHS_BY_LANGUAGE
+
+_NL = MONTHS_BY_LANGUAGE["nl"]
+
+NL_MONTHS = list(_NL.full)
+NL_MONTHS_LC = list(_NL.full_lc)
 
 NL_WEEKDAYS = [
     "Maandag",
@@ -55,36 +39,9 @@ NL_WEEKDAYS_LC = [
     "zondag",
 ]
 
-NL_MONTHS_SHORT = [
-    "Jan",
-    "Feb",
-    "Mrt",
-    "Apr",
-    "Mei",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Okt",
-    "Nov",
-    "Dec",
-]
-NL_MONTHS_SHORT_LC = [
-    "jan",
-    "feb",
-    "mrt",
-    "apr",
-    "mei",
-    "jun",
-    "jul",
-    "aug",
-    "sep",
-    "okt",
-    "nov",
-    "dec",
-]
+NL_MONTHS_SHORT = list(_NL.abbrev)
+NL_MONTHS_SHORT_LC = list(_NL.abbrev_lc)
 
-# Dutch months map
 nl_mname2mon = dict((m, i + 1) for i, m in enumerate(NL_MONTHS) if m)
 nllc_mname2mon = dict((m, i + 1) for i, m in enumerate(NL_MONTHS_LC) if m)
 nlshort_mname2mon = dict((m, i + 1) for i, m in enumerate(NL_MONTHS_SHORT) if m)
@@ -92,17 +49,17 @@ nlshortlc_mname2mon = dict((m, i + 1) for i, m in enumerate(NL_MONTHS_SHORT_LC) 
 
 BASE_PATTERNS_NL = {
     "pat:nl:months":
-    oneOf(NL_MONTHS).setParseAction(lambda t: nl_mname2mon[t[0]]),
+    one_of(NL_MONTHS).set_parse_action(lambda t: nl_mname2mon[t[0]]),
     "pat:nl:months_lc":
-    oneOf(NL_MONTHS_LC).setParseAction(lambda t: nllc_mname2mon[t[0]]),
+    one_of(NL_MONTHS_LC).set_parse_action(lambda t: nllc_mname2mon[t[0]]),
     "pat:nl:months_short":
-    oneOf(NL_MONTHS_SHORT).setParseAction(lambda t: nlshort_mname2mon[t[0]]),
+    one_of(NL_MONTHS_SHORT).set_parse_action(lambda t: nlshort_mname2mon[t[0]]),
     "pat:nl:months_short_lc":
-    oneOf(NL_MONTHS_SHORT_LC).setParseAction(lambda t: nlshortlc_mname2mon[t[0]]),
+    one_of(NL_MONTHS_SHORT_LC).set_parse_action(lambda t: nlshortlc_mname2mon[t[0]]),
     "pat:nl:weekdays":
-    oneOf(NL_WEEKDAYS),
+    one_of(NL_WEEKDAYS),
     "pat:nl:weekdays_lc":
-    oneOf(NL_WEEKDAYS_LC),
+    one_of(NL_WEEKDAYS_LC),
 }
 
 PATTERNS_NL = [
@@ -113,10 +70,10 @@ PATTERNS_NL = [
         "name":
         "Base Dutch date with month name",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         Optional(".").suppress() +
-        BASE_PATTERNS_NL["pat:nl:months"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        BASE_PATTERNS_NL["pat:nl:months"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 11,
             "max": 22
@@ -132,10 +89,10 @@ PATTERNS_NL = [
         "name":
         "Base Dutch date with month name lowercase",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         Optional(".").suppress() +
-        BASE_PATTERNS_NL["pat:nl:months_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        BASE_PATTERNS_NL["pat:nl:months_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 11,
             "max": 22
@@ -154,10 +111,10 @@ PATTERNS_NL = [
         "pattern":
         BASE_PATTERNS_NL["pat:nl:weekdays"].suppress() +
         Optional(Literal(",")).suppress() +
-        Word(nums, min=1, max=2).setResultsName("day") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         Optional(Literal(".")).suppress() +
-        BASE_PATTERNS_NL["pat:nl:months"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        BASE_PATTERNS_NL["pat:nl:months"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 15,
             "max": 32
@@ -175,10 +132,10 @@ PATTERNS_NL = [
         "pattern":
         BASE_PATTERNS_NL["pat:nl:weekdays_lc"].suppress() +
         Optional(Literal(",")).suppress() +
-        Word(nums, min=1, max=2).setResultsName("day") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         Optional(Literal(".")).suppress() +
-        BASE_PATTERNS_NL["pat:nl:months_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        BASE_PATTERNS_NL["pat:nl:months_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 15,
             "max": 32
@@ -195,10 +152,10 @@ PATTERNS_NL = [
         "name":
         "Dutch date with abbreviated month",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         Optional(Literal(".")).suppress() +
-        BASE_PATTERNS_NL["pat:nl:months_short"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        BASE_PATTERNS_NL["pat:nl:months_short"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 9,
             "max": 18
@@ -214,10 +171,10 @@ PATTERNS_NL = [
         "name":
         "Dutch date with abbreviated month lowercase",
         "pattern":
-        Word(nums, min=1, max=2).setResultsName("day") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         Optional(Literal(".")).suppress() +
-        BASE_PATTERNS_NL["pat:nl:months_short_lc"].setResultsName("month") +
-        Word(nums, exact=4).setResultsName("year"),
+        BASE_PATTERNS_NL["pat:nl:months_short_lc"].set_results_name("month") +
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 9,
             "max": 18
@@ -234,10 +191,10 @@ PATTERNS_NL = [
         "name":
         "Dutch date month-first format",
         "pattern":
-        BASE_PATTERNS_NL["pat:nl:months"].setResultsName("month") +
-        Word(nums, min=1, max=2).setResultsName("day") +
+        BASE_PATTERNS_NL["pat:nl:months"].set_results_name("month") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         Literal(",").suppress() +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 11,
             "max": 25
@@ -253,10 +210,10 @@ PATTERNS_NL = [
         "name":
         "Dutch date month-first lowercase",
         "pattern":
-        BASE_PATTERNS_NL["pat:nl:months_lc"].setResultsName("month") +
-        Word(nums, min=1, max=2).setResultsName("day") +
+        BASE_PATTERNS_NL["pat:nl:months_lc"].set_results_name("month") +
+        Word(nums, min=1, max=2).set_results_name("day") +
         Literal(",").suppress() +
-        Word(nums, exact=4).setResultsName("year"),
+        Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 11,
             "max": 25
@@ -267,4 +224,3 @@ PATTERNS_NL = [
         1,
     },
 ]
-

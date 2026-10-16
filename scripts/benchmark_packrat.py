@@ -4,9 +4,9 @@
 Benchmark packrat parsing impact on qddate performance.
 """
 
+import statistics
 import sys
 import time
-import statistics
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -59,7 +59,7 @@ def main():
     print("=" * 80)
     print("Packrat Parsing Benchmark")
     print("=" * 80)
-    
+
     # Test with packrat (default)
     print("\n1. Testing WITH packrat parsing (default)...")
     try:
@@ -68,7 +68,7 @@ def main():
         print("   Packrat enabled")
     except Exception as e:
         print(f"   Warning: Could not enable packrat: {e}")
-    
+
     parser_with = DateParser()
     timings_with = benchmark_parse(parser_with, TESTS, iterations=20)
     mean_with = statistics.mean(timings_with)
@@ -76,7 +76,7 @@ def main():
     print(f"   Median: {statistics.median(timings_with)*1000:.4f}ms")
     print(f"   Min: {min(timings_with)*1000:.4f}ms")
     print(f"   Max: {max(timings_with)*1000:.4f}ms")
-    
+
     # Test without packrat (if possible)
     print("\n2. Testing WITHOUT packrat parsing...")
     packrat_can_disable = False
@@ -93,13 +93,13 @@ def main():
     except Exception as e:
         print(f"   Warning: Could not disable packrat: {e}")
         packrat_can_disable = False
-    
+
     if not packrat_can_disable:
         print("\n   Packrat parsing is enabled and cannot be disabled in this pyparsing version.")
         print("   This is expected behavior - packrat provides memoization for better performance.")
         print("   The benchmark above shows performance WITH packrat enabled.")
         return
-    
+
     # Clear any caches by creating new parser
     parser_without = DateParser()
     timings_without = benchmark_parse(parser_without, TESTS, iterations=20)
@@ -108,7 +108,7 @@ def main():
     print(f"   Median: {statistics.median(timings_without)*1000:.4f}ms")
     print(f"   Min: {min(timings_without)*1000:.4f}ms")
     print(f"   Max: {max(timings_without)*1000:.4f}ms")
-    
+
     # Compare
     print("\n3. Comparison:")
     if mean_without > 0:
@@ -116,23 +116,23 @@ def main():
         improvement = ((mean_without - mean_with) / mean_without) * 100
         print(f"   Speedup factor: {speedup:.3f}x")
         print(f"   Improvement: {improvement:.1f}%")
-        
+
         if speedup > 1:
             print(f"   ✓ Packrat provides {speedup:.1f}x speedup")
         elif speedup < 1:
             print(f"   ⚠ Packrat is {1/speedup:.1f}x slower (may vary by pattern complexity)")
         else:
-            print(f"   ≈ Packrat has minimal impact")
+            print("   ≈ Packrat has minimal impact")
     else:
         print("   Could not calculate comparison")
-    
+
     # Re-enable packrat for future use
     try:
         from pyparsing import ParserElement
         ParserElement.enable_packrat()
-    except:
+    except Exception:  # noqa: BLE001 — best-effort cleanup; packrat is optional
         pass
-    
+
     print("\n" + "=" * 80)
     print("Benchmark complete!")
     print("=" * 80)
