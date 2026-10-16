@@ -732,6 +732,70 @@ PATTERNS_EN = [
         "filter":
         1,
     },
+    # US order after a weekday: "Monday, January 31, 2022", "Mon, January 31, 2022".
+    {
+        "key":
+        "dt:date:weekday_eng_us",
+        "name":
+        "Date with full english weekday and month first",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:weekdays"].suppress() +
+        Optional(",").suppress() +
+        BASE_PATTERNS_EN["pat:eng:months"].set_results_name("month") +
+        Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(Literal(",")).suppress() +
+        Word(nums, exact=4).set_results_name("year"),
+        "length": {
+            "min": 16,
+            "max": 30
+        },
+        "format":
+        "%b %d, %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:weekday_eng_wshort_us",
+        "name":
+        "Date with short english weekday and month first",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:weekdays:short"].suppress() +
+        Optional(",").suppress() +
+        BASE_PATTERNS_EN["pat:eng:months"].set_results_name("month") +
+        Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(Literal(",")).suppress() +
+        Word(nums, exact=4).set_results_name("year"),
+        "length": {
+            "min": 13,
+            "max": 24
+        },
+        "format":
+        "%b %d, %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:weekday_eng_abbrev_wshort_us",
+        "name":
+        "Date with short english weekday and abbreviated month first",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:weekdays:short"].suppress() +
+        Optional(",").suppress() +
+        BASE_PATTERNS_EN["pat:eng:months:abbrev"].set_results_name("month") +
+        Word(nums, min=1, max=2).set_results_name("day") +
+        Literal(",").suppress() +
+        Word(nums, exact=4).set_results_name("year"),
+        "length": {
+            "min": 13,
+            "max": 19
+        },
+        "format":
+        "%b %d, %Y",
+        "filter":
+        1,
+    },
     {
         "key":
         "dt:date:date_eng_abbrev_postfix",

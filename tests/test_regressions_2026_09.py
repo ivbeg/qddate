@@ -280,6 +280,7 @@ _PROBE_STRINGS = [
     "Tuesday, Mar 10, 2026 - 10:56", "15 Januari 2024", "3 maart 2023",
     "Maandag, 28 Juli 2015", "15 Мapт 2024", "3 дeкeмвpи 2023",
     "08 Jul, 2015", "8 Sep, 2023", "8th Jul 2015", "Mon, 5 Jan 2020",
+    "Monday, January 31, 2022", "Mon, January 31, 2022", "Mon, Jan 31, 2022",
     # Targeted probes for patterns the shared corpus misses
     "25-Dec-20", "25 Dec, 2020", "25th Dec 2020", "05.12", "09.июля.2015",
     "12.03.1999 10:20:30+0300", "20131215", "15122009",

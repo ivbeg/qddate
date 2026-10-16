@@ -2,6 +2,16 @@
 
 All notable changes to this project are tracked here.
 
+## Unreleased
+
+**Patterns**
+- A weekday before a month-first date is recognised:
+  `Monday, January 31, 2022` (`weekday_eng_us`), `Mon, January 31, 2022`
+  (`weekday_eng_wshort_us`) and `Mon, Jan 31, 2022` / `Tue Feb 1, 2022`
+  (`weekday_eng_abbrev_wshort_us`). Previously only day-first dates and
+  `Monday, Jan 31, 2022` matched after a weekday; EU INSPIRE and many US
+  sites print the long form (ivbeg/newsworker#18).
+
 ## 1.0.16 (2026-10-16)
 
 First PyPI release since 1.0.10: it also ships the changes listed under
