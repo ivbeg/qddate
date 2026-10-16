@@ -14,6 +14,7 @@ a reference time, not against ``_pattern_metadata``).
 
 from __future__ import annotations
 
+import calendar
 import datetime
 from typing import Optional
 from typing import Optional as TOptional
@@ -103,6 +104,14 @@ def _compound_word_to_int(tokens):
 _WORD_NUMBER.set_parse_action(_compound_word_to_int)
 
 
+def _add_months(value: datetime.date, months: int) -> datetime.date:
+    """Calendar month arithmetic, clamping the day (31 Mar - 1 month = 28/29 Feb)."""
+    index = value.year * 12 + value.month - 1 + months
+    year, month = divmod(index, 12)
+    day = min(value.day, calendar.monthrange(year, month + 1)[1])
+    return datetime.date(year, month + 1, day)
+
+
 class RelativeMatch:
     """Result of resolving a relative phrase against a reference time.
 
@@ -130,16 +139,8 @@ class RelativeMatch:
             anchor_date = anchor_date + datetime.timedelta(days=1)
         # Apply the offsets
         total_days = self.days + 7 * self.weeks
-        # Use dateutil-style add for months/years (approx via 30 days when
-        # dateutil isn't available; for "1 month ago" we use a 30-day window
-        # which is good enough for scraping).
         if self.months or self.years:
-            try:
-                from dateutil.relativedelta import relativedelta  # type: ignore
-                anchor_date = anchor_date + relativedelta(months=self.months, years=self.years)
-            except ImportError:
-                # Fallback: 30 days per month, 365 days per year.
-                anchor_date = anchor_date + datetime.timedelta(days=30 * self.months + 365 * self.years)
+            anchor_date = _add_months(anchor_date, self.months + 12 * self.years)
         if total_days:
             anchor_date = anchor_date + datetime.timedelta(days=total_days)
         return datetime.datetime.combine(anchor_date, reference.time())

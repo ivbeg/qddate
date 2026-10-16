@@ -28,6 +28,8 @@ Full documentation is published at [ivbeg.github.io/qddate](https://ivbeg.github
 
 ## Recent updates
 
+**1.0.16** — pyparsing snake_case API (no deprecation warnings on pyparsing 3.3), signed timezone offsets (`-0500`), whole-word language detection (Portuguese `maio` dates parse again). First PyPI release since 1.0.10.
+
 **1.0.15** — `DateParser(use_fingerprint=False)` is now deprecated; the legacy 6-level filter will be removed in `v2.0.0`. The fingerprint-based matcher (`1.0.14`) has been the default since the previous release.
 
 **1.0.14** — Fingerprint-based matcher is now the default. The 6-level filter (`length → charset → separator → language → year_format → prefix`) collapses into a single-walk intersection over a precomputed fingerprint index. Exactly equivalent to the legacy path on the extended probe corpus (165 strings).

@@ -117,3 +117,16 @@ def test_parse_does_not_match_relative_by_default():
     assert p.parse("today") is None
     assert p.parse("yesterday") is None
     assert p.parse("3 days ago") is None
+
+
+def test_parse_relative_months_use_calendar_months_without_dateutil(monkeypatch):
+    """Month offsets must not depend on whether python-dateutil is installed."""
+    import sys
+
+    monkeypatch.setitem(sys.modules, "dateutil", None)
+    monkeypatch.setitem(sys.modules, "dateutil.relativedelta", None)
+    p = DateParser()
+    assert p.parse_relative("1 month ago", reference=REFERENCE) == datetime.datetime(2026, 5, 15, 12, 0)
+    end_of_march = datetime.datetime(2026, 3, 31, 9, 0)
+    assert p.parse_relative("1 month ago", reference=end_of_march) == datetime.datetime(2026, 2, 28, 9, 0)
+    assert p.parse_relative("2 years ago", reference=REFERENCE) == datetime.datetime(2024, 6, 15, 12, 0)

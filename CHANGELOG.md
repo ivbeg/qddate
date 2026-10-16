@@ -2,7 +2,10 @@
 
 All notable changes to this project are tracked here.
 
-## Unreleased
+## 1.0.16 (2026-10-16)
+
+First PyPI release since 1.0.10: it also ships the changes listed under
+1.0.11–1.0.15 below, which were tagged but not published.
 
 **Compatibility**
 - Use pyparsing's snake_case API (`scan_string`, `max_matches`,
@@ -17,6 +20,10 @@ All notable changes to this project are tracked here.
   (`"+0300"`, `"-0500"`).
 - An offset separated from the time by a space (`10:55:50 +0530`) no longer
   falls back to the `HH:MM` variant and drops the seconds.
+- `parse_relative("N months/years ago")` uses calendar months on every
+  install. It used `python-dateutil` when present (it is not a dependency)
+  and a 30-day approximation otherwise, so results differed between
+  environments.
 - Language detection matches month names as whole words. French "mai" no
   longer claims Portuguese "maio", which made every `... de maio de ...` date
   unparseable.
