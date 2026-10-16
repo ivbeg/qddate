@@ -707,15 +707,18 @@ class DateParser:
 
         char_sets = scan_char_sets(text)
         text_lower = text.lower()
+        # Whole words only: a substring check lets French "mai" claim
+        # Portuguese "maio", which then filters out the Portuguese patterns.
+        words = frozenset(re.findall(r"[^\W\d_]+", text_lower))
         detected_languages = []
 
         # Check for Cyrillic languages
         if CHAR_SET_CYRILLIC in char_sets:
             # Use simple 'in' operator - faster than regex for date strings
-            if any(month in text_lower for month in _UKRAINIAN_MONTHS):
+            if not words.isdisjoint(_UKRAINIAN_MONTHS):
                 detected_languages.append('uk')
                 return detected_languages
-            if any(month in text_lower for month in _RUSSIAN_MONTHS):
+            if not words.isdisjoint(_RUSSIAN_MONTHS):
                 detected_languages.append('ru')
                 # Early exit: high confidence match
                 return detected_languages
@@ -728,38 +731,38 @@ class DateParser:
         if CHAR_SET_ACCENTED in char_sets or CHAR_SET_LATIN in char_sets:
             # Use simple 'in' operator instead of regex - sufficient for date strings
             # French month names
-            if any(month in text_lower for month in _FRENCH_MONTHS):
+            if not words.isdisjoint(_FRENCH_MONTHS):
                 detected_languages.append('fr')
                 return detected_languages  # Early exit: high confidence
 
             # Spanish month names
-            if any(month in text_lower for month in _SPANISH_MONTHS):
+            if not words.isdisjoint(_SPANISH_MONTHS):
                 detected_languages.append('es')
                 return detected_languages  # Early exit: high confidence
 
             # Italian month names
-            if any(month in text_lower for month in _ITALIAN_MONTHS):
+            if not words.isdisjoint(_ITALIAN_MONTHS):
                 detected_languages.append('it')
                 return detected_languages  # Early exit: high confidence
 
             # Portuguese month names
-            if any(month in text_lower for month in _PORTUGUESE_MONTHS):
+            if not words.isdisjoint(_PORTUGUESE_MONTHS):
                 detected_languages.append('pt')
                 return detected_languages  # Early exit: high confidence
 
             # Czech month names
-            if any(month in text_lower for month in _CZECH_MONTHS):
+            if not words.isdisjoint(_CZECH_MONTHS):
                 detected_languages.append('cz')
                 return detected_languages  # Early exit: high confidence
 
             # Polish month names (including genitive forms)
-            if any(month in text_lower for month in _POLISH_MONTHS):
+            if not words.isdisjoint(_POLISH_MONTHS):
                 detected_languages.append('pl')
                 return detected_languages  # Early exit: high confidence
 
             # Romanian month names. Keep this after the existing Romance-language
             # checks so an unrestricted parser does not relabel ambiguous "mai".
-            if any(month in text_lower for month in _ROMANIAN_MONTHS):
+            if not words.isdisjoint(_ROMANIAN_MONTHS):
                 detected_languages.append('ro')
                 return detected_languages  # Early exit: high confidence
 
@@ -773,7 +776,7 @@ class DateParser:
                 return detected_languages  # Early exit: high confidence
 
             # Dutch month names (check before German since they share month names like "juli")
-            if any(month in text_lower for month in _DUTCH_MONTHS):
+            if not words.isdisjoint(_DUTCH_MONTHS):
                 detected_languages.append('nl')
                 return detected_languages  # Early exit: high confidence
 
@@ -783,7 +786,7 @@ class DateParser:
                 return detected_languages  # Early exit: high confidence
 
             # Turkish month names
-            if any(month in text_lower for month in _TURKISH_MONTHS):
+            if not words.isdisjoint(_TURKISH_MONTHS):
                 detected_languages.append('tr')
                 return detected_languages  # Early exit: high confidence
 
