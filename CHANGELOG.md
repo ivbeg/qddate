@@ -24,6 +24,10 @@ First PyPI release since 1.0.10: it also ships the changes listed under
   install. It used `python-dateutil` when present (it is not a dependency)
   and a 30-day approximation otherwise, so results differed between
   environments.
+- Timing tests run in their own CI step without coverage tracing and
+  measure the best of several runs, so shared-runner noise no longer turns
+  the build red. Thresholds are unchanged.
+- Wheels are tagged `py3` (the legacy `setup.cfg` marked them `py2.py3`).
 - Language detection matches month names as whole words. French "mai" no
   longer claims Portuguese "maio", which made every `... de maio de ...` date
   unparseable.
