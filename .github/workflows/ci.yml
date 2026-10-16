@@ -44,3 +44,30 @@ jobs:
         QDDATE_PERF: "1"
       run: |
         pytest -q tests/test_performance.py tests/test_performance_smoke.py
+  package:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+    - name: Build and check distributions
+      run: |
+        python -m pip install --upgrade pip build twine
+        python -m build
+        twine check --strict dist/*
+    - name: Wheel contains only the qddate package
+      run: |
+        python - <<'PY'
+        import glob, zipfile
+        wheel = glob.glob("dist/*.whl")[0]
+        names = zipfile.ZipFile(wheel).namelist()
+        stray = [n for n in names if not n.startswith(("qddate/", "qddate-"))]
+        assert not stray, f"unexpected files in {wheel}: {stray[:10]}"
+        assert "qddate/py.typed" in names
+        print(f"{wheel}: {len(names)} files OK")
+        PY
+    - name: Tests pass from the sdist alone
+      run: |
+        mkdir /tmp/sdist && tar -xzf dist/*.tar.gz -C /tmp/sdist
+        cd /tmp/sdist/qddate-* && python -m pip install '.[test]' && python -m pytest -q tests
