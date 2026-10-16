@@ -487,3 +487,18 @@ def test_match_exposes_signed_timezone_token(parser):
     res = parser.match("2013-01-12 10:55:50-0500")
     assert res is not None
     assert res["values"]["timezone"] == "-0500"
+
+
+# ---------------------------------------------------------------------------
+# Language detection uses whole words
+# ---------------------------------------------------------------------------
+
+def test_portuguese_maio_is_not_detected_as_french_mai(parser):
+    """French "mai" is a substring of Portuguese "maio"; detection must not
+    narrow the candidates to French and drop the Portuguese pattern."""
+    assert parser.parse("31 de maio de 2025") == datetime.datetime(2025, 5, 31)
+    assert parser.parse("16 de maio de 2025") == datetime.datetime(2025, 5, 16)
+
+
+def test_french_mai_still_parses(parser):
+    assert parser.parse("16 mai 2025") == datetime.datetime(2025, 5, 16)

@@ -17,6 +17,9 @@ All notable changes to this project are tracked here.
   (`"+0300"`, `"-0500"`).
 - An offset separated from the time by a space (`10:55:50 +0530`) no longer
   falls back to the `HH:MM` variant and drops the seconds.
+- Language detection matches month names as whole words. French "mai" no
+  longer claims Portuguese "maio", which made every `... de maio de ...` date
+  unparseable.
 
 ## 1.0.15 (2026-10-06)
 
