@@ -83,7 +83,7 @@ _DUTCH_MONTHS = _lang_month_names("nl")
 _TURKISH_MONTHS = _lang_month_names("tr")
 
 # Pre-compiled pyparsing patterns for language detection (compiled once at module level)
-# Use Regex within pyparsing for word boundary matching (pyparsing's oneOf doesn't support word boundaries)
+# Use Regex within pyparsing for word boundary matching (pyparsing's one_of doesn't support word boundaries)
 # Create regex patterns that match any English/German month with word boundaries
 _ENGLISH_MONTH_PATTERN = Regex(r'\b(' + '|'.join(re.escape(m) for m in _ENGLISH_MONTHS) + r')\b')
 _GERMAN_MONTH_PATTERN = Regex(r'\b(' + '|'.join(re.escape(m) for m in _GERMAN_MONTHS) + r')\b')
@@ -489,10 +489,11 @@ class DateParser:
             data["time_format"] = "%H:%M:%S"
             data["length"] = {
                 "min": data["length"]["min"] + 9,
-                # HH:MM:SS adds 9 chars; the optional "+HHMM" offset adds 5 more.
-                # Without the +5, offset-carrying timestamps never fit this
+                # HH:MM:SS adds 9 chars; the optional " +HHMM" / " -HHMM" offset
+                # adds up to 6 more (sign, four digits and one separating space).
+                # Without them, offset-carrying timestamps never fit this
                 # variant and silently fell back to HH:MM (seconds dropped).
-                "max": data["length"]["max"] + 14,
+                "max": data["length"]["max"] + 15,
             }
             # Preserve character set metadata
             if "required_chars" in pat:
@@ -681,12 +682,12 @@ class DateParser:
             return 'unknown'
 
         # Look for 4-digit year patterns (more specific, check first)
-        # Use pyparsing scanString for consistency with codebase
-        if next(_YEAR_4DIGIT_PATTERN.scanString(text), None) is not None:
+        # Use pyparsing scan_string for consistency with codebase
+        if next(_YEAR_4DIGIT_PATTERN.scan_string(text), None) is not None:
             return '4digit'
 
         # Look for 2-digit year patterns using pyparsing
-        if next(_YEAR_2DIGIT_PATTERN.scanString(text), None) is not None:
+        if next(_YEAR_2DIGIT_PATTERN.scan_string(text), None) is not None:
             return '2digit'
 
         return 'unknown'
@@ -766,8 +767,8 @@ class DateParser:
         # Only check if no accented languages were detected (to avoid false matches)
         if CHAR_SET_LATIN in char_sets and not detected_languages:
             # English month names (use pyparsing for consistency with codebase)
-            # pyparsing's oneOf with scanString naturally handles word boundaries
-            if next(_ENGLISH_MONTH_PATTERN.scanString(text_lower, maxMatches=1), None) is not None:
+            # pyparsing's one_of with scan_string naturally handles word boundaries
+            if next(_ENGLISH_MONTH_PATTERN.scan_string(text_lower, max_matches=1), None) is not None:
                 detected_languages.append('en')
                 return detected_languages  # Early exit: high confidence
 
@@ -777,7 +778,7 @@ class DateParser:
                 return detected_languages  # Early exit: high confidence
 
             # German month names (use pyparsing for consistency)
-            if next(_GERMAN_MONTH_PATTERN.scanString(text_lower, maxMatches=1), None) is not None:
+            if next(_GERMAN_MONTH_PATTERN.scan_string(text_lower, max_matches=1), None) is not None:
                 detected_languages.append('de')
                 return detected_languages  # Early exit: high confidence
 
@@ -1322,13 +1323,13 @@ class DateParser:
             if not allow_no_year:
                 if p.get("noyear", False):
                     continue
-            match_data = next(p["pattern"].scanString(text, maxMatches=1), None)
+            match_data = next(p["pattern"].scan_string(text, max_matches=1), None)
             if match_data is None:
                 continue
             r, start, end = match_data
             if start != 0:
                 continue
-            if not _values_in_range(r.asDict()):
+            if not _values_in_range(r.as_dict()):
                 continue
             yield _score, end, {"values": r, "pattern": p}
 
@@ -1512,11 +1513,13 @@ class DateParser:
             # Invalid date values (e.g., year 0) or unexpected keys - return None
             return None
         if tz_offset is not None and self._tz_aware:
-            tz_txt = str(tz_offset).zfill(4)
+            tz_txt = str(tz_offset)
+            sign = -1 if tz_txt.startswith("-") else 1
+            tz_txt = tz_txt.lstrip("+-").zfill(4)
             hours, minutes = int(tz_txt[:2]), int(tz_txt[2:])
             if hours <= 23 and minutes <= 59:
                 dt = dt.replace(tzinfo=datetime.timezone(
-                    datetime.timedelta(hours=hours, minutes=minutes)))
+                    sign * datetime.timedelta(hours=hours, minutes=minutes)))
         return dt
 
     def match_typed(self, text: str, **kwargs: Any) -> Union[DateMatch, None]:
