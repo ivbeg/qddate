@@ -2,7 +2,7 @@
 
 All notable changes to this project are tracked here.
 
-## Unreleased
+## 1.0.17 (2026-10-17)
 
 **Patterns**
 - A weekday before a month-first date is recognised:
