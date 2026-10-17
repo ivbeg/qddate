@@ -83,6 +83,9 @@ _PATTERN_METADATA = {
     'dt:date:weekday_eng_abbrev1': ('en', 'space'),
     'dt:date:weekday_eng_abbrev2': ('en', 'space'),
     'dt:date:weekday_eng_abbrev3': ('en', 'space'),
+    'dt:date:weekday_eng_us': ('en', 'space'),
+    'dt:date:weekday_eng_wshort_us': ('en', 'space'),
+    'dt:date:weekday_eng_abbrev_wshort_us': ('en', 'space'),
     'dt:date:date_eng_abbrev_postfix': ('en', 'space'),
     # Bulgarian (bg.py)
     'dt:date:bg_base': ('bg', 'space'),

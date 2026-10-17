@@ -7,7 +7,7 @@ description: "Base date patterns for English (en)"
 
 # English (`en`)
 
-**Base patterns:** 39. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
+**Base patterns:** 42. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
@@ -31,7 +31,7 @@ description: "Base date patterns for English (en)"
 | `dt:date:date_eng2_short` | Date with english month 2 short | `%b %d, %Y` | 10 | 10 |  |  |  | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
 | `dt:date:date_eng3` | Date with english month full lowcase | `%b %d, %Y` | 10 | 20 |  |  | 2 | `march 15, 2024`, `december 3, 2023`, `july 28, 2025` |
 | `dt:date:date_eng3_nolc` | Date with english month full | `%b %d, %Y` | 10 | 20 |  |  | 2 | `March 15, 2024`, `December 3, 2023`, `July 28, 2025` |
-| `dt:date:date_eng4_short` | Date with english month short with dash | `%d-%b-%y` | 10 | 10 | Yes |  |  | `15-mar-24`, `3-dec-23`, `28-jul-25` |
+| `dt:date:date_eng4_short` | Date with english month short with dash | `%d-%b-%y` | 6 | 9 | Yes |  |  | `15-mar-24`, `3-dec-23`, `28-jul-25` |
 | `dt:date:noyear_1` | Datetime string without year | `%d.%m` | 5 | 5 |  | Yes |  | `15.03`, `3.12`, `28.07` |
 | `dt:date:date_4_point` | Datetime string | `%d.%m.%y` | 6 | 9 | Yes |  |  | `15.03.24`, `3.12.23`, `28.07.25` |
 | `dt:date:weekday_eng` | Date with english month and weekday | `%d %m %Y` | 17 | 27 |  |  | 1 | `Monday, 15 March 2024`, `Monday, 3 December 2023`, `Monday, 28 July 2025` |
@@ -47,6 +47,9 @@ description: "Base date patterns for English (en)"
 | `dt:date:weekday_eng_abbrev1` | Date with abbreviated English month and short weekday | `%d %b %Y` | 13 | 17 |  |  | 1 | `15 mar 2024`, `3 dec 2023`, `28 jul 2025` |
 | `dt:date:weekday_eng_abbrev2` | Date with abbreviated English month, short weekday, and comma | `%d %b %Y` | 13 | 18 |  |  | 1 | `15 mar 2024`, `3 dec 2023`, `28 jul 2025` |
 | `dt:date:weekday_eng_abbrev3` | Date with full english weekday and abbreviated month (month first) | `%b %d, %Y` | 18 | 32 |  |  | 1 | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
+| `dt:date:weekday_eng_us` | Date with full english weekday and month first | `%b %d, %Y` | 16 | 30 |  |  | 1 | `March 15, 2024`, `December 3, 2023`, `July 28, 2025` |
+| `dt:date:weekday_eng_wshort_us` | Date with short english weekday and month first | `%b %d, %Y` | 13 | 24 |  |  | 1 | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
+| `dt:date:weekday_eng_abbrev_wshort_us` | Date with short english weekday and abbreviated month first | `%b %d, %Y` | 13 | 19 |  |  | 1 | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
 | `dt:date:date_eng_abbrev_postfix` | Date with abbreviated English month and day with ordinal suffix | `%d %b %Y` | 11 | 16 |  |  | 1 | `15 mar 2024`, `3 dec 2023`, `28 jul 2025` |
 | `dt:date:date_5` | Datetime string as ddmmyyyy | `%d%m%Y` | 8 | 8 |  |  |  | `15032024`, `03122023`, `28072025` |
 | `dt:date:date_6` | Datetime string as yyyymmdd | `%Y%m%d` | 8 | 8 |  |  |  | `20240315`, `20231203`, `20250728` |
