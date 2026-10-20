@@ -16,6 +16,12 @@ All notable changes to this project are tracked here.
   the legacy path under the filter toggles: the fingerprint filter keeps
   every legacy candidate under all 64 combinations, and `match_all()` /
   `parse()` agree with each toggle flipped alone and with all flipped.
+- The default parser honours `start_session()`. Since 1.0.14 the default
+  fingerprint filter ignored the session's pattern list, so a session
+  neither restricted matching nor sped it up:
+  `start_session(['dt:date:date_eng1'])` still parsed `01.12.2009`. The
+  fingerprint filter now walks an index over the session's patterns only,
+  as the legacy filter (`use_fingerprint=False`) does.
 
 ## 1.0.17 (2026-10-17)
 

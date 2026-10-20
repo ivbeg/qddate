@@ -273,6 +273,21 @@ def _pattern_separator(pattern):
     return entry[1] if entry else "mixed"
 
 
+def _index_by_fingerprint(patterns):
+    """Group pattern dicts by fingerprint: ``{FingerprintKey: [pattern, ...]}``.
+
+    Buckets keep the order of ``patterns``.
+    """
+    # Local import: ``qddate.patterns.fingerprint`` imports from
+    # ``qddate.patterns``, which this module imports at load time.
+    from .patterns.fingerprint import compute_pattern_fingerprint
+
+    index: dict = {}
+    for p in patterns:
+        index.setdefault(compute_pattern_fingerprint(p), []).append(p)
+    return index
+
+
 def scan_char_sets(text):
     """Single-pass scanner returning set of character categories present in text.
 
@@ -412,6 +427,10 @@ class DateParser:
         # between the legacy and fingerprint paths.
         self._build_fingerprint_index()
         self.cachedpats: Union[list[dict], None] = None
+        # Fingerprint index over ``cachedpats`` and the list it was built from;
+        # see ``_session_fingerprint_index``.
+        self._session_fingerprints: dict = {}
+        self._session_fingerprints_source: Union[list[dict], None] = None
         self.ind: list[Any] = []
         # When ``True``, ``match()``/``match_all()``/``parse()`` route through the
         # single-walk fingerprint-based filter (``_filter_patterns_fingerprint``)
@@ -433,9 +452,13 @@ class DateParser:
     def start_session(self, cached_p: Union[list[str], set[str]]) -> None:
         cached_set = set(cached_p) if not isinstance(cached_p, set) else cached_p
         self.cachedpats = [x for x in self.patterns if x["key"] in cached_set]
+        # Build the session's fingerprint index now, not on the first parse.
+        self._session_fingerprint_index()
 
     def end_session(self) -> None:
         self.cachedpats = None
+        self._session_fingerprints = {}
+        self._session_fingerprints_source = None
 
     def startSession(self, cached_p):
         """Deprecated alias of :meth:`start_session`."""
@@ -633,16 +656,25 @@ class DateParser:
         from ``FingerprintKey`` to a list of pattern dicts; ``_filter_patterns_fingerprint``
         uses ``set`` arithmetic on the keys to compute intersections.
         """
+        self._pattern_fingerprints = _index_by_fingerprint(self.patterns)
 
-        from .patterns.fingerprint import (
-            compute_pattern_fingerprint,
-        )
+    def _session_fingerprint_index(self) -> dict:
+        """Return the fingerprint index the fingerprint filter walks.
 
-        index: dict = {}
-        for p in self.patterns:
-            fp = compute_pattern_fingerprint(p)
-            index.setdefault(fp, []).append(p)
-        self._pattern_fingerprints = index
+        Outside a session this is the full per-instance index. Inside one it
+        is an index over ``self.cachedpats`` only, so the fingerprint path
+        honours ``start_session()`` the way the legacy filter does (session
+        patterns are its level-1 set). The session index is rebuilt whenever
+        ``cachedpats`` is a different list from the one it was built from,
+        which also covers callers that assign ``cachedpats`` directly.
+        """
+        cached = self.cachedpats
+        if cached is None:
+            return self._pattern_fingerprints
+        if self._session_fingerprints_source is not cached:
+            self._session_fingerprints = _index_by_fingerprint(cached)
+            self._session_fingerprints_source = cached
+        return self._session_fingerprints
 
     def _build_year_format_index(self):
         """Pre-index patterns by year format requirements for faster filtering"""
@@ -1023,6 +1055,9 @@ class DateParser:
         on the candidate set and the prefix index, not on text-fingerprint
         dimensions.
 
+        During a session (:meth:`start_session`) only the session's patterns
+        are candidates, as on the legacy path.
+
         This is the default path since ``1.0.14``; the legacy pipeline is only
         reachable through the deprecated ``use_fingerprint=False``. The result
         is a **superset-or-equal** of the legacy pipeline's candidate set under
@@ -1179,7 +1214,8 @@ class DateParser:
                 return fp_year in ("noyear", "2digit")
             return False
 
-        # Single-walk intersection over the per-instance fingerprint index.
+        # Single-walk intersection over the per-instance fingerprint index
+        # (restricted to the session's patterns while a session is active).
         # Includes generated variants (suffix :time_N, :t_right) that the
         # module-level ``_PATTERN_FINGERPRINTS`` does not carry.
         #
@@ -1195,7 +1231,7 @@ class DateParser:
         # but a pattern whose basekey is ``date_1``/``date_8``/``date_3``
         # gets a free pass via ``_space_compat_basekey``.
         pats: list[dict] = []
-        for fp, bucket in self._pattern_fingerprints.items():
+        for fp, bucket in self._session_fingerprint_index().items():
             if fp.length_min > n or fp.length_max < n:
                 continue
             if check_chars and not _chars_match(fp.chars):

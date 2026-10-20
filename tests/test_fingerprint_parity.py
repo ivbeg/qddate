@@ -275,3 +275,66 @@ def test_fingerprint_equals_legacy_under_toggles(legacy_parser, fp_parser, combo
 def test_disabled_filter_still_parses_by_default(text, toggle):
     """The default (fingerprint) parser parses canonical dates with a filter disabled."""
     assert DateParser().parse(text, **{toggle: True}) == datetime.datetime(2009, 12, 1)
+
+
+# Session for the ``start_session()`` parity tests: numeric, English,
+# Russian, no-year and time patterns. Some probes match inside the session;
+# the others must match nothing on both paths.
+_SESSION_KEYS = [
+    "dt:date:date_2", "dt:date:date_9", "dt:date:date_1:t_right",
+    "dt:date:date_eng1", "dt:date:date_eng1_short", "dt:date:date_eng1:time_3",
+    "dt:date:date_rus2", "dt:date:noyear_1",
+]
+
+
+@pytest.fixture(scope="module")
+def session_parsers() -> tuple[DateParser, DateParser]:
+    """Legacy and fingerprint parsers with ``_SESSION_KEYS`` as the session."""
+    with pytest.warns(DeprecationWarning, match="use_fingerprint=False is deprecated"):
+        legacy = DateParser(use_fingerprint=False)
+    fingerprint = DateParser(use_fingerprint=True)
+    for parser in (legacy, fingerprint):
+        parser.start_session(_SESSION_KEYS)
+    return legacy, fingerprint
+
+
+def test_session_keys_exist(fp_parser):
+    """Every session key names a real pattern, so the session tests stay meaningful."""
+    known = {p["key"] for p in fp_parser.patterns}
+    assert set(_SESSION_KEYS) <= known
+
+
+@pytest.mark.parametrize("text", _PROBE_STRINGS)
+def test_session_fingerprint_equals_legacy(session_parsers, text):
+    """With a session active, both paths match the same keys and parse the same value."""
+    legacy_parser, fp_parser = session_parsers
+    legacy_keys = _candidate_keys(legacy_parser, text)
+    fp_keys = _candidate_keys(fp_parser, text)
+    assert fp_keys <= set(_SESSION_KEYS), (
+        f"Fingerprint path matched outside the session for {text!r}: "
+        f"{sorted(fp_keys - set(_SESSION_KEYS))[:5]}"
+    )
+    assert legacy_keys == fp_keys, (
+        f"Session candidate-set divergence for {text!r}: "
+        f"legacy={sorted(legacy_keys - fp_keys)[:5]} fp={sorted(fp_keys - legacy_keys)[:5]}"
+    )
+    assert fp_parser.parse(text) == legacy_parser.parse(text)
+
+
+def test_session_restricts_default_parser():
+    """Regression: the default (fingerprint) parser ignored ``start_session()``."""
+    parser = DateParser()
+    assert parser.parse("01.12.2009") == datetime.datetime(2009, 12, 1)
+
+    parser.start_session(["dt:date:date_eng1"])
+    assert parser.parse("01.12.2009") is None
+    assert parser.parse("5 August 2001") == datetime.datetime(2001, 8, 5)
+
+    # A new session replaces the old one.
+    parser.start_session(["dt:date:date_2"])
+    assert parser.parse("01.12.2009") == datetime.datetime(2009, 12, 1)
+    assert parser.parse("5 August 2001") is None
+
+    parser.end_session()
+    assert parser.parse("01.12.2009") == datetime.datetime(2009, 12, 1)
+    assert parser.parse("5 August 2001") == datetime.datetime(2001, 8, 5)
