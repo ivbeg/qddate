@@ -48,6 +48,11 @@ def test_timezone_aware_opt_in():
     assert dt.hour == 10 and dt.minute == 20 and dt.second == 30
 
 
+def test_timezone_aware_zero_offset_is_utc():
+    dt = DateParser(tz_aware=True).parse("01.12.2009 14:53:12 +0000")
+    assert dt.utcoffset() == datetime.timedelta(0)
+
+
 def test_timezone_aware_no_offset_stays_naive():
     parser = DateParser(tz_aware=True)
     assert parser.parse("12.03.1999 10:20:30").tzinfo is None

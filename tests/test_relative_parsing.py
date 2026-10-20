@@ -1,7 +1,7 @@
 """Tests for ``DateParser.parse_relative()``.
 
-The relative-date grammar is opt-in (an explicit method call) and the
-``relative=True`` constructor flag controls whether ``parse()`` also tries it.
+The relative-date grammar is opt-in: only an explicit ``parse_relative()``
+call uses it; ``parse()`` never matches relative phrases.
 """
 
 import datetime
