@@ -51,9 +51,9 @@ skips one level of the [filter pipeline](/api/filter-pipeline). See also
 ## Behavior notes
 
 - Matching is **left-aligned**. Trailing text after the date is ignored.
-- Optional `HH:MM` / `HH:MM:SS` suffixes populate hour, minute, and second.
-- Patterns flagged `noyear` substitute the current year when `allow_no_year=True` (the default).
-- Two-digit years pass through as-is (`99` → year 99) unless the parser was built with `pivot_year=` (for example `DateParser(pivot_year=1968)` maps `99` → 1999, `20` → 2020).
+- Optional `HH:MM` / `HH:MM:SS` suffixes populate hour, minute, and second. After a Russian date the time may follow `в`: `4 Сентября 2020 в 04:06` → `datetime(2020, 9, 4, 4, 6)`.
+- Patterns flagged `noyear` (`05.12`, `4 Сентября`) substitute the current year when `allow_no_year=True` (the default). With `allow_no_year=False` they do not match.
+- Two-digit years pass through as-is (`99` → year 99) unless the parser was built with `pivot_year=` (for example `DateParser(pivot_year=1968)` maps `99` → 1999, `20` → 2020). `pivot_year` must be an integer; `pivot_year=True` raises `TypeError`.
 - Numeric UTC offsets are attached only with `DateParser(tz_aware=True)`. Timezone abbreviations (`UTC`, `GMT`, `MSK`) are never applied.
 - Relative phrases (`today`, `3 days ago`) return `None`; use [`parse_relative()`](/api/dateparser#relative-date-parsing).
 

@@ -14,7 +14,7 @@ from .nl import PATTERNS_NL
 from .pl import PATTERNS_PL
 from .pt import PATTERNS_PT
 from .ro import PATTERNS_RO
-from .ru import PATTERNS_RU
+from .ru import PATTERNS_RU, RUS_TIME_PREFIXES
 from .tr import PATTERNS_TR
 from .uk import PATTERNS_UK
 
@@ -194,6 +194,7 @@ _PATTERN_METADATA = {
     'dt:date:rus_rare_3': ('ru', 'dot'),
     'dt:date:rus_rare_5': ('ru', 'space'),
     'dt:date:rus_rare_6': ('ru', 'space'),
+    'dt:date:date_rus_noyear': ('ru', 'space'),
     # Turkish (tr.py)
     'dt:date:tr_base': ('tr', 'space'),
     'dt:date:tr_base_lc': ('tr', 'space'),
@@ -308,6 +309,13 @@ SUPPORTED_LANGUAGES = [
     "tr",
     "uk",
 ]
+
+# Words a language writes between a date and its time of day, by language code.
+# ``DateParser`` accepts one of them before the time in the ``:time_N`` variants
+# it generates from that language's patterns ("4 Сентября 2020 в 04:06").
+TIME_PREFIXES_BY_LANGUAGE = {
+    "ru": tuple(RUS_TIME_PREFIXES),
+}
 
 # Mapping of language codes to their pattern lists
 PATTERNS_BY_LANGUAGE = {

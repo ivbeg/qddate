@@ -28,7 +28,7 @@ DateParser(generate=True, patterns=ALL_PATTERNS, base_only=False, languages=None
 | `patterns` | `qddate.patterns.ALL_PATTERNS` | Pattern dicts to load |
 | `base_only` | `False` | Keep only base patterns; skip generated "date plus extra text" variants |
 | `languages` | `None` | Language code, list of codes, or `None` for all languages |
-| `pivot_year` | `None` | 4-digit pivot for two-digit years: with `1968`, `99` → 1999 and `20` → 2020. `None` keeps the raw two-digit year |
+| `pivot_year` | `None` | 4-digit pivot for two-digit years: with `1968`, `99` → 1999 and `20` → 2020. `None` keeps the raw two-digit year. A bool or other non-integer raises `TypeError`: `pivot_year=True` would mean pivot year 1 |
 | `tz_aware` | `False` | Attach a numeric UTC offset (`+0300`, `-0500`) from the input to the result. Abbreviations (`UTC`, `MSK`) are never applied |
 | `use_fingerprint` | `True` | Use the fingerprint candidate filter. `False` selects the legacy 6-level filter and emits `DeprecationWarning`; it will be removed in 2.0 |
 

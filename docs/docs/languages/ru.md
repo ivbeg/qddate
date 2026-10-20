@@ -7,11 +7,11 @@ description: "Base date patterns for Russian (ru)"
 
 # Russian (`ru`)
 
-**Base patterns:** 11. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
+**Base patterns:** 12. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
-| `dt:date:date_rus` | Date with russian month | `%d %m %Y` | 10 | 30 |  |  | 1 | `15 Марта 2024`, `3 Декабря 2023`, `28 Июля 2025` |
+| `dt:date:date_rus` | Date with russian month | `%d %m %Y` | 10 | 20 |  |  | 1 | `15 Марта 2024`, `3 Декабря 2023`, `28 Июля 2025` |
 | `dt:date:date_rus2` | Date with russian month and year word | `%d %m %Y` | 13 | 20 |  |  | 1 | `15 Марта 2024 г.`, `3 Декабря 2023 г.`, `28 Июля 2025 г.` |
 | `dt:date:date_rus3` | Date with russian year | `%d.%m.%Y` | 14 | 20 |  |  |  | `15.03.2024`, `3.12.2023`, `28.07.2025` |
 | `dt:date:date_rus_lc1` | Date with russian month | `%d %m %Y` | 10 | 20 |  |  | 1 | `15 Марта 2024`, `3 Декабря 2023`, `28 Июля 2025` |
@@ -22,5 +22,6 @@ description: "Base date patterns for Russian (ru)"
 | `dt:date:rus_rare_3` | Date with russian month with dots as divider with low case months | `%d.%m.%Y` | 10 | 20 |  |  | 1 | `15.03.2024`, `3.12.2023`, `28.07.2025` |
 | `dt:date:rus_rare_5` | Russian date stars with month name | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 Марта 2024`, `3 Декабря 2023`, `28 Июля 2025` |
 | `dt:date:rus_rare_6` | Russian date stars with weekday and follows with month name | `%d %m %Y` | 13 | 22 |  |  | 1 | `Понедельник, 15 Марта 2024`, `Понедельник, 3 Декабря 2023`, `Понедельник, 28 Июля 2025` |
+| `dt:date:date_rus_noyear` | Date with russian month without year | `%d %m` | 5 | 12 |  | Yes | 1 | `15 Марта`, `3 Декабря`, `28 Июля` |
 
 See also: [languages=](/api/languages), [adding languages](/development/adding-languages).

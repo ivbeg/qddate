@@ -373,6 +373,7 @@ _PROBE_STRINGS = [
     "5 leden 2020",             # cz_base_lc (lowercase nominative form)
     "Пятница, 5 Мая 2020 года",       # weekday_rus
     "Воскресенье, 5 мая 2020 года",   # weekday_rus_lc1
+    "4 Сентября в 04:06:33",          # date_rus_noyear
 ]
 
 

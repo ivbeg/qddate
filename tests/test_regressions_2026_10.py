@@ -11,6 +11,11 @@
 - Other length minimums one character too high (``1.мая.1945``, ``Май 6, 2020``,
   ``7 Юли 1918``, ``9 Maj 1997``) and ``date_rus_lc1`` stamped as space-separated
   although it accepts ``17/апреля/1908``.
+- ``dt:date:date_rus`` made the year optional without the ``noyear`` flag, so
+  ``4 Сентября в 04:06:33`` matched with no year and ``parse()`` returned
+  ``None``; it also swallowed a trailing time without naming its parts, so
+  ``4 Сентября 2020 в 04:06:33`` parsed to midnight.
+- ``DateParser(pivot_year=True)`` was accepted and meant pivot year 1.
 """
 import datetime
 import itertools
@@ -154,3 +159,80 @@ def test_short_or_slashed_dates(parser, text, expected, key):
     assert res is not None
     assert res["pattern"]["basekey"] == key
     assert parser.parse(text) == expected
+
+
+# ---------------------------------------------------------------------------
+# Russian dates without a year, and the "в" before a time
+# ---------------------------------------------------------------------------
+
+_THIS_YEAR = datetime.date.today().year
+
+
+@pytest.mark.parametrize("text,month_day_time,key", [
+    ("4 Сентября в 04:06:33", (9, 4, 4, 6, 33), "dt:date:date_rus_noyear:time_2"),
+    ("4 сентября в 04:06:33", (9, 4, 4, 6, 33), "dt:date:date_rus_noyear:time_2"),
+    ("13 Марта в 05:31", (3, 13, 5, 31, 0), "dt:date:date_rus_noyear:time_1"),
+    ("4 Сентября 04:06", (9, 4, 4, 6, 0), "dt:date:date_rus_noyear:time_1"),
+    ("4 Сентября", (9, 4, 0, 0, 0), "dt:date:date_rus_noyear"),
+    ("5 мая", (5, 5, 0, 0, 0), "dt:date:date_rus_noyear"),
+])
+def test_russian_date_without_year(parser, text, month_day_time, key):
+    """A yearless Russian date takes the current year, like ``05.12``."""
+    res = parser.match(text)
+    assert res is not None
+    assert res["pattern"]["key"] == key
+    assert parser.parse(text) == datetime.datetime(_THIS_YEAR, *month_day_time)
+
+
+@pytest.mark.parametrize("text", [
+    "4 Сентября в 04:06:33", "4 сентября в 04:06:33", "4 Сентября", "5 мая",
+])
+def test_russian_date_without_year_needs_allow_no_year(parser, legacy_parser, text):
+    assert parser.match(text, allow_no_year=False) is None
+    assert parser.parse(text, allow_no_year=False) is None
+    assert legacy_parser.parse(text, allow_no_year=False) is None
+
+
+@pytest.mark.parametrize("text,expected,key", [
+    ("4 Сентября 2020 в 04:06:33", datetime.datetime(2020, 9, 4, 4, 6, 33),
+     "dt:date:date_rus:time_2"),
+    ("4 Сентября 2020 04:06:33", datetime.datetime(2020, 9, 4, 4, 6, 33),
+     "dt:date:date_rus:time_2"),
+    ("4 Сентября 2020 в 04:06", datetime.datetime(2020, 9, 4, 4, 6),
+     "dt:date:date_rus:time_1"),
+    ("2 Января 1981 года в 21:04", datetime.datetime(1981, 1, 2, 21, 4),
+     "dt:date:date_rus2:time_1"),
+    ("4 сентября 2020 г. в 04:06:33", datetime.datetime(2020, 9, 4, 4, 6, 33),
+     "dt:date:date_rus_lc2:time_2"),
+    ("4 Сентября 2020", datetime.datetime(2020, 9, 4), "dt:date:date_rus"),
+])
+def test_russian_date_keeps_time(parser, legacy_parser, text, expected, key):
+    """The time after a Russian date, with or without ``в``, is parsed."""
+    res = parser.match(text)
+    assert res is not None
+    assert res["pattern"]["key"] == key
+    assert parser.parse(text) == expected
+    assert legacy_parser.parse(text) == expected
+
+
+def test_time_word_is_russian_only(parser):
+    """``в`` before a time is accepted only after a Russian date."""
+    assert parser.parse("16 May 2009 в 14:10") == datetime.datetime(2009, 5, 16)
+    assert parser.parse("16 May 2009 14:10") == datetime.datetime(2009, 5, 16, 14, 10)
+
+
+# ---------------------------------------------------------------------------
+# pivot_year type check
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("value", [True, False, "1968", 1968.0])
+def test_pivot_year_rejects_bool_and_non_integers(value):
+    """``True`` is an ``int`` equal to 1: it mapped only ``00`` to 2000 and
+    ``05`` to 1905. It and other non-integers now raise."""
+    with pytest.raises(TypeError, match="4-digit year such as 1968"):
+        DateParser(pivot_year=value, generate=False)
+
+
+def test_pivot_year_accepts_integers():
+    assert DateParser(pivot_year=1968).parse("05/16/20") == datetime.datetime(2020, 5, 16)
+    assert DateParser(pivot_year=None).parse("05/16/99") == datetime.datetime(99, 5, 16)

@@ -31,8 +31,8 @@ Arguments match [`parse()`](/api/parse):
 |----------|---------|---------|
 | `allow_no_year` | `True` | Include patterns that omit the year (current year is filled later by `parse()`) |
 
-Set `allow_no_year=False` to skip day-month-only patterns and reduce false
-positives on short numeric fragments. The old name `noyear=` still works as a
+Set `allow_no_year=False` to skip day-month-only patterns (`05.12`,
+`4 Сентября`) and reduce false positives on short numeric fragments. The old name `noyear=` still works as a
 keyword and emits `DeprecationWarning`. Pass the options by keyword: the
 positional order differs from `parse()`. Each `no*` flag skips one level of the
 [filter pipeline](/api/filter-pipeline).

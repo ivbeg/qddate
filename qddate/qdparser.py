@@ -6,6 +6,7 @@ __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
 import datetime
+import numbers
 import re
 import time
 import warnings
@@ -31,6 +32,7 @@ from .patterns import (
     ALL_PATTERNS,
     BASE_TIME_PATTERNS,
     MONTHS_BY_LANGUAGE,
+    TIME_PREFIXES_BY_LANGUAGE,
     _infer_required_chars,
     get_patterns_for_languages,
 )
@@ -302,6 +304,11 @@ def format_date(dt: datetime.datetime, pattern_key: str) -> str:
     )
 
 
+def _append(expr, extra):
+    """Return ``expr + extra``, or ``expr`` unchanged when ``extra`` is None."""
+    return expr if extra is None else expr + extra
+
+
 def _values_in_range(d):
     """Sanity-check matched date/time components.
 
@@ -452,7 +459,10 @@ class DateParser:
         :param pivot_year: Optional 4-digit pivot year for interpreting 2-digit years (patterns with the
                           ``yearshort`` flag). Years ``00`` to ``(pivot_year % 100) - 1`` map to 20xx, the
                           rest to 19xx. Example: pivot_year=1968 maps 05/16/99 to 1999 and 05/16/20 to 2020.
-                          If None (default), 2-digit years are passed through unchanged.
+                          If None (default), 2-digit years are passed through unchanged. A bool or any
+                          other non-integer raises ``TypeError``: ``True`` would act as pivot year 1
+                          (only ``00`` maps to 2000), so ``pivot_year=True`` is not a way to switch the
+                          pivot on.
         :type pivot_year: int|None
         :param tz_aware: If True, a parsed ``+HHMM`` timezone offset is attached to the returned datetime
                          (making it timezone-aware). Default False keeps returning naive datetimes.
@@ -475,7 +485,15 @@ class DateParser:
                                     emits a ``DeprecationWarning``. Omit the parameter (or pass
                                     ``True``) to silence the warning.
         :type use_fingerprint: bool
+        :raises TypeError: if ``pivot_year`` is a bool or not an integer.
         """
+        # ``bool`` is an ``int`` subclass, so ``pivot_year=True`` would silently
+        # mean pivot year 1. Reject it along with non-integers.
+        if pivot_year is not None and (
+                isinstance(pivot_year, bool) or not isinstance(pivot_year, numbers.Integral)):
+            raise TypeError(
+                "pivot_year must be a 4-digit year such as 1968, or None; "
+                f"got {pivot_year!r}")
         # ``use_fingerprint=False`` is deprecated since ``1.0.15`` and will be
         # removed in ``v2.0.0``. Emit a warning when the caller explicitly
         # opts in to the legacy 6-level filter so downstream code has a
@@ -583,17 +601,28 @@ class DateParser:
             # already stamped by ``annotate_patterns`` at import time.
             pass
 
+            # A word the pattern's language writes before the time ("в" in
+            # "4 Сентября 2020 в 04:06") is accepted in the time variants; it
+            # widens their maximum length by the word and its space.
+            prefixes = TIME_PREFIXES_BY_LANGUAGE.get(pat.get("language"))
+            if prefixes:
+                time_prefix = PpOptional(one_of(list(prefixes))).suppress()
+                prefix_len = max(len(word) for word in prefixes) + 1
+            else:
+                time_prefix = None
+                prefix_len = 0
+
             data = {**pat}
             data["basekey"] = data["key"]
             data["key"] += ":time_1"
             data["right"] = True
-            data["pattern"] = (data["pattern"] +
-                               PpOptional(Literal(",")).suppress() +
+            data["pattern"] = (_append(data["pattern"] + PpOptional(Literal(",")).suppress(),
+                                       time_prefix) +
                                BASE_TIME_PATTERNS["pat:time:minutes"])
             data["time_format"] = "%H:%M"
             data["length"] = {
                 "min": data["length"]["min"] + 5,
-                "max": data["length"]["max"] + 8,
+                "max": data["length"]["max"] + 8 + prefix_len,
             }
             # Preserve character set metadata
             if "required_chars" in pat:
@@ -604,8 +633,9 @@ class DateParser:
             data["basekey"] = data["key"]
             data["right"] = True
             data["key"] += ":time_2"
-            data["pattern"] = (data["pattern"] +
-                               PpOptional(one_of([",", "|", "T"])).suppress() +
+            data["pattern"] = (_append(data["pattern"] +
+                                       PpOptional(one_of([",", "|", "T"])).suppress(),
+                                       time_prefix) +
                                BASE_TIME_PATTERNS["pat:time:full"])
             data["time_format"] = "%H:%M:%S"
             data["length"] = {
@@ -614,7 +644,7 @@ class DateParser:
                 # adds up to 6 more (sign, four digits and one separating space).
                 # Without them, offset-carrying timestamps never fit this
                 # variant and silently fell back to HH:MM (seconds dropped).
-                "max": data["length"]["max"] + 15,
+                "max": data["length"]["max"] + 15 + prefix_len,
             }
             # Preserve character set metadata
             if "required_chars" in pat:
@@ -625,14 +655,14 @@ class DateParser:
             data["basekey"] = data["key"]
             data["right"] = True
             data["key"] += ":time_3"
-            data["pattern"] = (data["pattern"] +
+            data["pattern"] = (_append(data["pattern"], time_prefix) +
                                PpOptional(Literal("[")).suppress() +
                                BASE_TIME_PATTERNS["pat:time:minutes"] +
                                PpOptional(Literal("]")).suppress())
             data["time_format"] = "%H:%M"
             data["length"] = {
                 "min": data["length"]["min"] + 7,
-                "max": data["length"]["max"] + 10,
+                "max": data["length"]["max"] + 10 + prefix_len,
             }
             # Preserve character set metadata
             if "required_chars" in pat:
@@ -1144,13 +1174,15 @@ class DateParser:
         # A disabled dimension is skipped, not matched against a placeholder:
         # an empty text charset or a ``{"mixed"}`` separator would *narrow*
         # the candidate set (``fp_chars <= frozenset()`` rejects every pattern
-        # that needs a character class). The legacy level 2 also skips the
-        # charset filter under ``noprefix``; mirror that.
-        check_chars = not noprefix and not nocharsetfilter
+        # that needs a character class). The legacy levels 2 and 4 also skip
+        # the charset filter under ``noprefix`` and both filters for texts of
+        # five characters or fewer; mirror that, so a short pattern in another
+        # script ("5 мая") stays a candidate for "05.12" as it does there.
+        check_chars = n > 5 and not noprefix and not nocharsetfilter
         check_separator = not noseparatorfilter
         text_char_sets = scan_char_sets(text) if check_chars else frozenset()
         separators = self._detect_separators(text) if check_separator else set()
-        if nolanguagefilter:
+        if nolanguagefilter or n <= 5:
             detected_languages: list[str] = []
         else:
             detected_languages = self._detect_language(text)

@@ -49,6 +49,9 @@ RUS_WEEKDAYS_LC = [
     "воскресение",
 ]
 RUS_YEARS = ["г.", "года"]
+# Word written between a date and its time of day ("4 Сентября 2020 в 04:06").
+# DateParser accepts it before the time in the generated time variants.
+RUS_TIME_PREFIXES = ["в"]
 
 ru_mname2mon = dict((m, i + 1) for i, m in enumerate(RUS_MONTHS) if m)
 rulc_mname2mon = dict((m, i + 1) for i, m in enumerate(RUS_MONTHS_LC) if m)
@@ -87,13 +90,10 @@ PATTERNS_RU = [
         Word(nums, min=1, max=2).set_results_name("day") +
         Optional(",").suppress() +
         BASE_PATTERNS_RU["pat:rus:months"].set_results_name("month") +
-        Optional(",").suppress() +
-        Optional(Word(nums, exact=4).set_results_name("year")) +
-        Optional((Literal("в").suppress() + Word(nums, exact=2) + Literal(":").suppress() + Word(nums, exact=2) + Optional(Literal(":").suppress() + Word(nums, exact=2))) |  # noqa: E501
-                 (Word(nums, exact=2) + Literal(":").suppress() + Word(nums, exact=2) + Optional(Literal(":").suppress() + Word(nums, exact=2)))),  # noqa: E501
+        Optional(",").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 10,
-            "max": 30
+            "max": 20
         },
         "format":
         "%d %m %Y",
@@ -295,6 +295,27 @@ PATTERNS_RU = [
         },
         "format":
         "%d %m %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:date_rus_noyear",
+        "name":
+        "Date with russian month without year",
+        "pattern":
+        Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(",").suppress() +
+        (BASE_PATTERNS_RU["pat:rus:months"] |
+         BASE_PATTERNS_RU["pat:rus:months:lc"]).set_results_name("month"),
+        "length": {
+            "min": 5,
+            "max": 12
+        },
+        "format":
+        "%d %m",
+        "noyear":
+        True,
         "filter":
         1,
     },

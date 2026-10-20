@@ -52,7 +52,8 @@ any trailing text after the matched date, so that scraped strings like
 
 The parser SHALL accept an optional time-of-day suffix in `HH:MM` or `HH:MM:SS` form
 after a date and SHALL populate the hour, minute, and (when present) second fields of
-the returned `datetime`.
+the returned `datetime`. After a Russian date the suffix MAY be preceded by the
+word `в` ("at"); the word SHALL NOT be accepted after a date in another language.
 
 #### Scenario: Date with minutes
 - **WHEN** `parse("16 May 2009 14:10")` is called
@@ -65,6 +66,10 @@ the returned `datetime`.
 #### Scenario: Bracketed time
 - **WHEN** `parse("9 Июля 2015 [11:23]")` is called
 - **THEN** the result SHALL equal `datetime.datetime(2015, 7, 9, 11, 23)`
+
+#### Scenario: Russian time after "в"
+- **WHEN** `parse("4 Сентября 2020 в 04:06:33")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2020, 9, 4, 4, 6, 33)`
 
 ---
 
@@ -123,14 +128,25 @@ than raise.
 
 A pattern marked with the `noyear` flag SHALL substitute the current year for the
 missing year component when `parse()` or `match()` is invoked with
-`allow_no_year=True` (the default). The keyword is specified in
-`packaging-and-api` ("Public parsing methods accept `allow_no_year=`"), which also
-keeps `noyear=` as a deprecated alias.
+`allow_no_year=True` (the default). With `allow_no_year=False`, `noyear` patterns
+SHALL NOT match. Only a pattern marked `noyear` SHALL match a date without a year.
+The keyword is specified in `packaging-and-api` ("Public parsing methods accept
+`allow_no_year=`"), which also keeps `noyear=` as a deprecated alias.
 
 #### Scenario: Day-month string with current year
 - **GIVEN** the system clock is set to year `2026`
 - **WHEN** `match("01.12", allow_no_year=True)` is called on a `noyear` pattern
 - **THEN** the resulting year SHALL be `2026`
+
+#### Scenario: Russian day and month with current year
+- **GIVEN** the system clock is set to year `2026`
+- **WHEN** `parse("4 Сентября в 04:06:33")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2026, 9, 4, 4, 6, 33)`
+
+#### Scenario: No-year patterns disabled
+- **WHEN** `parse("4 Сентября в 04:06:33", allow_no_year=False)` or
+  `parse("05.12", allow_no_year=False)` is called
+- **THEN** the result SHALL be `None`
 
 ---
 
@@ -434,7 +450,9 @@ SHALL NOT be applied.
 `DateParser(pivot_year=Y)` SHALL map a two-digit year `yy` from a `yearshort`
 pattern to `20yy` when `yy < Y % 100` and to `19yy` otherwise. Without
 `pivot_year` (the default `None`), two-digit years SHALL pass through
-unchanged.
+unchanged. `pivot_year` SHALL be an integer (a 4-digit year such as `1968`) or
+`None`; the constructor SHALL raise `TypeError` for a bool or any other value,
+because `True` would act as pivot year 1.
 
 #### Scenario: Pivot enabled, high two-digit year
 - **GIVEN** `DateParser(pivot_year=1968)`
@@ -449,3 +467,7 @@ unchanged.
 #### Scenario: Pivot disabled (default)
 - **WHEN** `DateParser().parse("16.05.99")` is called
 - **THEN** the result year SHALL be `99`
+
+#### Scenario: Boolean pivot rejected
+- **WHEN** `DateParser(pivot_year=True)` is constructed
+- **THEN** it SHALL raise `TypeError` whose message names the expected 4-digit year

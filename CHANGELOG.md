@@ -41,6 +41,26 @@ All notable changes to this project are tracked here.
   `pl_base_lc`).
 - `17/апреля/1908` parses: `dt:date:date_rus_lc1` accepts slashes, but its
   metadata said space-separated, so the separator filter dropped it.
+- Russian dates without a year parse. `dt:date:date_rus` had an optional
+  year but no `noyear` flag, so `4 Сентября в 04:06:33` matched with a day
+  and month only and `parse()` returned `None` (`4 сентября в 04:06:33`
+  matched nothing). The new `dt:date:date_rus_noyear` pattern (capitalised
+  or lowercase month) takes the current year like `05.12`, and does not
+  match with `allow_no_year=False`. `date_rus` requires the year again.
+- The time after a Russian date is kept. `date_rus` also swallowed a
+  trailing `HH:MM(:SS)` without naming it, so `4 Сентября 2020 в 04:06:33`
+  and `4 Сентября 2020 04:06:33` parsed to midnight. The generated time
+  variants of every Russian pattern now accept `в` before the time
+  (`2 Января 1981 года в 21:04` → 21:04); other languages do not.
+- The default (fingerprint) filter applies the character-set and language
+  filters only to texts longer than five characters, as the legacy filter
+  and the filter pipeline docs do. On `05.12` it dropped the five-character
+  Russian `date_rus_noyear` pattern that the legacy filter keeps; results
+  do not change.
+- `DateParser(pivot_year=True)` raises `TypeError`. `True` is the integer 1,
+  so it mapped only `00` to 2000 and `05` to 1905. `pivot_year` takes a
+  4-digit year such as `1968` or `None`; other non-integers (`"1968"`,
+  `1968.0`) raise too.
 
 **Tests**
 - `tests/test_pattern_lengths.py` renders every pattern's grammar and fails
@@ -54,6 +74,8 @@ All notable changes to this project are tracked here.
   Russian weekday dates without `года`). `benchmarks/test_data.csv` is
   regenerated: 10,383 rows, 9 fail (`19 de May de 2016`: the English month
   `May` narrows detection to English).
+- The 81 yearless Russian rows (`4 Сентября в 04:06:33`) are labelled
+  `dt:date:date_rus_noyear`.
 - `benchmarks/comprehensive_performance_test.py` no longer stops at the batch
   step when `tqdm` is missing (`AttributeError: 'tqdm' object has no attribute
   'set_description'`); the `bench` extra now installs `tqdm`.

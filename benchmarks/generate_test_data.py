@@ -437,7 +437,7 @@ def generate_datetime_strings(count=1500):
             elif lang == 'ru':
                 patterns = [
                     (f"{day} {MONTHS['ru'][month_idx]} {year} {time_str}", 'dt:date:date_rus'),
-                    (f"{day} {MONTHS['ru'][month_idx]} в {time_str}", 'dt:date:date_rus'),
+                    (f"{day} {MONTHS['ru'][month_idx]} в {time_str}", 'dt:date:date_rus_noyear'),
                 ]
 
             dates.append(random.choice(patterns))
