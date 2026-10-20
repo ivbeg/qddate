@@ -2,6 +2,21 @@
 
 All notable changes to this project are tracked here.
 
+## Unreleased
+
+**Fixes**
+- Disabling a filter on the default (fingerprint) parser widens the
+  candidate set again, as it does on the legacy path. Since `1.0.14`,
+  `nocharsetfilter=True` made every parse return `None`, and
+  `noseparatorfilter=True` dropped every pattern with a concrete separator
+  (`DateParser().parse("01.12.2009", nocharsetfilter=True)` returned
+  `None`). Each toggle now skips its dimension; `noprefix=True` also skips
+  the character-set filter, as in the legacy pipeline.
+- `tests/test_fingerprint_parity.py` checks the fingerprint path against
+  the legacy path under the filter toggles: the fingerprint filter keeps
+  every legacy candidate under all 64 combinations, and `match_all()` /
+  `parse()` agree with each toggle flipped alone and with all flipped.
+
 ## 1.0.17 (2026-10-17)
 
 **Patterns**

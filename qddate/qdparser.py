@@ -416,8 +416,8 @@ class DateParser:
         # When ``True``, ``match()``/``match_all()``/``parse()`` route through the
         # single-walk fingerprint-based filter (``_filter_patterns_fingerprint``)
         # instead of the 6-level filter (``_filter_patterns_hierarchical``).
-        # Default ``False`` preserves the legacy behaviour bit-for-bit; a future
-        # round flips the default after parity is locked on the full corpus.
+        # Default ``True`` since ``1.0.14``; ``False`` (deprecated) keeps the
+        # legacy pipeline reachable for debugging.
         self.use_fingerprint = use_fingerprint
 
     def __matchPrefix(self, text):
@@ -1023,16 +1023,22 @@ class DateParser:
         on the candidate set and the prefix index, not on text-fingerprint
         dimensions.
 
-        The result is a **superset-or-equal** of the legacy 6-level pipeline's
-        candidate set on every probe string (``tests/test_fingerprint_parity.py``
-        locks this property). The legacy pipeline remains the default
-        (``use_fingerprint=False``) until parity is fully locked.
+        This is the default path since ``1.0.14``; the legacy pipeline is only
+        reachable through the deprecated ``use_fingerprint=False``. The result
+        is a **superset-or-equal** of the legacy pipeline's candidate set under
+        every combination of filter toggles, and both paths yield the same
+        matches (``tests/test_fingerprint_parity.py`` locks both properties).
+
+        Each ``no*filter`` toggle skips its dimension entirely, exactly as the
+        matching legacy level is skipped, so disabling a filter can only widen
+        the candidate set.
 
         :param text: Input text to match.
         :type text: str
         :param n: Length of text (``len(text)``).
         :type n: int
-        :param noprefix: If True, skip the prefix filter.
+        :param noprefix: If True, skip the prefix filter and, as the legacy
+                         pipeline does, the character-set filter.
         :type noprefix: bool
         :param allow_no_year: Currently a no-op for parity; the year-format
                               filter inside ``candidate_keys_for`` already keeps
@@ -1059,8 +1065,15 @@ class DateParser:
             CHAR_SET_LATIN,
         )
 
-        text_char_sets = scan_char_sets(text) if not nocharsetfilter else frozenset()
-        separators = self._detect_separators(text) if not noseparatorfilter else {"mixed"}
+        # A disabled dimension is skipped, not matched against a placeholder:
+        # an empty text charset or a ``{"mixed"}`` separator would *narrow*
+        # the candidate set (``fp_chars <= frozenset()`` rejects every pattern
+        # that needs a character class). The legacy level 2 also skips the
+        # charset filter under ``noprefix``; mirror that.
+        check_chars = not noprefix and not nocharsetfilter
+        check_separator = not noseparatorfilter
+        text_char_sets = scan_char_sets(text) if check_chars else frozenset()
+        separators = self._detect_separators(text) if check_separator else set()
         if nolanguagefilter:
             detected_languages: list[str] = []
         else:
@@ -1185,11 +1198,14 @@ class DateParser:
         for fp, bucket in self._pattern_fingerprints.items():
             if fp.length_min > n or fp.length_max < n:
                 continue
-            if not _chars_match(fp.chars):
+            if check_chars and not _chars_match(fp.chars):
                 continue
             if not _lang_match(fp.language):
                 continue
             if not _year_match(fp.year_format):
+                continue
+            if not check_separator:
+                pats.extend(bucket)
                 continue
             for p in bucket:
                 if _sep_match(fp.separator, fp.language):
