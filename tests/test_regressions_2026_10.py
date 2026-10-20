@@ -1,0 +1,156 @@
+"""Regression tests for the 2026-10 corpus verification pass.
+
+- Language detection narrowed to one language when the month name is shared:
+  German "Juni"/"Juli" went to Dutch, German "Mai" to French, Bulgarian
+  "Август"/"Май"/"Март" to Russian, and the German/Bulgarian patterns never ran.
+- ``dt:date:date_rus`` declared ``min=11`` (``9 Мая 1998`` has 10 characters).
+- ``dt:date:weekday_rus``/``weekday_rus_lc1`` declared ``max=20``/``25`` although
+  they require ``г.``/``года``, and had no ``day``/``month`` result names, so a
+  match never became a date.
+- ``Воскресенье`` (Sunday) was spelled ``Воскресение``.
+- Other length minimums one character too high (``1.мая.1945``, ``Май 6, 2020``,
+  ``7 Юли 1918``, ``9 Maj 1997``) and ``date_rus_lc1`` stamped as space-separated
+  although it accepts ``17/апреля/1908``.
+"""
+import datetime
+import itertools
+
+import pytest
+
+from qddate import DateParser
+from qddate.patterns.months import MONTHS_BY_LANGUAGE
+from qddate.qdparser import _lang_month_names
+
+
+@pytest.fixture(scope="module")
+def parser():
+    return DateParser()
+
+
+@pytest.fixture(scope="module")
+def legacy_parser():
+    with pytest.warns(DeprecationWarning):
+        return DateParser(use_fingerprint=False)
+
+
+_SHARED_MONTH_DATES = [
+    # German weekday + month name shared with Dutch / French / English
+    ("Montag, 18 Juni 1953", datetime.datetime(1953, 6, 18)),
+    ("Dienstag, 3 Juni 2020", datetime.datetime(2020, 6, 3)),
+    ("Montag, 18 Juli 1953", datetime.datetime(1953, 7, 18)),
+    ("Montag, 18 Mai 1953", datetime.datetime(1953, 5, 18)),
+    ("Montag, 30 April 2009", datetime.datetime(2009, 4, 30)),
+    ("Montag, 5 Oktober 2009", datetime.datetime(2009, 10, 5)),
+    ("Freitag, 3. August 2018", datetime.datetime(2018, 8, 3)),
+    # Dutch weekday + month name shared with English / German
+    ("Maandag, 30 April 2009", datetime.datetime(2009, 4, 30)),
+    # No weekday: the first language (French) finds nothing, German does
+    ("30. Mai 1953", datetime.datetime(1953, 5, 30)),
+    # Bulgarian month names shared with Russian
+    ("11 Август 2009", datetime.datetime(2009, 8, 11)),
+    ("11 Май 2009", datetime.datetime(2009, 5, 11)),
+    ("11 Март 2009", datetime.datetime(2009, 3, 11)),
+]
+
+
+@pytest.mark.parametrize("text,expected", _SHARED_MONTH_DATES)
+def test_shared_month_name_parses(parser, text, expected):
+    assert parser.parse(text) == expected
+
+
+@pytest.mark.parametrize("text,expected", _SHARED_MONTH_DATES)
+def test_shared_month_name_parses_legacy_filter(legacy_parser, text, expected):
+    assert legacy_parser.parse(text) == expected
+
+
+@pytest.mark.parametrize("text,languages,expected", [
+    ("Montag, 18 Juni 1953", "de", datetime.datetime(1953, 6, 18)),
+    ("30. Mai 1953", "de", datetime.datetime(1953, 5, 30)),
+    ("11 Август 2009", "bg", datetime.datetime(2009, 8, 11)),
+])
+def test_shared_month_name_with_language_allow_list(text, languages, expected):
+    assert DateParser(languages=languages).parse(text) == expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("Montag, 18 Juni 1953", ["de"]),
+    ("Montag, 18 Mai 1953", ["de"]),
+    ("Maandag, 28 Juli 2015", ["nl"]),
+    ("Lundi 18 Mai 1953", ["fr"]),
+])
+def test_weekday_decides_shared_month_name(parser, text, expected):
+    assert parser._detect_language(text) == expected
+
+
+@pytest.mark.parametrize("text,claims", [
+    ("30. Mai 1953", ["fr", "de"]),
+    ("28. Juli 2015", ["nl", "de"]),
+    ("5 April 2009", ["en", "nl", "de"]),
+    ("11 Август 2009", ["ru", "bg"]),
+    ("31 de maio de 2025", ["pt"]),
+])
+def test_language_claims_list_every_language(parser, text, claims):
+    assert parser._language_claims(text) == claims
+
+
+@pytest.mark.parametrize("text,key", [
+    # A shared month name still tries the first language first, so dates that
+    # parsed before keep their pattern (and DateMatch.language).
+    ("5 April 2009", "dt:date:date_eng1"),
+    ("16 mai 2025", "dt:date:fr_base_lc"),
+    ("28. Juli 2015", "dt:date:nl_base"),
+])
+def test_shared_month_name_keeps_first_language_pattern(parser, text, key):
+    assert parser.match(text)["pattern"]["key"] == key
+
+
+def test_shared_detection_month_names_mean_the_same_month():
+    """The fallback lets any claiming language parse a shared month name; that is
+    only safe while each shared name is the same month in every language."""
+    names = {code: _lang_month_names(code) for code in MONTHS_BY_LANGUAGE}
+    for a, b in itertools.combinations(sorted(names), 2):
+        for name in names[a] & names[b]:
+            assert (MONTHS_BY_LANGUAGE[a].month_to_int[name]
+                    == MONTHS_BY_LANGUAGE[b].month_to_int[name]), (name, a, b)
+
+
+# ---------------------------------------------------------------------------
+# Russian patterns
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text,expected,key", [
+    ("9 Мая 1998", datetime.datetime(1998, 5, 9), "dt:date:date_rus"),
+    ("9 мая 1998", datetime.datetime(1998, 5, 9), "dt:date:date_rus_lc1"),
+    ("Пятница, 5 Мая 2020 года", datetime.datetime(2020, 5, 5), "dt:date:weekday_rus"),
+    ("Понедельник, 25 Сентября 1979 года", datetime.datetime(1979, 9, 25),
+     "dt:date:weekday_rus"),
+    ("Суббота 1 Мая 2021 г.", datetime.datetime(2021, 5, 1), "dt:date:weekday_rus"),
+    ("Понедельник, 25 сентября 1979 года", datetime.datetime(1979, 9, 25),
+     "dt:date:weekday_rus_lc1"),
+    ("Воскресенье, 5 мая 2020 года", datetime.datetime(2020, 5, 5),
+     "dt:date:weekday_rus_lc1"),
+    # The old misspelling still matches.
+    ("Воскресение, 5 мая 2020 года", datetime.datetime(2020, 5, 5),
+     "dt:date:weekday_rus_lc1"),
+])
+def test_russian_dates(parser, text, expected, key):
+    res = parser.match(text)
+    assert res is not None
+    assert res["pattern"]["key"] == key
+    assert parser.parse(text) == expected
+
+
+@pytest.mark.parametrize("text,expected,key", [
+    ("1.мая.1945", datetime.datetime(1945, 5, 1), "dt:date:rus_rare_3"),
+    ("Май 6, 2020", datetime.datetime(2020, 5, 6), "dt:date:rus_rare_5"),
+    ("7 Юли 1918", datetime.datetime(1918, 7, 7), "dt:date:bg_base"),
+    ("8 юни 1923", datetime.datetime(1923, 6, 8), "dt:date:bg_base_lc"),
+    ("9 Maj 1997", datetime.datetime(1997, 5, 9), "dt:date:pl_base"),
+    ("9 maj 1997", datetime.datetime(1997, 5, 9), "dt:date:pl_base_lc"),
+    ("17/апреля/1908", datetime.datetime(1908, 4, 17), "dt:date:date_rus_lc1"),
+])
+def test_short_or_slashed_dates(parser, text, expected, key):
+    res = parser.match(text)
+    assert res is not None
+    assert res["pattern"]["basekey"] == key
+    assert parser.parse(text) == expected

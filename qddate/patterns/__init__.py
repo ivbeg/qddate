@@ -184,7 +184,9 @@ _PATTERN_METADATA = {
     'dt:date:date_rus': ('ru', 'space'),
     'dt:date:date_rus2': ('ru', 'space'),
     'dt:date:date_rus3': ('ru', 'dot'),
-    'dt:date:date_rus_lc1': ('ru', 'space'),
+    # Also accepts "17/апреля/1908"; with 'space' the separator filter dropped
+    # slashed input, while spaced input passes as a language pattern either way.
+    'dt:date:date_rus_lc1': ('ru', 'slash'),
     'dt:date:date_rus_lc2': ('ru', 'space'),
     'dt:date:weekday_rus': ('ru', 'space'),
     'dt:date:weekday_rus_lc1': ('ru', 'space'),

@@ -22,6 +22,38 @@ All notable changes to this project are tracked here.
   `start_session(['dt:date:date_eng1'])` still parsed `01.12.2009`. The
   fingerprint filter now walks an index over the session's patterns only,
   as the legacy filter (`use_fingerprint=False`) does.
+- A month name shared by several languages no longer hides the right
+  language's patterns. Language detection narrowed to the first language
+  claiming the name, so `Montag, 18 Juni 1953` (German, detected as Dutch),
+  `30. Mai 1953` (detected as French) and `11 Август 2009` (Bulgarian,
+  detected as Russian) did not parse. A weekday name now picks the language
+  when the month name is shared, and when the first language's patterns
+  find nothing the parser tries every language. Dates that parsed before
+  keep their pattern.
+- Russian `dt:date:weekday_rus` / `weekday_rus_lc1` now return a date:
+  they captured no day or month, so `parse()` returned `None` even when they
+  matched. Their length limit was below any input with the required
+  `года`/`г.` (`Понедельник, 25 Сентября 1979 года`); it is now 35.
+- Sunday is spelled `Воскресенье`; the old `Воскресение` still matches.
+- Short inputs rejected by length limits now parse: `9 Мая 1998`
+  (`date_rus`), `1.мая.1945` (`rus_rare_3`), `Май 6, 2020` (`rus_rare_5`),
+  `7 Юли 1918` (`bg_base`, `bg_base_lc`) and `9 Maj 1997` (`pl_base`,
+  `pl_base_lc`).
+- `17/апреля/1908` parses: `dt:date:date_rus_lc1` accepts slashes, but its
+  metadata said space-separated, so the separator filter dropped it.
+
+**Tests**
+- `tests/test_pattern_lengths.py` renders every pattern's grammar and fails
+  when a declared length limit rejects a rendered date. Patterns whose
+  limits are still too narrow are listed there; widening them changes which
+  pattern wins for other inputs and needs a scoring change first.
+
+**Benchmarks**
+- `benchmarks/generate_test_data.py` uses a fixed seed and no longer emits
+  inputs no pattern accepts (`2 / 7 '36`, Spanish weekday dates with `de`,
+  Russian weekday dates without `года`). `benchmarks/test_data.csv` is
+  regenerated: 10,383 rows, 9 fail (`19 de May de 2016`: the English month
+  `May` narrows detection to English).
 
 ## 1.0.17 (2026-10-17)
 

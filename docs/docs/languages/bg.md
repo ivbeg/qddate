@@ -11,7 +11,7 @@ description: "Base date patterns for Bulgarian (bg)"
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
-| `dt:date:bg_base` | Base bulgarian date with month name | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 Мapт 2024`, `3 Дeкeмвpи 2023`, `28 Юли 2025` |
-| `dt:date:bg_base_lc` | Base bulgarian date with month name and lowcase | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 мapт 2024`, `3 дeкeмвpи 2023`, `28 юли 2025` |
+| `dt:date:bg_base` | Base bulgarian date with month name | `%d %m %Y` | 10 | 22 |  |  | 1 | `15 Март 2024`, `3 Декември 2023`, `28 Юли 2025` |
+| `dt:date:bg_base_lc` | Base bulgarian date with month name and lowcase | `%d %m %Y` | 10 | 22 |  |  | 1 | `15 март 2024`, `3 декември 2023`, `28 юли 2025` |
 
 See also: [languages=](/api/languages), [adding languages](/development/adding-languages).

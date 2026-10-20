@@ -10,6 +10,9 @@ import random
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# Fixed seed so test_data.csv can be regenerated identically.
+SEED = 20261020
+
 # Month names in different languages
 MONTHS = {
     'en': ['January', 'February', 'March', 'April', 'May', 'June',
@@ -79,7 +82,7 @@ WEEKDAYS = {
     'es': ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
     'fr': ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'],
     'de': ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'],
-    'ru': ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресение'],
+    'ru': ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'],
 }
 
 # Numeric suffixes
@@ -189,7 +192,8 @@ def generate_spanish_dates(count=800):
         
         if random.random() < 0.2:
             weekday_idx = dt.weekday()
-            patterns.append((f"{WEEKDAYS['es'][weekday_idx]}, {day} de {MONTHS['es'][month_idx]} de {year}", 'dt:date:es_weekday'))
+            # es_weekday has no "de" articles: "Lunes, 19 Noviembre 1979"
+            patterns.append((f"{WEEKDAYS['es'][weekday_idx]}, {day} {MONTHS['es'][month_idx]} {year}", 'dt:date:es_weekday'))
         
         dates.append(random.choice(patterns))
     
@@ -274,7 +278,9 @@ def generate_russian_dates(count=800):
         
         if random.random() < 0.2:
             weekday_idx = dt.weekday()
-            patterns.append((f"{WEEKDAYS['ru'][weekday_idx]}, {day} {MONTHS['ru'][month_idx]} {year}", 'dt:date:weekday_rus'))
+            # weekday_rus requires the year word ("года" or "г.")
+            year_word = random.choice(['года', 'г.'])
+            patterns.append((f"{WEEKDAYS['ru'][weekday_idx]}, {day} {MONTHS['ru'][month_idx]} {year} {year_word}", 'dt:date:weekday_rus'))
         
         dates.append(random.choice(patterns))
     
@@ -471,7 +477,6 @@ def generate_edge_cases(count=500):
             (f"{day}.{month_idx+1}.{year} [11:23]", 'dt:date:date_2'),  # With brackets
             (f"{day} {MONTHS['en'][month_idx]} {year}:", 'dt:date:date_eng1x'),  # With colon
             (f"{day} {MONTHS['en'][month_idx]} {year} | 11:08", 'dt:date:date_eng1x'),  # With pipe
-            (f"{day} / {month_idx+1} '{year%100:02d}", 'dt:date:date_8'),  # With apostrophe
             (f"{day:02d}.{month_idx+1:02d}.{year} 14:53:12", 'dt:date:date_2'),  # Full datetime
         ]
         
@@ -483,6 +488,7 @@ def generate_edge_cases(count=500):
 def main():
     """Generate CSV file with test data."""
     print("Generating test data...")
+    random.seed(SEED)
     
     all_dates = []
     

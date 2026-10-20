@@ -116,8 +116,11 @@ def test_stamped_separator_matches_legacy_inference():
 # Intentional post-refactor separator corrections:
 # - date_eng4_short parses "25-Dec-20" (dashes); legacy inference stamped 'space'
 #   via the "eng" substring, so the separator filter discarded it for dashed input.
+# - date_rus_lc1 also parses "17/апреля/1908"; with 'space' the separator filter
+#   discarded slashed input (spaced input passes as a language pattern anyway).
 _INTENTIONAL_SEPARATOR_OVERRIDES = {
     "dt:date:date_eng4_short": "dash",
+    "dt:date:date_rus_lc1": "slash",
 }
 
 
