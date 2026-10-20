@@ -19,9 +19,9 @@ description: "Base date patterns for Portuguese (pt)"
 | `dt:date:pt_short_lc` | Portuguese date with abbreviated month lowercase | `%d %m %Y` | 9 | 13 |  |  | 1 | `15 Março 2024`, `3 Dezembro 2023`, `28 Julho 2025` |
 | `dt:date:pt_short_monthfirst` | Portuguese date with abbreviated month (month first) | `%m %d %Y` | 9 | 25 |  |  | 1 | `Março 15, 2024`, `Dezembro 3, 2023`, `Julho 28, 2025` |
 | `dt:date:pt_short_lc_monthfirst` | Portuguese date with abbreviated month lowercase (month first) | `%m %d %Y` | 9 | 25 |  |  | 1 | `Março 15, 2024`, `Dezembro 3, 2023`, `Julho 28, 2025` |
-| `dt:date:pt_weekday` | Portuguese date with weekday | `%d %m %Y` | 20 | 40 |  |  | 1 | `15 Março 2024`, `3 Dezembro 2023`, `28 Julho 2025` |
-| `dt:date:pt_weekday_lc` | Portuguese date with weekday lowercase | `%d %m %Y` | 20 | 40 |  |  | 1 | `15 março 2024`, `3 dezembro 2023`, `28 julho 2025` |
-| `dt:date:pt_weekday_short` | Portuguese date with short weekday | `%d %m %Y` | 13 | 20 |  |  | 1 | `15 Março 2024`, `3 Dezembro 2023`, `28 Julho 2025` |
-| `dt:date:pt_weekday_short_lc` | Portuguese date with short weekday lowercase | `%d %m %Y` | 13 | 20 |  |  | 1 | `15 Março 2024`, `3 Dezembro 2023`, `28 Julho 2025` |
+| `dt:date:pt_weekday` | Portuguese date with weekday | `%d %m %Y` | 18 | 40 |  |  | 1 | `15 Março 2024`, `3 Dezembro 2023`, `28 Julho 2025` |
+| `dt:date:pt_weekday_lc` | Portuguese date with weekday lowercase | `%d %m %Y` | 18 | 40 |  |  | 1 | `15 março 2024`, `3 dezembro 2023`, `28 julho 2025` |
+| `dt:date:pt_weekday_short` | Portuguese date with short weekday | `%d %m %Y` | 13 | 22 |  |  | 1 | `15 Março 2024`, `3 Dezembro 2023`, `28 Julho 2025` |
+| `dt:date:pt_weekday_short_lc` | Portuguese date with short weekday lowercase | `%d %m %Y` | 13 | 22 |  |  | 1 | `15 Março 2024`, `3 Dezembro 2023`, `28 Julho 2025` |
 
 See also: [languages=](/api/languages), [adding languages](/development/adding-languages).

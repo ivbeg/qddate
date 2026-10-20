@@ -18,7 +18,7 @@ Full documentation is published at [ivbeg.github.io/qddate](https://ivbeg.github
 ## Features
 
 <!-- BEGIN qddate-stats -->
-- 1,072 generated date patterns (from 134 base patterns)
+- 1,104 generated date patterns (from 138 base patterns)
 - 14 supported languages
 <!-- END qddate-stats -->
 - Multi-language parsing (English, Romanian, Ukrainian, Russian, Spanish, and more)
@@ -68,7 +68,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 - **Standard benchmarks**: `benchmarks/bench.py` compares qddate with dateparser on the bundled corpus. Run `python benchmarks/bench.py` to execute.
 - **Webpage data benchmarks**: `benchmarks/benchmark_webpage_data.py` tests qddate against other libraries using real-world text snippets extracted from webpages. Use `scripts/generate_webpage_test_data.py` to generate test data from government and international organization websites.
 - **Comprehensive performance tests**: `benchmarks/comprehensive_performance_test.py` provides extensive performance testing with detailed metrics, pattern analysis, and regression detection. See [`benchmarks/README_PERFORMANCE_TEST.md`](benchmarks/README_PERFORMANCE_TEST.md) for details.
-- [`PERFORMANCE_ANALYSIS.md`](PERFORMANCE_ANALYSIS.md) documents the 2025 profiling work (length-based indexing, prefix caching, packrat parsing, etc.) and how to evaluate future optimizations.
+- [`dev/docs/PERFORMANCE_ANALYSIS.md`](dev/docs/PERFORMANCE_ANALYSIS.md) documents the 2025 profiling work (length-based indexing, prefix caching, packrat parsing, etc.) and how to evaluate future optimizations.
 - Benchmark numbers depend on hardware, Python version, and workload. Please share your results in issues if you run the benchmark elsewhere.
 
 ## Usage
@@ -137,6 +137,6 @@ pip install -e ".[bench]"   # adds dateparser, python-dateutil, arrow, pendulum
 The original parser dates back to 2008 and evolved from regular expressions into pyparsing over time. Thanks to the [ScrapingHub](https://github.com/scrapinghub/dateparser) team for the inspiration to clean up the code, documentation, and build tooling, and for motivating the public release.
 
 <!-- BEGIN qddate-stats -->
-- 1,072 generated date patterns (from 134 base patterns)
+- 1,104 generated date patterns (from 138 base patterns)
 - 14 supported languages
 <!-- END qddate-stats -->

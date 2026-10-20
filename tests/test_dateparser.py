@@ -127,6 +127,11 @@ def fresh_parser():
         # German short months (de_short was unreachable before the 2026-09
         # prefix bucket fix)
         ("12. Dez 2022", datetime.datetime(2022, 12, 12)),
+        # German weekday before a month name shared with Dutch/English
+        # (language detection used to narrow to Dutch/English and drop them)
+        ("Montag, 28. Juli 2015", datetime.datetime(2015, 7, 28)),
+        ("Freitag, 3. August 2018", datetime.datetime(2018, 8, 3)),
+        ("montag, 15. juli 2015", datetime.datetime(2015, 7, 15)),
     ],
 )
 def test_parse_supported_text(parser, text, expected):
@@ -143,10 +148,6 @@ def test_parse_supported_text(parser, text, expected):
         "26 / 06 15",
         # These formats are not supported (German abbreviated months with periods)
         "12. Dez. 2022",
-        # These formats are not supported (German weekday with abbreviated months)
-        "Montag, 28. Juli 2015",
-        "Freitag, 3. August 2018",
-        "montag, 15. juli 2015",
         "Вторник, 18 Август 2015 18:51",
         "19 август в 16:03",
         "Авг 11, 2015",

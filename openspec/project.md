@@ -16,11 +16,16 @@ strings at scale. It is intentionally pragmatic and prioritizes speed over bread
 - Optional time-of-day suffixes (`HH:MM`, `HH:MM:SS`).
 - Multi-stage candidate filtering for high throughput on large corpora.
 - Configurable language subsets via the `languages=` parameter.
+- A narrow English/Russian relative-date grammar through the separate
+  `parse_relative()` entry point ("yesterday", "3 days ago", "через 5 дней").
+- Numeric UTC offsets (`+0300`) attached to results with `tz_aware=True`, and a
+  two-digit-year pivot with `pivot_year=`.
 
 **Out of scope (today)**
 
-- Relative date parsing ("yesterday", "2 days ago").
-- Calendar / timezone-aware scheduling semantics.
+- Fuzzy relative phrases ("last Tuesday", "next month") and relative phrases in
+  `parse()` itself.
+- Timezone abbreviations (`MSK`, `GMT`) and calendar / scheduling semantics.
 - General natural-language date extraction from arbitrary prose.
 
 These out-of-scope items are revisited as proposed changes under `openspec/changes/`.
@@ -33,12 +38,16 @@ These out-of-scope items are revisited as proposed changes under `openspec/chang
    libraries are benchmark-only.
 3. **Left-aligned, dirty matching.** Strings like `12.03.1999 some text here` must
    parse; trailing noise is suppressed.
-4. **Stable public API.** `qddate.DateParser` and its `parse`/`match` methods are
-   the supported surface. Internal helpers may change.
+4. **Stable public API.** `qddate.DateParser` (`parse`, `match`, `match_all`,
+   `match_typed`, `parse_many`, `parse_relative`, `format_date`, sessions),
+   `qddate.DateMatch` and `qddate.format_date` are the supported surface.
+   Internal helpers may change.
 
 ## Current capabilities (at a glance)
 
-- 128 base patterns → 1024 generated patterns (numeric + time variants).
+- About 140 base patterns → about 1,100 generated patterns (time and
+  trailing-text variants). Exact counts live in the README stats block, which
+  `scripts/generate_readme_stats.py` generates and CI checks.
 - 14 languages: bg, cz, de, en, es, fr, it, nl, pl, pt, ro, ru, tr, uk.
 - See `openspec/specs/` for the authoritative behavioral specification.
 

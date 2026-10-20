@@ -84,8 +84,8 @@ Leave them at the defaults unless you are diagnosing a miss:
 - `noyearformatfilter`
 - `nolanguagefilter`
 
-`match()` also accepts `noyear` (default `True`) to include day-month patterns
-without a year.
+`parse()` and `match()` also accept `allow_no_year` (default `True`) to include
+day-month patterns without a year. The old name `noyear` is deprecated.
 
 ## Next steps
 

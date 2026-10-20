@@ -1,5 +1,8 @@
 # Tasks: Refactor pattern metadata
 
+> Archived 2026-10-20 after verification against the code. Shipped in 1.0.11. The deferred month-table task shipped separately as `2026-10-05-centralize-month-tables`.
+
+
 > Status: **IMPLEMENTED** on branch `openspec/stabilize-and-cleanup`.
 > Behavior-preserving (no delta spec). Verified by a differential/oracle test suite.
 
@@ -27,7 +30,7 @@
 
 ## Centralize month/weekday tables
 
-- [ ] **Deferred.** The `month_table()` helper is independent of this refactor and
+- [x] **Done separately** (`2026-10-05-centralize-month-tables`). The `month_table()` helper is independent of this refactor and
       can ship separately. The `Satuday`/`jule` typo fixes (Change 1) already
       address the immediate bugs; this task makes the *class* of typo impossible
       but is not required for the metadata refactor to land.

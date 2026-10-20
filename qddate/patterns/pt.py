@@ -258,7 +258,7 @@ PATTERNS_PT = [
         BASE_PATTERNS_PT["pat:pt:months"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 20,
+            "min": 18,
             "max": 40
         },
         "format":
@@ -278,7 +278,7 @@ PATTERNS_PT = [
         BASE_PATTERNS_PT["pat:pt:months_lc"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 20,
+            "min": 18,
             "max": 40
         },
         "format":
@@ -299,7 +299,7 @@ PATTERNS_PT = [
         Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 13,
-            "max": 20
+            "max": 22
         },
         "format":
         "%d %m %Y",
@@ -319,7 +319,7 @@ PATTERNS_PT = [
         Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 13,
-            "max": 20
+            "max": 22
         },
         "format":
         "%d %m %Y",

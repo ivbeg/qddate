@@ -26,13 +26,21 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e .[test]
-        pip install ruff pytest pytest-cov
+        pip install ruff mypy pytest pytest-cov
 
     - name: Lint with Ruff
       run: |
         # Ruff is now a gate (not advisory). Real bugs / undefined names
         # plus the configured rule set fail the build.
-        ruff check qddate tests scripts
+        ruff check qddate tests scripts benchmarks
+
+    - name: Type-check with mypy
+      run: |
+        mypy qddate
+
+    - name: README stats match the pattern table
+      run: |
+        python scripts/generate_readme_stats.py --check
 
     - name: Test with pytest
       run: |

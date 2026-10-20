@@ -19,8 +19,11 @@ pytestmark = pytest.mark.skipif(
     not os.environ.get("QDDATE_PERF"), reason="timing tests run with QDDATE_PERF=1"
 )
 
-# Baseline performance thresholds (in seconds)
-# These should be updated after profiling to reflect actual performance
+# Baseline performance thresholds (in seconds). Measured on 2026-10-20 with
+# benchmarks/comprehensive_performance_test.py (Apple Silicon, Python 3.13):
+# initialization ~22 ms, parse ~2.3 ms and match ~2.3 ms mean over the
+# benchmark corpus, matchPrefix ~3 us. The thresholds leave 3x-20x headroom
+# for slower CI runners.
 BASELINE_THRESHOLDS = {
     'initialization_mean': 0.5,  # 500ms
     'parse_mean': 0.01,  # 10ms per parse
@@ -253,7 +256,6 @@ class TestPerformanceConsistency:
                 f"Parse performance too variable: CV={coefficient_of_variation:.2f}"
 
 
-@pytest.mark.skipif(True, reason="Baseline thresholds need to be updated after profiling")
 class TestBaselineThresholds:
     """Test that baseline thresholds are reasonable."""
 

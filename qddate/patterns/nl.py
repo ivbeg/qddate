@@ -75,7 +75,7 @@ PATTERNS_NL = [
         BASE_PATTERNS_NL["pat:nl:months"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 11,
+            "min": 10,
             "max": 22
         },
         "format":
@@ -94,7 +94,7 @@ PATTERNS_NL = [
         BASE_PATTERNS_NL["pat:nl:months_lc"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 11,
+            "min": 10,
             "max": 22
         },
         "format":

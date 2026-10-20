@@ -2,6 +2,142 @@
 
 All notable changes to this project are tracked here.
 
+## Unreleased
+
+**Fixes**
+- Disabling a filter on the default (fingerprint) parser widens the
+  candidate set again, as it does on the legacy path. Since `1.0.14`,
+  `nocharsetfilter=True` made every parse return `None`, and
+  `noseparatorfilter=True` dropped every pattern with a concrete separator
+  (`DateParser().parse("01.12.2009", nocharsetfilter=True)` returned
+  `None`). Each toggle now skips its dimension; `noprefix=True` also skips
+  the character-set filter, as in the legacy pipeline.
+- `tests/test_fingerprint_parity.py` checks the fingerprint path against
+  the legacy path under the filter toggles: the fingerprint filter keeps
+  every legacy candidate under all 64 combinations, and `match_all()` /
+  `parse()` agree with each toggle flipped alone and with all flipped.
+- The default parser honours `start_session()`. Since 1.0.14 the default
+  fingerprint filter ignored the session's pattern list, so a session
+  neither restricted matching nor sped it up:
+  `start_session(['dt:date:date_eng1'])` still parsed `01.12.2009`. The
+  fingerprint filter now walks an index over the session's patterns only,
+  as the legacy filter (`use_fingerprint=False`) does.
+- A month name shared by several languages no longer hides the right
+  language's patterns. Language detection narrowed to the first language
+  claiming the name, so `Montag, 18 Juni 1953` (German, detected as Dutch),
+  `30. Mai 1953` (detected as French) and `11 Август 2009` (Bulgarian,
+  detected as Russian) did not parse. A weekday name now picks the language
+  when the month name is shared, and when the first language's patterns
+  find nothing the parser tries every language. Dates that parsed before
+  keep their pattern.
+- Russian `dt:date:weekday_rus` / `weekday_rus_lc1` now return a date:
+  they captured no day or month, so `parse()` returned `None` even when they
+  matched. Their length limit was below any input with the required
+  `года`/`г.` (`Понедельник, 25 Сентября 1979 года`); it is now 35.
+- Sunday is spelled `Воскресенье`; the old `Воскресение` still matches.
+- Short inputs rejected by length limits now parse: `9 Мая 1998`
+  (`date_rus`), `1.мая.1945` (`rus_rare_3`), `Май 6, 2020` (`rus_rare_5`),
+  `7 Юли 1918` (`bg_base`, `bg_base_lc`) and `9 Maj 1997` (`pl_base`,
+  `pl_base_lc`).
+- `17/апреля/1908` parses: `dt:date:date_rus_lc1` accepts slashes, but its
+  metadata said space-separated, so the separator filter dropped it.
+- Russian dates without a year parse. `dt:date:date_rus` had an optional
+  year but no `noyear` flag, so `4 Сентября в 04:06:33` matched with a day
+  and month only and `parse()` returned `None` (`4 сентября в 04:06:33`
+  matched nothing). The new `dt:date:date_rus_noyear` pattern (capitalised
+  or lowercase month) takes the current year like `05.12`, and does not
+  match with `allow_no_year=False`. `date_rus` requires the year again.
+- The time after a Russian date is kept. `date_rus` also swallowed a
+  trailing `HH:MM(:SS)` without naming it, so `4 Сентября 2020 в 04:06:33`
+  and `4 Сентября 2020 04:06:33` parsed to midnight. The generated time
+  variants of every Russian pattern now accept `в` before the time
+  (`2 Января 1981 года в 21:04` → 21:04); other languages do not.
+- The default (fingerprint) filter applies the character-set and language
+  filters only to texts longer than five characters, as the legacy filter
+  and the filter pipeline docs do. On `05.12` it dropped the five-character
+  Russian `date_rus_noyear` pattern that the legacy filter keeps; results
+  do not change.
+- `DateParser(pivot_year=True)` raises `TypeError`. `True` is the integer 1,
+  so it mapped only `00` to 2000 and `05` to 1905. `pivot_year` takes a
+  4-digit year such as `1968` or `None`; other non-integers (`"1968"`,
+  `1968.0`) raise too.
+- A date followed by a time keeps the time. `match()` now picks the
+  candidate that consumes the most input and uses the priority score only to
+  break ties. Before, a pattern matching just the date outranked its time
+  variant on the exact-length bonus: `14 Avril 1995 20:16:12` and
+  `29 de Agosto de 1925 07:30` parsed as midnight, and
+  `9 Июня 1927 15:18:03` / `22 August 2005 08:47:19` lost their seconds.
+  On `benchmarks/test_data.csv` 141 rows gain their time. On it and
+  `benchmarks/webpage_test_data.csv` no row loses a match or a time, and
+  no date changes.
+- Length limits narrower than their grammar are widened, so these parse:
+  `Mon 1/1/2020` (`weekday_short_eng_iso`), `Sábado 1 Maio 2020`
+  (`pt_weekday`, `pt_weekday_lc`). Also widened: `date_eng1_short`,
+  `date_eng2_short`, `weekday_eng(_lc)`, `weekday_eng_wshort`,
+  `weekday_eng_mshort_wshort`, `de_base(_lc)`, `fr_base(_lc)`,
+  `nl_base(_lc)`, `pt_weekday_short(_lc)`, `date_rus2`, `date_rus3`,
+  `date_rus_lc2`, `rus_rare_2`, `rus_rare_6`.
+
+**Behaviour changes**
+- `:t_right` variants no longer consume the text after the date, and get no
+  exact-length bonus (their limits include that text). A clean date now
+  matches the plain variant (`25 Jan 1936` gives `dt:date:date_eng1_short`,
+  not `...:t_right`). Equal-priority candidates are tried in pattern
+  generation order, so both filters pick the same one. With the widened
+  limits, the matched pattern key changes on 1,288 rows of
+  `benchmarks/test_data.csv` and 9 rows of
+  `benchmarks/webpage_test_data.csv` with the same datetime; the base
+  pattern now equals the one the generator used on 8,357 of 10,383 rows
+  (was 8,120).
+- `match_all()` ranks results the way `match()` picks, most input consumed
+  first, so its first result is the `match()` result.
+
+**Tests**
+- `tests/test_pattern_lengths.py` renders every pattern's grammar and fails
+  when a declared length limit rejects a rendered date. Every pattern
+  passes it now except `date_5`/`date_6`, whose grammar also accepts
+  space-separated digit groups.
+
+**Benchmarks**
+- `benchmarks/generate_test_data.py` uses a fixed seed and no longer emits
+  inputs no pattern accepts (`2 / 7 '36`, Spanish weekday dates with `de`,
+  Russian weekday dates without `года`). `benchmarks/test_data.csv` is
+  regenerated: 10,383 rows, 9 fail (`19 de May de 2016`: the English month
+  `May` narrows detection to English).
+- The 81 yearless Russian rows (`4 Сентября в 04:06:33`) are labelled
+  `dt:date:date_rus_noyear`.
+- `benchmarks/comprehensive_performance_test.py` no longer stops at the batch
+  step when `tqdm` is missing (`AttributeError: 'tqdm' object has no attribute
+  'set_description'`); the `bench` extra now installs `tqdm`.
+- `benchmarks/bench.py` `compare()` no longer fails with `NameError` on
+  `DateParser`.
+
+**CI and tooling**
+- CI lints `benchmarks/` too, type-checks `qddate` with mypy, and fails when the
+  README stats block differs from the pattern table
+  (`scripts/generate_readme_stats.py --check`, which now prints the stale and
+  the expected block). `mypy` is in the `dev` extra.
+- The test suite turns a `DeprecationWarning` raised from qddate's own code
+  into an error.
+- `make lint` and `tox -e lint` run Ruff; the unused `flake8` config and the
+  Sphinx `tox -e docs` environment are removed.
+
+**Specs and docs**
+- The canonical OpenSpec specs match the code: `parse_relative()` keeps the
+  reference's time of day and has no `relative=True` switch; `allow_no_year=`
+  replaces `noyear=`; time-of-day validation, `pivot_year`, `tz_aware`,
+  `match_all()`, `match_typed()`, `parse_many()` and sessions are specified;
+  the fingerprint filter is specified as keeping every legacy candidate with
+  identical results. The eight shipped changes under `openspec/changes/` are
+  archived, with what shipped differently recorded in each `tasks.md`.
+- The API docs cover every public method, `DateMatch`, `pivot_year`,
+  `tz_aware` and `use_fingerprint`; Python versions read 3.10–3.14; the filter
+  pipeline page describes the fingerprint default and the real level order.
+- `CHANGELOG.md`: 1.0.12 is listed before 1.0.11, and the stray "Unreleased"
+  section that held 1.0.11 changes is merged into 1.0.11.
+- The date-parsing spec states that the longest match wins and how
+  `match_all()` is ordered; the `match()` and filter pipeline docs say so too.
+
 ## 1.0.17 (2026-10-17)
 
 **Patterns**
@@ -109,6 +245,30 @@ First PyPI release since 1.0.10: it also ships the changes listed under
 
 No user-visible API changes.
 
+## 1.0.12 (2026-10-05)
+
+**New features**
+- Added `DateParser.parse_relative(text, reference=None)` that resolves
+  common English and Russian relative-date phrases:
+  - English: `today`, `yesterday`, `tomorrow`, `N day(s) ago`, `(in) N day(s)`
+    (and the same for weeks/months/years); both digit-form and word-form
+    numbers (`three days ago`).
+  - Russian: `сегодня`, `вчера`, `завтра`, `N <unit> назад`, `через N <unit>`.
+  - `reference` defaults to `datetime.now()`; pass an explicit value for
+    deterministic tests.
+- README pattern counts are now generated by
+  `scripts/generate_readme_stats.py` from the canonical pattern table —
+  they cannot drift again.
+
+**Quality**
+- Migrated pattern files off pyparsing 3 camelCase aliases (`oneOf`) onto
+  `one_of`. `python -W error::DeprecationWarning -c "import qddate"` is
+  now silent.
+- Renamed `noyear=` keyword argument on `parse`/`match`/`match_all` to
+  `allow_no_year=` (the old name was the opposite of the semantic
+  intent). `noyear=` continues to work as a deprecated alias emitting
+  `DeprecationWarning`.
+
 ## 1.0.11 (2026-10-05)
 
 **API additions**
@@ -157,31 +317,8 @@ No user-visible API changes.
 - `tox.ini` envlist updated to `py310,py311,py312,py313,py314`.
 - Lint baseline: 0 ruff errors (down from 355).
 
-## 1.0.12 (2026-10-05)
-
-**New features**
-- Added `DateParser.parse_relative(text, reference=None)` that resolves
-  common English and Russian relative-date phrases:
-  - English: `today`, `yesterday`, `tomorrow`, `N day(s) ago`, `(in) N day(s)`
-    (and the same for weeks/months/years); both digit-form and word-form
-    numbers (`three days ago`).
-  - Russian: `сегодня`, `вчера`, `завтра`, `N <unit> назад`, `через N <unit>`.
-  - `reference` defaults to `datetime.now()`; pass an explicit value for
-    deterministic tests.
-- README pattern counts are now generated by
-  `scripts/generate_readme_stats.py` from the canonical pattern table —
-  they cannot drift again.
-
-**Quality**
-- Migrated pattern files off pyparsing 3 camelCase aliases (`oneOf`) onto
-  `one_of`. `python -W error::DeprecationWarning -c "import qddate"` is
-  now silent.
-- Renamed `noyear=` keyword argument on `parse`/`match`/`match_all` to
-  `allow_no_year=` (the old name was the opposite of the semantic
-  intent). `noyear=` continues to work as a deprecated alias emitting
-  `DeprecationWarning`.
-
-## Unreleased
+The following changes landed before 1.0.11 and were previously listed under a
+stray "Unreleased" heading:
 
 - Replaced the Sphinx/Read the Docs pages with a Docusaurus site in `docs/`, organized like undatum (getting started, use cases, API, languages, development) and ready for GitHub Pages.
 
@@ -329,6 +466,11 @@ No user-visible API changes.
 ## 1.0.5 (2025-11-25)
 - Updated README and benchmark documentation with current performance guidance and references to `benchmarks/bench.py` and `PERFORMANCE_ANALYSIS.md`.
 - Added explicit instructions for running the benchmark and inviting community-reported numbers.
+
+## 1.0.3 (2022-02-09)
+
+No changelog entry was recorded for this release (tagged `v1.0.3` in git).
+Git has no `v1.0.4` tag.
 
 ## 1.0.2 (2022-01-27)
 - Added pattern `dt:date:date_eng4_short` to cover `17-Oct-21` style dates common in UK open data.

@@ -18,11 +18,12 @@ When a public name is renamed or its semantics change:
    After at least two minor releases it may be removed in a major release
    (2.0.x). The `CHANGELOG.md` entry for the major release will list every
    removal.
-3. The deprecation warning message names the canonical replacement. CI
-   runs with `-W error::DeprecationWarning` for the `qddate` module so
-   new regressions are caught at PR time.
+3. The deprecation warning message names the canonical replacement. The
+   test suite (`filterwarnings` in `pyproject.toml`) turns any
+   `DeprecationWarning` raised from qddate's own code into an error, so a
+   deprecated call inside the library fails CI at PR time.
 
-## Active deprecations (as of 1.0.15)
+## Active deprecations (as of 1.0.17)
 
 ### `noyear=` → `allow_no_year=`
 
@@ -59,9 +60,9 @@ Removal target: **2.0**.
 
 The legacy 6-level filter (`_filter_patterns_hierarchical`) was
 superseded by the fingerprint-based matcher (`_filter_patterns_fingerprint`)
-in `1.0.14`. The fingerprint path is the default and is exactly equivalent
-on the extended probe corpus. Passing `False` is deprecated and emits
-a `DeprecationWarning`.
+in `1.0.14`. The fingerprint path is the default and returns the same
+results as the legacy path under every filter flag. Passing `False` is
+deprecated and emits a `DeprecationWarning`.
 
 ```python
 # from

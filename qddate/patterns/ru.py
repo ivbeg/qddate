@@ -34,6 +34,8 @@ RUS_WEEKDAYS = [
     "Четверг",
     "Пятница",
     "Суббота",
+    "Воскресенье",
+    # Misspelling the pattern used to require; kept so such inputs still match.
     "Воскресение",
 ]
 RUS_WEEKDAYS_LC = [
@@ -43,9 +45,13 @@ RUS_WEEKDAYS_LC = [
     "четверг",
     "пятница",
     "суббота",
+    "воскресенье",
     "воскресение",
 ]
 RUS_YEARS = ["г.", "года"]
+# Word written between a date and its time of day ("4 Сентября 2020 в 04:06").
+# DateParser accepts it before the time in the generated time variants.
+RUS_TIME_PREFIXES = ["в"]
 
 ru_mname2mon = dict((m, i + 1) for i, m in enumerate(RUS_MONTHS) if m)
 rulc_mname2mon = dict((m, i + 1) for i, m in enumerate(RUS_MONTHS_LC) if m)
@@ -84,13 +90,10 @@ PATTERNS_RU = [
         Word(nums, min=1, max=2).set_results_name("day") +
         Optional(",").suppress() +
         BASE_PATTERNS_RU["pat:rus:months"].set_results_name("month") +
-        Optional(",").suppress() +
-        Optional(Word(nums, exact=4).set_results_name("year")) +
-        Optional((Literal("в").suppress() + Word(nums, exact=2) + Literal(":").suppress() + Word(nums, exact=2) + Optional(Literal(":").suppress() + Word(nums, exact=2))) |  # noqa: E501
-                 (Word(nums, exact=2) + Literal(":").suppress() + Word(nums, exact=2) + Optional(Literal(":").suppress() + Word(nums, exact=2)))),  # noqa: E501
+        Optional(",").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 11,
-            "max": 30
+            "min": 10,
+            "max": 20
         },
         "format":
         "%d %m %Y",
@@ -109,8 +112,8 @@ PATTERNS_RU = [
         Optional(",").suppress() + Word(nums, exact=4).set_results_name("year") +
         Optional(BASE_PATTERNS_RU["pat:rus:years"]).suppress(),
         "length": {
-            "min": 13,
-            "max": 20
+            "min": 10,
+            "max": 23
         },
         "format":
         "%d %m %Y",
@@ -126,7 +129,7 @@ PATTERNS_RU = [
         BASE_DATE_PATTERNS["pat:date:d.m.yyyy"] +
         BASE_PATTERNS_RU["pat:rus:years"].suppress(),
         "length": {
-            "min": 14,
+            "min": 11,
             "max": 20
         },
         "format":
@@ -167,7 +170,7 @@ PATTERNS_RU = [
         Word(nums, exact=4).set_results_name("year") +
         Optional(BASE_PATTERNS_RU["pat:rus:years"]).suppress(),
         "length": {
-            "min": 13,
+            "min": 10,
             "max": 25
         },
         "format":
@@ -182,13 +185,14 @@ PATTERNS_RU = [
         "Date with russian month and weekday",
         "pattern":
         BASE_PATTERNS_RU["pat:rus:weekdays"] + Optional(",") +
-        Word(nums, min=1, max=2) + BASE_PATTERNS_RU["pat:rus:months"] +
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_RU["pat:rus:months"].set_results_name("month") +
         Optional(Literal(",")).suppress() +
         Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_RU["pat:rus:years"].suppress(),
         "length": {
             "min": 13,
-            "max": 20
+            "max": 35
         },
         "format":
         "%d %m %Y",
@@ -202,13 +206,14 @@ PATTERNS_RU = [
         "Date with russian month and weekday",
         "pattern":
         BASE_PATTERNS_RU["pat:rus:weekdays"] + Optional(",") +
-        Word(nums, min=1, max=2) + BASE_PATTERNS_RU["pat:rus:months:lc"] +
+        Word(nums, min=1, max=2).set_results_name("day") +
+        BASE_PATTERNS_RU["pat:rus:months:lc"].set_results_name("month") +
         Optional(Literal(",")).suppress() +
         Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_RU["pat:rus:years"].suppress(),
         "length": {
             "min": 13,
-            "max": 25
+            "max": 35
         },
         "format":
         "%d %m %Y",
@@ -226,7 +231,7 @@ PATTERNS_RU = [
         BASE_PATTERNS_RU["pat:rus:months"].set_results_name("month") +
         Optional(".").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 11,
+            "min": 10,
             "max": 20
         },
         "format":
@@ -245,7 +250,7 @@ PATTERNS_RU = [
         BASE_PATTERNS_RU["pat:rus:months:lc"].set_results_name("month") +
         Literal(".").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 11,
+            "min": 10,
             "max": 20
         },
         "format":
@@ -264,7 +269,7 @@ PATTERNS_RU = [
         Word(nums, min=1, max=2).set_results_name("day") +
         Literal(",").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 13,
+            "min": 11,
             "max": 22
         },
         "format":
@@ -286,10 +291,31 @@ PATTERNS_RU = [
         Literal(",").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 13,
-            "max": 22
+            "max": 30
         },
         "format":
         "%d %m %Y",
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:date_rus_noyear",
+        "name":
+        "Date with russian month without year",
+        "pattern":
+        Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(",").suppress() +
+        (BASE_PATTERNS_RU["pat:rus:months"] |
+         BASE_PATTERNS_RU["pat:rus:months:lc"]).set_results_name("month"),
+        "length": {
+            "min": 5,
+            "max": 12
+        },
+        "format":
+        "%d %m",
+        "noyear":
+        True,
         "filter":
         1,
     },

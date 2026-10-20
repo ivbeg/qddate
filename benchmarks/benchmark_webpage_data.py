@@ -11,17 +11,15 @@ This script:
 4. Outputs results in JSON and text formats
 """
 
-import sys
-import os
+import argparse
 import csv
 import json
-import time
 import statistics
-import argparse
-from pathlib import Path
+import sys
+import time
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional, Any
-
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -51,13 +49,13 @@ except ImportError:
     class tqdm:
         def __init__(self, iterable=None, desc=None, total=None, unit=None, disable=False):
             self.iterable = iterable if iterable is not None else []
-        
+
         def __enter__(self):
             return self
-        
+
         def __exit__(self, *args):
             return False
-        
+
         def __iter__(self):
             return iter(self.iterable)
 
@@ -73,13 +71,13 @@ def time_function(func, *args, **kwargs) -> Tuple[Any, float]:
 def load_csv_data(csv_path: str) -> Tuple[List[str], Dict[str, bool]]:
     """
     Load text snippets from CSV file along with qddate match information.
-    
+
     :param csv_path: Path to CSV file
     :return: Tuple of (list of text strings, dict mapping text to whether qddate matched it)
     """
     texts = []
     qddate_matched = {}  # Track which texts qddate originally matched
-    
+
     with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -89,7 +87,7 @@ def load_csv_data(csv_path: str) -> Tuple[List[str], Dict[str, bool]]:
                 # Check if qddate matched this text (pattern_key is not empty)
                 pattern_key = row.get('pattern_key', '').strip()
                 qddate_matched[text] = bool(pattern_key)
-    
+
     return texts, qddate_matched
 
 
@@ -101,11 +99,11 @@ def benchmark_qddate(texts: List[str], qddate_matched: Dict[str, bool], show_pro
     failed = 0
     errors = 0
     matched_texts = []  # Store all successfully matched texts
-    
+
     total_start = time.perf_counter()
-    
+
     iterable = tqdm(texts, desc="qddate", disable=not show_progress) if TQDM_AVAILABLE and show_progress else texts
-    
+
     for text in iterable:
         try:
             result, duration = time_function(parser.parse, text)
@@ -119,10 +117,10 @@ def benchmark_qddate(texts: List[str], qddate_matched: Dict[str, bool], show_pro
             errors += 1
             timings.append(0.0)
             failed += 1
-    
+
     total_time = time.perf_counter() - total_start
     total_operations = len(texts)
-    
+
     # For qddate, false positives are texts that matched but weren't in original CSV matches
     # False negatives are texts that were in CSV matches but didn't match in this run
     matched_texts_set = set(matched_texts)
@@ -130,12 +128,12 @@ def benchmark_qddate(texts: List[str], qddate_matched: Dict[str, bool], show_pro
     false_negatives = sum(1 for text in texts if qddate_matched.get(text, False) and text not in matched_texts_set)
     true_positives = successful - false_positives
     not_matched = total_operations - successful
-    
+
     # FAR (False Acceptance Rate): rate of false positives
     far = false_positives / total_operations if total_operations > 0 else 0
     # FRR (False Rejection Rate): rate of false negatives
     frr = false_negatives / total_operations if total_operations > 0 else 0
-    
+
     return {
         'library': 'qddate',
         'total_time': total_time,
@@ -160,21 +158,22 @@ def benchmark_qddate(texts: List[str], qddate_matched: Dict[str, bool], show_pro
     }
 
 
-def benchmark_dateparser(texts: List[str], qddate_matched: Dict[str, bool], show_progress: bool = False) -> Dict[str, Any]:
+def benchmark_dateparser(texts: List[str], qddate_matched: Dict[str, bool],
+                         show_progress: bool = False) -> Dict[str, Any]:
     """Benchmark dateparser library."""
     if not DATEPARSER_AVAILABLE:
         return {'error': 'dateparser not available'}
-    
+
     timings = []
     successful = 0
     failed = 0
     errors = 0
     matched_texts = []  # Store all successfully matched texts
-    
+
     total_start = time.perf_counter()
-    
+
     iterable = tqdm(texts, desc="dateparser", disable=not show_progress) if TQDM_AVAILABLE and show_progress else texts
-    
+
     for text in iterable:
         try:
             result, duration = time_function(dateparser.parse, text)
@@ -188,10 +187,10 @@ def benchmark_dateparser(texts: List[str], qddate_matched: Dict[str, bool], show
             errors += 1
             timings.append(0.0)
             failed += 1
-    
+
     total_time = time.perf_counter() - total_start
     total_operations = len(texts)
-    
+
     # False positives: texts that matched but qddate didn't match (likely not dates)
     # False negatives: texts that qddate matched but this library didn't match
     matched_texts_set = set(matched_texts)
@@ -199,12 +198,12 @@ def benchmark_dateparser(texts: List[str], qddate_matched: Dict[str, bool], show
     false_negatives = sum(1 for text in texts if qddate_matched.get(text, False) and text not in matched_texts_set)
     true_positives = successful - false_positives
     not_matched = total_operations - successful
-    
+
     # FAR (False Acceptance Rate): rate of false positives
     far = false_positives / total_operations if total_operations > 0 else 0
     # FRR (False Rejection Rate): rate of false negatives
     frr = false_negatives / total_operations if total_operations > 0 else 0
-    
+
     return {
         'library': 'dateparser',
         'total_time': total_time,
@@ -229,21 +228,22 @@ def benchmark_dateparser(texts: List[str], qddate_matched: Dict[str, bool], show
     }
 
 
-def benchmark_dateutil(texts: List[str], qddate_matched: Dict[str, bool], show_progress: bool = False) -> Dict[str, Any]:
+def benchmark_dateutil(texts: List[str], qddate_matched: Dict[str, bool],
+                       show_progress: bool = False) -> Dict[str, Any]:
     """Benchmark dateutil library."""
     if not DATEUTIL_AVAILABLE:
         return {'error': 'dateutil not available'}
-    
+
     timings = []
     successful = 0
     failed = 0
     errors = 0
     matched_texts = []  # Store all successfully matched texts
-    
+
     total_start = time.perf_counter()
-    
+
     iterable = tqdm(texts, desc="dateutil", disable=not show_progress) if TQDM_AVAILABLE and show_progress else texts
-    
+
     for text in iterable:
         try:
             result, duration = time_function(dateutil_parser.parse, text)
@@ -261,10 +261,10 @@ def benchmark_dateutil(texts: List[str], qddate_matched: Dict[str, bool], show_p
             errors += 1
             timings.append(0.0)
             failed += 1
-    
+
     total_time = time.perf_counter() - total_start
     total_operations = len(texts)
-    
+
     # False positives: texts that matched but qddate didn't match (likely not dates)
     # False negatives: texts that qddate matched but this library didn't match
     matched_texts_set = set(matched_texts)
@@ -272,12 +272,12 @@ def benchmark_dateutil(texts: List[str], qddate_matched: Dict[str, bool], show_p
     false_negatives = sum(1 for text in texts if qddate_matched.get(text, False) and text not in matched_texts_set)
     true_positives = successful - false_positives
     not_matched = total_operations - successful
-    
+
     # FAR (False Acceptance Rate): rate of false positives
     far = false_positives / total_operations if total_operations > 0 else 0
     # FRR (False Rejection Rate): rate of false negatives
     frr = false_negatives / total_operations if total_operations > 0 else 0
-    
+
     return {
         'library': 'dateutil',
         'total_time': total_time,
@@ -322,33 +322,33 @@ def run_all_benchmarks(csv_path: str, show_progress: bool = False) -> Dict[str, 
     print(f"Loaded {len(texts)} text snippets")
     print(f"qddate matched {sum(1 for v in qddate_matched.values() if v)} texts in original CSV")
     print()
-    
+
     results = {
         'timestamp': datetime.now().isoformat(),
         'python_version': sys.version,
         'test_cases_count': len(texts),
         'libraries': {}
     }
-    
+
     # Benchmark each library
     print("Running benchmarks...")
     print("=" * 80)
-    
+
     # qddate
     print("Benchmarking qddate...")
     results['libraries']['qddate'] = benchmark_qddate(texts, qddate_matched, show_progress)
-    
+
     # dateparser
     print("Benchmarking dateparser...")
     results['libraries']['dateparser'] = benchmark_dateparser(texts, qddate_matched, show_progress)
-    
+
     # dateutil
     print("Benchmarking dateutil...")
     results['libraries']['dateutil'] = benchmark_dateutil(texts, qddate_matched, show_progress)
-    
+
     print("=" * 80)
     print()
-    
+
     return results
 
 
@@ -361,7 +361,7 @@ def print_results(results: Dict[str, Any]):
     print(f"Timestamp: {results['timestamp']}")
     print(f"Python: {results['python_version'].split()[0]}")
     print()
-    
+
     # Prepare table data
     table_data = []
     for lib_name, lib_results in results['libraries'].items():
@@ -381,16 +381,17 @@ def print_results(results: Dict[str, Any]):
             'p95_time': lib_results['p95_time'],
             'throughput': lib_results['throughput'],
         })
-    
+
     # Sort by FAR (ascending) - lower is better, then by FRR (ascending)
     table_data.sort(key=lambda x: (x['far'], x['frr']))
-    
+
     # Print header
     print(f"{'Library':<15} {'FAR':<12} {'FRR':<12} {'False Pos.':<12} {'False Neg.':<12} "
-          f"{'Matched':<12} {'Not Matched':<12} {'Total Time (s)':<15} {'Mean (ms)':<12} {'Median (ms)':<12} {'P95 (ms)':<12} "
+          f"{'Matched':<12} {'Not Matched':<12} {'Total Time (s)':<15} "
+          f"{'Mean (ms)':<12} {'Median (ms)':<12} {'P95 (ms)':<12} "
           f"{'Throughput (ops/s)':<18}")
     print("-" * 160)
-    
+
     # Print rows
     for row in table_data:
         print(f"{row['library']:<15} "
@@ -405,9 +406,9 @@ def print_results(results: Dict[str, Any]):
               f"{row['median_time']*1000:>9.3f}   "
               f"{row['p95_time']*1000:>9.3f}   "
               f"{row['throughput']:>15.1f}")
-    
+
     print()
-    
+
     # Print detailed error information
     print("Library Availability:")
     for lib_name, lib_results in results['libraries'].items():
@@ -415,7 +416,7 @@ def print_results(results: Dict[str, Any]):
             print(f"  {lib_name}: {lib_results['error']}")
         else:
             print(f"  {lib_name}: available")
-    
+
     print()
 
 
@@ -423,10 +424,10 @@ def save_results_json(results: Dict[str, Any], output_path: str):
     """Save results to JSON file."""
     # Convert to JSON-serializable format
     json_results = json.loads(json.dumps(results, default=str))
-    
+
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(json_results, f, indent=2, ensure_ascii=False)
-    
+
     print(f"Results saved to {output_path}")
 
 
@@ -450,24 +451,24 @@ def main():
         action='store_true',
         help='Show progress bars (requires tqdm)'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Resolve CSV path
     csv_path = Path(args.csv)
     if not csv_path.is_absolute():
         csv_path = Path(__file__).parent / csv_path
-    
+
     if not csv_path.exists():
         print(f"Error: CSV file not found: {csv_path}")
         sys.exit(1)
-    
+
     # Run benchmarks
     results = run_all_benchmarks(str(csv_path), show_progress=args.progress)
-    
+
     # Print results
     print_results(results)
-    
+
     # Save JSON results
     if args.output:
         output_path = args.output
@@ -476,7 +477,7 @@ def main():
         output_dir = Path(__file__).parent / 'results'
         output_dir.mkdir(exist_ok=True)
         output_path = output_dir / f'webpage_benchmark_{timestamp}.json'
-    
+
     save_results_json(results, str(output_path))
 
 

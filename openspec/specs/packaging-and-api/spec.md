@@ -33,24 +33,28 @@ date libraries (e.g. `dateparser`, `python-dateutil`, `arrow`, `pendulum`) SHALL
 optional, available only through extras, and SHALL NOT be imported by the library at
 runtime.
 
-> Note: the current `pyproject.toml` lists `dateparser>=1.2.0` as a hard runtime
-> dependency despite no runtime import. That is tracked as a proposed change in
-> `changes/cleanup-project-hygiene/`.
-
 #### Scenario: Import without optional deps installed
 - **GIVEN** an environment with only `pyparsing` installed
 - **WHEN** `import qddate` and `qddate.DateParser()` are executed
 - **THEN** no `ImportError` or `ModuleNotFoundError` SHALL be raised
+
+#### Scenario: Benchmark extras are opt-in
+- **WHEN** the package is installed without extras
+- **THEN** `dateparser`, `python-dateutil`, `arrow`, and `pendulum` SHALL NOT be
+  installed as transitive dependencies
+- **AND** installing the `bench` extra SHALL make them available
 
 ---
 
 ### Requirement: Public API surface
 
 The package SHALL expose, at top level, at minimum: the `DateParser` class, the
-`__version__` string, and the module `qddate.patterns`.
+`DateMatch` result class, the `format_date` function, the `__version__` string,
+and the module `qddate.patterns`.
 
 #### Scenario: Top-level imports
-- **WHEN** `from qddate import DateParser` and `import qddate; qddate.__version__`
+- **WHEN** `from qddate import DateParser, DateMatch, format_date` and
+  `import qddate; qddate.__version__`
 - **THEN** both SHALL succeed without error
 
 ---
@@ -58,7 +62,11 @@ The package SHALL expose, at top level, at minimum: the `DateParser` class, the
 ### Requirement: Constructor configuration parameters
 
 `DateParser.__init__` SHALL accept the parameters `generate`, `patterns`,
-`base_only`, and `languages`, preserving their documented meaning across releases.
+`base_only`, `languages`, `pivot_year`, `tz_aware`, and `use_fingerprint`,
+preserving their documented meaning across releases. `pivot_year` and `tz_aware`
+are specified in `date-parsing` ("Two-digit year pivot", "Timezone-aware
+parsing"); `use_fingerprint` in "Fingerprint-based candidate selection is the
+default".
 
 #### Scenario: Default construction
 - **WHEN** `DateParser()` is constructed with no arguments
@@ -351,7 +359,9 @@ SHALL either be absent or be a thin alias of the canonical file.
 
 ### Requirement: Continuous integration is enforcing
 
-The GitHub Actions CI SHALL fail on lint errors and on coverage below the
+The GitHub Actions CI SHALL fail on lint errors (Ruff over `qddate`, `tests`,
+`scripts` and `benchmarks`), on type errors (mypy over `qddate`), on README
+pattern counts that differ from the pattern table, and on coverage below the
 configured threshold. Advisory-only checks SHALL NOT be used for lint.
 
 #### Scenario: Lint error blocks merge
@@ -367,3 +377,10 @@ configured threshold. Advisory-only checks SHALL NOT be used for lint.
 - **THEN** the pytest step SHALL exit non-zero
 - **AND** the coverage report SHALL identify the affected files
 
+
+#### Scenario: README drift blocks merge
+- **GIVEN** a pull request that changes the pattern table without updating the
+  README stats block
+- **WHEN** the CI workflow runs
+- **THEN** `python scripts/generate_readme_stats.py --check` SHALL exit non-zero
+  and print the expected block

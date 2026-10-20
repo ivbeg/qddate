@@ -50,12 +50,12 @@ parser.parse("30 de junio, 2026")
 ### Dates without a year
 
 ```python
-parser.match("01.12", noyear=True)
-# year is substituted from the current clock
+parser.parse("01.12")                       # 1 December of the current year
+parser.parse("01.12", allow_no_year=False)  # None
 ```
 
-Pass `noyear=True` only when you intentionally want day-month strings. It can
-increase false positives on short numeric fragments.
+Day-month strings match by default. Pass `allow_no_year=False` when you do not
+want them: they can cause false positives on short numeric fragments.
 
 ## Detailed walkthroughs
 

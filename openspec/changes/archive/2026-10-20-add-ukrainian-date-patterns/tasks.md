@@ -1,4 +1,7 @@
 - [x] Add Ukrainian full, genitive, lowercase, and abbreviated month patterns.
+
+> Archived 2026-10-20 after verification against the code. Shipped in 1.0.11.
+
 - [x] Register patterns, metadata, language filtering, and prefix matching.
 - [x] Add Ukrainian automatic language detection and Cyrillic charset support.
 - [x] Add parser tests for all month forms, filtering, and regression dates.

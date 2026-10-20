@@ -46,9 +46,11 @@ bench = [
     "python-dateutil",
     "arrow",
     "pendulum",
+    "tqdm",
 ]
 dev = [
     "ruff",
+    "mypy",
     "tox",
     "twine",
     "build",
@@ -86,6 +88,7 @@ ignore = []
 # structure-driven lines; they are not source-of-truth Python.
 "scripts/generate_pattern_docs.py" = ["E501"]
 "scripts/generate_webpage_test_data.py" = ["E501"]
+"benchmarks/generate_test_data.py" = ["E501"]
 "qddate/patterns/*.py" = ["E501"]
 
 [tool.pytest.ini_options]
@@ -93,3 +96,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# A DeprecationWarning raised from qddate's own code (e.g. a deprecated
+# pyparsing call) fails the run; warnings qddate emits for its callers are
+# attributed to the caller and stay warnings.
+filterwarnings = ["error::DeprecationWarning:qddate"]

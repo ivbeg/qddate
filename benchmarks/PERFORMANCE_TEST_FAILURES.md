@@ -1,5 +1,26 @@
 # Performance Test Failures Analysis
 
+> **Resolved; historical (January 2026).** The 503 `KeyError` failures described
+> below no longer occur, and the line numbers cited no longer point at the code
+> described. On 2026-10-21,
+> `python benchmarks/comprehensive_performance_test.py --skip-memory --iterations 1`
+> runs all steps without errors on `benchmarks/test_data.csv` (10,383 cases):
+> 10,374 cases (99.9 %) match and 10,363 (99.8 %) parse. Known misses:
+>
+> - 9 strings match nothing (`19 de May de 2016`: the English month `May`
+>   narrows detection to English).
+> - 11 two-digit dates with year `00` (`01/03/00`) become year 0, which
+>   `datetime` rejects; `DateParser(pivot_year=...)` parses them.
+>
+> The 81 Russian strings like `4 Сентября в 04:06:33`, which matched without a
+> year and did not parse on 2026-10-20, now parse with the current year
+> (`dt:date:date_rus_noyear`).
+>
+> Since `match()` prefers the candidate consuming the most input, the same
+> run gives the same counts and misses, and 141 strings that parsed without
+> their time or seconds keep them (`14 Avril 1995 20:16:12`,
+> `22 August 2005 08:47:19`).
+
 ## Summary
 
 When running `python3 benchmarks/comprehensive_performance_test.py --skip-memory --iterations 1`, **503 test cases fail** with `KeyError` exceptions.

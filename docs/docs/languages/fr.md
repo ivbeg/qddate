@@ -11,8 +11,8 @@ description: "Base date patterns for French (fr)"
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
-| `dt:date:fr_base` | Base french date with month name not archive | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 Mars 2024`, `3 Décembre 2023`, `28 Juillet 2025` |
-| `dt:date:fr_base_lc` | Base french date with month name and lowcase, no article | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 mars 2024`, `3 décembre 2023`, `28 juillet 2025` |
+| `dt:date:fr_base` | Base french date with month name not archive | `%d %m %Y` | 10 | 22 |  |  | 1 | `15 Mars 2024`, `3 Décembre 2023`, `28 Juillet 2025` |
+| `dt:date:fr_base_lc` | Base french date with month name and lowcase, no article | `%d %m %Y` | 10 | 22 |  |  | 1 | `15 mars 2024`, `3 décembre 2023`, `28 juillet 2025` |
 | `dt:date:fr_base_article` | Base french date with month name and articles | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 le Mars 2024`, `3 le Décembre 2023`, `28 le Juillet 2025` |
 | `dt:date:fr_base_lc_article` | Base french date with month name and articles and lowcase | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 le mars 2024`, `3 le décembre 2023`, `28 le juillet 2025` |
 | `dt:date:fr_short` | French date with abbreviated month | `%d %m %Y` | 9 | 15 |  |  | 1 | `15 Mars 2024`, `3 Décembre 2023`, `28 Juillet 2025` |

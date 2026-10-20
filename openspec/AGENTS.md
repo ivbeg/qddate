@@ -46,7 +46,7 @@ A change in `changes/<change-name>/` contains:
 | Capability | Spec | Covers |
 |---|---|---|
 | `date-parsing` | `specs/date-parsing/spec.md` | `parse`, `match`, left-aligned matching, date validation |
-| `language-support` | `specs/language-support/spec.md` | `languages=` param, language detection, 12 supported languages |
+| `language-support` | `specs/language-support/spec.md` | `languages=` param, language detection, 14 supported languages |
 | `packaging-and-api` | `specs/packaging-and-api/spec.md` | Public API surface, runtime dependencies, packaging |
 
 When proposing a new behavior, file the delta against the matching capability, or

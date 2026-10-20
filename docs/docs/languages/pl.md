@@ -11,8 +11,8 @@ description: "Base date patterns for Polish (pl)"
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
-| `dt:date:pl_base` | Base polish date with month name (nominative) | `%d %m %Y` | 11 | 28 |  |  | 1 | `15 Marzec 2024`, `3 Grudzień 2023`, `28 Lipiec 2025` |
-| `dt:date:pl_base_lc` | Base polish date with month name lower-case (nominative) | `%d %m %Y` | 11 | 28 |  |  | 1 | `15 Marzec 2024`, `3 Grudzień 2023`, `28 Lipiec 2025` |
+| `dt:date:pl_base` | Base polish date with month name (nominative) | `%d %m %Y` | 10 | 28 |  |  | 1 | `15 Marzec 2024`, `3 Grudzień 2023`, `28 Lipiec 2025` |
+| `dt:date:pl_base_lc` | Base polish date with month name lower-case (nominative) | `%d %m %Y` | 10 | 28 |  |  | 1 | `15 Marzec 2024`, `3 Grudzień 2023`, `28 Lipiec 2025` |
 | `dt:date:pl_gen` | Polish date with month name in genitive form | `%d %m %Y` | 11 | 28 |  |  | 1 | `15 Marca 2024`, `3 Grudnia 2023`, `28 Lipca 2025` |
 | `dt:date:pl_gen_lc` | Polish date with month name in genitive form (lower-case) | `%d %m %Y` | 11 | 28 |  |  | 1 | `15 Marca 2024`, `3 Grudnia 2023`, `28 Lipca 2025` |
 

@@ -11,9 +11,17 @@ merge rules in the legacy pipeline. Each divergence must be
 investigated and fixed in the fingerprint path; flipping the default
 (``flip-fingerprint-default``) is gated on this test staying green on
 the full probe corpus.
+
+The equality must also hold under the filter toggles (``noprefix``,
+``allow_no_year``, ``nocharsetfilter``, ``noseparatorfilter``,
+``noyearformatfilter``, ``nolanguagefilter``): disabling a filter widens
+the candidate set on both paths alike.
 """
 
 from __future__ import annotations
+
+import datetime
+import itertools
 
 import pytest
 
@@ -45,7 +53,8 @@ _PROBE_STRINGS = [
     "2 Июня 2015", "9 июля 2015 г.", "23 июня 2015", "3 Июля, 2015",
     "21 Фeвpyapи 2015", "1 нoeмвpи 2013",
     "пятница, июля 17, 2015", "Июль 16, 2015", "9 Июля 2015 [11:23]",
-    "09.01.2015",
+    "09.01.2015", "4 Сентября", "5 мая", "4 сентября в 04:06:33",
+    "4 Сентября 2020 в 04:06:33", "2 Января 1981 года в 21:04",
     # French (accented)
     "Le 8 juillet 2015", "8 juillet 2015", "5 Janvier 2009",
     "5 Janv 2009", "5 janv 2020", "Janv 5, 2020",
@@ -110,6 +119,42 @@ def _candidate_keys(parser: DateParser, text: str, **kwargs) -> set[str]:
     return {m["pattern"]["key"] for m in matches}
 
 
+# Each filter toggle mapped to its non-default value.
+_TOGGLE_FLIPS = {
+    "noprefix": True,
+    "allow_no_year": False,
+    "nocharsetfilter": True,
+    "noseparatorfilter": True,
+    "noyearformatfilter": True,
+    "nolanguagefilter": True,
+}
+
+# Every combination of flipped toggles (2^6, including "none flipped").
+_ALL_TOGGLE_COMBOS = [
+    combo
+    for r in range(len(_TOGGLE_FLIPS) + 1)
+    for combo in itertools.combinations(_TOGGLE_FLIPS, r)
+]
+
+# Running ``match_all()`` on the whole corpus is slow under the widest
+# toggles, so match-level equality runs each toggle alone plus all of them
+# together; the cheap filter-level check below covers every combination.
+_MATCH_TOGGLE_COMBOS = [(name,) for name in _TOGGLE_FLIPS] + [tuple(_TOGGLE_FLIPS)]
+
+
+def _toggle_kwargs(combo: tuple[str, ...]) -> dict[str, bool]:
+    return {name: _TOGGLE_FLIPS[name] for name in combo}
+
+
+def _combo_id(combo: tuple[str, ...]) -> str:
+    return "+".join(combo) or "defaults"
+
+
+def _filter_keys(filter_fn, text: str, **kwargs) -> set[str]:
+    """Return the keys of the candidate patterns a filter method selects."""
+    return {p["key"] for p in filter_fn(text, len(text), **kwargs) or []}
+
+
 @pytest.fixture
 def legacy_parser() -> DateParser:
     """Parser using the legacy 6-level filter.
@@ -172,3 +217,125 @@ def test_filter_toggles_preserve_equality(legacy_parser, fp_parser):
         f"Divergence with allow_no_year=False: legacy={sorted(legacy_keys - fp_keys)[:3]} "
         f"fp={sorted(fp_keys - legacy_keys)[:3]}"
     )
+
+
+@pytest.mark.parametrize("combo", _ALL_TOGGLE_COMBOS, ids=_combo_id)
+def test_fingerprint_filter_keeps_legacy_candidates_under_toggles(legacy_parser, fp_parser, combo):
+    """Under every toggle combination the fingerprint filter keeps every legacy candidate.
+
+    A disabled filter must widen the candidate set; substituting a
+    placeholder for the skipped dimension (an empty charset, a ``mixed``
+    separator) used to reject every pattern instead.
+    """
+    kwargs = _toggle_kwargs(combo)
+    missing = {}
+    for text in _PROBE_STRINGS:
+        legacy_keys = _filter_keys(legacy_parser._filter_patterns_hierarchical, text, **kwargs)
+        fp_keys = _filter_keys(fp_parser._filter_patterns_fingerprint, text, **kwargs)
+        if legacy_keys - fp_keys:
+            missing[text] = sorted(legacy_keys - fp_keys)[:3]
+    assert not missing, (
+        f"Fingerprint filter drops legacy candidates with {_combo_id(combo)} "
+        f"on {len(missing)} probes, e.g. {dict(list(missing.items())[:3])}"
+    )
+
+
+@pytest.mark.parametrize("combo", _MATCH_TOGGLE_COMBOS, ids=_combo_id)
+def test_fingerprint_equals_legacy_under_toggles(legacy_parser, fp_parser, combo):
+    """With toggles flipped, both paths match the same patterns and parse the same dates."""
+    kwargs = _toggle_kwargs(combo)
+    divergent = {}
+    for text in _PROBE_STRINGS:
+        legacy_keys = _candidate_keys(legacy_parser, text, **kwargs)
+        fp_keys = _candidate_keys(fp_parser, text, **kwargs)
+        if legacy_keys != fp_keys:
+            divergent[text] = (
+                f"only in legacy: {sorted(legacy_keys - fp_keys)[:3]}, "
+                f"only in fingerprint: {sorted(fp_keys - legacy_keys)[:3]}"
+            )
+            continue
+        legacy_date = legacy_parser.parse(text, **kwargs)
+        fp_date = fp_parser.parse(text, **kwargs)
+        if legacy_date != fp_date:
+            divergent[text] = f"legacy parses {legacy_date!r}, fingerprint {fp_date!r}"
+    assert not divergent, (
+        f"Divergence with {_combo_id(combo)} on {len(divergent)} probes:\n"
+        + "\n".join(f"  {text!r}: {why}" for text, why in list(divergent.items())[:5])
+    )
+
+
+@pytest.mark.parametrize(
+    "text, toggle",
+    [
+        ("01.12.2009", "nocharsetfilter"),
+        ("01.12.2009", "noseparatorfilter"),
+        ("2009-12-01", "nocharsetfilter"),
+        ("2009-12-01", "noseparatorfilter"),
+    ],
+)
+def test_disabled_filter_still_parses_by_default(text, toggle):
+    """The default (fingerprint) parser parses canonical dates with a filter disabled."""
+    assert DateParser().parse(text, **{toggle: True}) == datetime.datetime(2009, 12, 1)
+
+
+# Session for the ``start_session()`` parity tests: numeric, English,
+# Russian, no-year and time patterns. Some probes match inside the session;
+# the others must match nothing on both paths.
+_SESSION_KEYS = [
+    "dt:date:date_2", "dt:date:date_9", "dt:date:date_1:t_right",
+    "dt:date:date_eng1", "dt:date:date_eng1_short", "dt:date:date_eng1:time_3",
+    "dt:date:date_rus2", "dt:date:noyear_1",
+]
+
+
+@pytest.fixture(scope="module")
+def session_parsers() -> tuple[DateParser, DateParser]:
+    """Legacy and fingerprint parsers with ``_SESSION_KEYS`` as the session."""
+    with pytest.warns(DeprecationWarning, match="use_fingerprint=False is deprecated"):
+        legacy = DateParser(use_fingerprint=False)
+    fingerprint = DateParser(use_fingerprint=True)
+    for parser in (legacy, fingerprint):
+        parser.start_session(_SESSION_KEYS)
+    return legacy, fingerprint
+
+
+def test_session_keys_exist(fp_parser):
+    """Every session key names a real pattern, so the session tests stay meaningful."""
+    known = {p["key"] for p in fp_parser.patterns}
+    assert set(_SESSION_KEYS) <= known
+
+
+@pytest.mark.parametrize("text", _PROBE_STRINGS)
+def test_session_fingerprint_equals_legacy(session_parsers, text):
+    """With a session active, both paths match the same keys and parse the same value."""
+    legacy_parser, fp_parser = session_parsers
+    legacy_keys = _candidate_keys(legacy_parser, text)
+    fp_keys = _candidate_keys(fp_parser, text)
+    assert fp_keys <= set(_SESSION_KEYS), (
+        f"Fingerprint path matched outside the session for {text!r}: "
+        f"{sorted(fp_keys - set(_SESSION_KEYS))[:5]}"
+    )
+    assert legacy_keys == fp_keys, (
+        f"Session candidate-set divergence for {text!r}: "
+        f"legacy={sorted(legacy_keys - fp_keys)[:5]} fp={sorted(fp_keys - legacy_keys)[:5]}"
+    )
+    assert fp_parser.parse(text) == legacy_parser.parse(text)
+
+
+def test_session_restricts_default_parser():
+    """Regression: the default (fingerprint) parser ignored ``start_session()``."""
+    parser = DateParser()
+    assert parser.parse("01.12.2009") == datetime.datetime(2009, 12, 1)
+
+    parser.start_session(["dt:date:date_eng1"])
+    assert parser.parse("01.12.2009") is None
+    assert parser.parse("5 August 2001") == datetime.datetime(2001, 8, 5)
+
+    # A new session replaces the old one.
+    parser.start_session(["dt:date:date_2"])
+    assert parser.parse("01.12.2009") == datetime.datetime(2009, 12, 1)
+    assert parser.parse("5 August 2001") is None
+
+    parser.end_session()
+    assert parser.parse("01.12.2009") == datetime.datetime(2009, 12, 1)
+    assert parser.parse("5 August 2001") == datetime.datetime(2001, 8, 5)

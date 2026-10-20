@@ -48,6 +48,11 @@ def test_timezone_aware_opt_in():
     assert dt.hour == 10 and dt.minute == 20 and dt.second == 30
 
 
+def test_timezone_aware_zero_offset_is_utc():
+    dt = DateParser(tz_aware=True).parse("01.12.2009 14:53:12 +0000")
+    assert dt.utcoffset() == datetime.timedelta(0)
+
+
 def test_timezone_aware_no_offset_stays_naive():
     parser = DateParser(tz_aware=True)
     assert parser.parse("12.03.1999 10:20:30").tzinfo is None
@@ -366,6 +371,9 @@ _PROBE_STRINGS = [
     "Mon 5 Jan 2020",           # weekday_eng_abbrev1
     "Monday 5 january 2020",    # weekday_eng_lc
     "5 leden 2020",             # cz_base_lc (lowercase nominative form)
+    "Пятница, 5 Мая 2020 года",       # weekday_rus
+    "Воскресенье, 5 мая 2020 года",   # weekday_rus_lc1
+    "4 Сентября в 04:06:33",          # date_rus_noyear
 ]
 
 
@@ -390,8 +398,6 @@ _KNOWN_SHADOWED = frozenset({
     "dt:date:nl_rare_2",       # Same shadowing story for Dutch (dot variant)
     "dt:date:date_rus3",       # "09.01.2015" wins date_2; date_rus3 has lower priority
     "dt:date:rus_rare_2",      # Same shadowing story as date_rus3
-    "dt:date:weekday_rus",     # Cyrillic weekday + title-case Russian month: rare combo
-    "dt:date:weekday_rus_lc1", # Cyrillic weekday + lowercase Russian month: rare combo
     "dt:date:weekday_eng_iso", # weekday_eng_abbrev* family shadows for any month-name input
     "dt:date:weekday_short_eng_iso",  # Same shadowing story as weekday_eng_iso
     "dt:date:pt_short_lc_monthfirst",  # English date_eng2_short wins (lowercase month list)

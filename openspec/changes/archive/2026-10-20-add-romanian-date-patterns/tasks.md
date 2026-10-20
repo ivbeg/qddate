@@ -1,5 +1,8 @@
 # Tasks: Add Romanian date patterns
 
+> Archived 2026-10-20 after verification against the code. Shipped in 1.0.11.
+
+
 ## Pattern definitions
 
 - [x] Add a Romanian pattern module containing all twelve full month names and CLDR

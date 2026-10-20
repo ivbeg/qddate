@@ -11,8 +11,8 @@ description: "Base date patterns for German (de)"
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
-| `dt:date:de_base` | Base german date with month name | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 März 2024`, `3 Dezember 2023`, `28 Juli 2025` |
-| `dt:date:de_base_lc` | Base german date with month name and lowcase | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 märz 2024`, `3 dezember 2023`, `28 juli 2025` |
+| `dt:date:de_base` | Base german date with month name | `%d %m %Y` | 10 | 22 |  |  | 1 | `15 März 2024`, `3 Dezember 2023`, `28 Juli 2025` |
+| `dt:date:de_base_lc` | Base german date with month name and lowcase | `%d %m %Y` | 10 | 22 |  |  | 1 | `15 märz 2024`, `3 dezember 2023`, `28 juli 2025` |
 | `dt:date:de_weekday` | German date with weekday | `%d %m %Y` | 15 | 32 |  |  | 1 | `Montag, 15 März 2024`, `Montag, 3 Dezember 2023`, `Montag, 28 Juli 2025` |
 | `dt:date:de_weekday_lc` | German date with weekday lowercase | `%d %m %Y` | 15 | 32 |  |  | 1 | `Montag, 15 märz 2024`, `Montag, 3 dezember 2023`, `Montag, 28 juli 2025` |
 | `dt:date:de_short` | German date with abbreviated month | `%d %m %Y` | 9 | 18 |  |  | 1 | `15 Mär 2024`, `3 Dez 2023`, `28 Jul 2025` |

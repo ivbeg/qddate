@@ -55,7 +55,7 @@ US-style `mm/dd/yyyy` lives on English patterns (`date_usa`). Restrict
 
 - Runtime: `pyparsing>=3.1.0` only.
 - `ModuleNotFoundError: dateparser` means a **benchmark** script is running without the `bench` extra: `pip install -e ".[bench]"`.
-- Python older than 3.8 is not supported.
+- Python older than 3.10 is not supported.
 
 ## Disable filters while debugging
 

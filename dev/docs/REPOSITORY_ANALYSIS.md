@@ -1,5 +1,12 @@
 # Repository Analysis & Improvement Suggestions
 
+> **Historical snapshot (January 2026, before 1.0.6).** Kept for context; it no
+> longer describes the repository. Since then CI moved to GitHub Actions with
+> Ruff, mypy and a coverage gate; the length, character-set and prefix indexes
+> and the fingerprint matcher shipped; pattern metadata moved to
+> `_PATTERN_METADATA`. For current behavior see `openspec/specs/`; for open work
+> see `IMPROVEMENT_PLAN.md`.
+
 ## Executive Summary
 
 The `qddate` library is a specialized tool for high-performance date parsing. While it achieves its goal of being "quick and dirty," it faces several challenges that hinder its maintainability, reliability, and potential performance.

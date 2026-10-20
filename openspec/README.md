@@ -15,19 +15,18 @@ openspec/
 │   ├── language-support/
 │   └── packaging-and-api/
 └── changes/                   # Proposed changes (delta specs)
-    ├── fix-correctness-regressions/
-    ├── cleanup-project-hygiene/
-    ├── refactor-pattern-metadata/
-    ├── add-datetime-semantics/
-    ├── modernize-api-surface/
-    └── add-advanced-parsing/
+    └── archive/               # Shipped changes, one dated folder each
 ```
+
+All changes listed below shipped in 1.0.11–1.0.14 and were archived on
+2026-10-20. Each archived `tasks.md` records what shipped and what shipped
+differently or not at all.
 
 ## How to read this
 
 - **`specs/`** describes the *current, shipped* behavior. It is the contract that
-  refactors must preserve. Baseline: **18 requirements, 28 scenarios** across 3
-  capabilities.
+  refactors must preserve: **49 requirements, 109 scenarios** across 3
+  capabilities (2026-10-20; `openspec list --specs` prints the current counts).
 - **`changes/<name>/proposal.md`** states *why* a change is needed and its impact,
   using explicit From/To blocks.
 - **`changes/<name>/specs/<capability>/spec.md`** is a *delta* — only the
@@ -48,7 +47,7 @@ independently archivable.
 | `modernize-api-surface` | P2 | 4.8, 7.4, 7.5 | No (additive) | date-parsing |
 | `add-advanced-parsing` | P3 | 6.3, 7.3, 7.6, 7.7, 8 | No (additive) | date-parsing |
 
-## Suggested milestone sequencing
+## Original milestone sequencing (historical)
 
 1. **v1.0.11 — Stabilize:** `fix-correctness-regressions` + `cleanup-project-hygiene`.
    Green tests, lean deps, honest docs. No API change.
@@ -66,6 +65,7 @@ independently archivable.
 - `add-advanced-parsing` is a thematic roadmap; at implementation time it should be
   split into one change folder per sub-feature so each can be archived independently,
   per OpenSpec conventions.
-- Two baseline requirements explicitly flag shipped-but-broken behavior (language
-  auto-detection; the `dateparser` runtime dep) and point at the change that fixes
-  them. A known bug is not a spec — it is the target of a MODIFIED delta.
+- The two baseline requirements that flagged shipped-but-broken behavior (language
+  auto-detection; the `dateparser` runtime dep) were resolved by
+  `fix-correctness-regressions` and `cleanup-project-hygiene`. A known bug is not a
+  spec — it is the target of a MODIFIED delta.

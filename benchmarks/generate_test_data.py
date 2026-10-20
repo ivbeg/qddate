@@ -10,6 +10,9 @@ import random
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# Fixed seed so test_data.csv can be regenerated identically.
+SEED = 20261020
+
 # Month names in different languages
 MONTHS = {
     'en': ['January', 'February', 'March', 'April', 'May', 'June',
@@ -79,7 +82,7 @@ WEEKDAYS = {
     'es': ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
     'fr': ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'],
     'de': ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'],
-    'ru': ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресение'],
+    'ru': ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'],
 }
 
 # Numeric suffixes
@@ -117,26 +120,26 @@ def generate_numeric_dates(count=2000):
         ('%d %m %Y', ' ', 'dt:date:date_1'),  # Space variant
         ('%d %m %y', ' ', 'dt:date:date_8'),  # Space variant
     ]
-    
+
     for _ in range(count):
         dt = random_date()
         fmt, sep, pattern_key = random.choice(formats)
         date_str = dt.strftime(fmt)
         dates.append((date_str, pattern_key))
-    
+
     return dates
 
 
 def generate_english_dates(count=1500):
     """Generate English date formats."""
     dates = []
-    
+
     for _ in range(count):
         dt = random_date()
         day = dt.day
         month_idx = dt.month - 1
         year = dt.year
-        
+
         patterns = [
             (f"{day} {MONTHS['en'][month_idx]} {year}", 'dt:date:date_eng1x'),
             (f"{day} {MONTHS['en_lc'][month_idx]} {year}", 'dt:date:date_eng1_lc'),
@@ -150,7 +153,7 @@ def generate_english_dates(count=1500):
             (f"{day}{get_suffix(day)} {MONTHS['en'][month_idx]} {year}", 'dt:date:date_eng2'),
             (f"{MONTHS['en'][month_idx]} {day}{get_suffix(day)}, {year}", 'dt:date:date_eng2'),
         ]
-        
+
         # Add weekday variants
         if random.random() < 0.3:
             weekday_idx = dt.weekday()
@@ -159,22 +162,22 @@ def generate_english_dates(count=1500):
                 (f"{WEEKDAYS['en_short'][weekday_idx]} {day} {MONTHS['en_short'][month_idx]} {year}", 'dt:date:weekday_eng_short'),
                 (f"{WEEKDAYS['en_short'][weekday_idx]}, {day} {MONTHS['en'][month_idx]} {year}", 'dt:date:weekday_eng_short'),
             ])
-        
+
         dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def generate_spanish_dates(count=800):
     """Generate Spanish date formats."""
     dates = []
-    
+
     for _ in range(count):
         dt = random_date()
         day = dt.day
         month_idx = dt.month - 1
         year = dt.year
-        
+
         patterns = [
             (f"{day} de {MONTHS['es'][month_idx]} de {year}", 'dt:date:es_base_article'),
             (f"{day} de {MONTHS['es'][month_idx]}, {year}", 'dt:date:es_base_article'),
@@ -186,26 +189,27 @@ def generate_spanish_dates(count=800):
             (f"{day} {MONTHS['es'][month_idx]} {year}", 'dt:date:es_base'),
             (f"{day} {MONTHS['es_lc'][month_idx]} {year}", 'dt:date:es_base_lc'),
         ]
-        
+
         if random.random() < 0.2:
             weekday_idx = dt.weekday()
-            patterns.append((f"{WEEKDAYS['es'][weekday_idx]}, {day} de {MONTHS['es'][month_idx]} de {year}", 'dt:date:es_weekday'))
-        
+            # es_weekday has no "de" articles: "Lunes, 19 Noviembre 1979"
+            patterns.append((f"{WEEKDAYS['es'][weekday_idx]}, {day} {MONTHS['es'][month_idx]} {year}", 'dt:date:es_weekday'))
+
         dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def generate_french_dates(count=800):
     """Generate French date formats."""
     dates = []
-    
+
     for _ in range(count):
         dt = random_date()
         day = dt.day
         month_idx = dt.month - 1
         year = dt.year
-        
+
         patterns = [
             (f"Le {day} {MONTHS['fr'][month_idx]} {year}", 'dt:date:fr_base_article'),
             (f"{day} {MONTHS['fr'][month_idx]} {year}", 'dt:date:fr_base'),
@@ -214,26 +218,26 @@ def generate_french_dates(count=800):
             (f"{MONTHS['fr'][month_idx]} {day}, {year}", 'dt:date:fr_short_monthfirst'),
             (f"{MONTHS['fr_lc'][month_idx]} {day}, {year}", 'dt:date:fr_short_lc_monthfirst'),
         ]
-        
+
         if random.random() < 0.2:
             weekday_idx = dt.weekday()
             patterns.append((f"{WEEKDAYS['fr'][weekday_idx]}, {day} {MONTHS['fr'][month_idx]} {year}", 'dt:date:fr_weekday'))
-        
+
         dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def generate_german_dates(count=800):
     """Generate German date formats."""
     dates = []
-    
+
     for _ in range(count):
         dt = random_date()
         day = dt.day
         month_idx = dt.month - 1
         year = dt.year
-        
+
         patterns = [
             (f"{day} {MONTHS['de'][month_idx]} {year}", 'dt:date:de_base'),
             (f"{day} {MONTHS['de_lc'][month_idx]} {year}", 'dt:date:de_base_lc'),
@@ -242,26 +246,26 @@ def generate_german_dates(count=800):
             (f"{MONTHS['de_lc'][month_idx]} {day}, {year}", 'dt:date:de_rare_2'),
             (f"{day}. {MONTHS['de'][month_idx]} {year}", 'dt:date:de_base'),
         ]
-        
+
         if random.random() < 0.2:
             weekday_idx = dt.weekday()
             patterns.append((f"{WEEKDAYS['de'][weekday_idx]}, {day} {MONTHS['de'][month_idx]} {year}", 'dt:date:de_weekday'))
-        
+
         dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def generate_russian_dates(count=800):
     """Generate Russian date formats."""
     dates = []
-    
+
     for _ in range(count):
         dt = random_date()
         day = dt.day
         month_idx = dt.month - 1
         year = dt.year
-        
+
         patterns = [
             (f"{day} {MONTHS['ru'][month_idx]} {year}", 'dt:date:date_rus'),
             (f"{day} {MONTHS['ru_lc'][month_idx]} {year}", 'dt:date:date_rus_lc1'),
@@ -271,26 +275,28 @@ def generate_russian_dates(count=800):
             (f"{day}.{MONTHS['ru_lc'][month_idx]}.{year}", 'dt:date:rus_rare_3'),
             (f"{day}/{MONTHS['ru_lc'][month_idx]}/{year}", 'dt:date:date_rus_lc1'),
         ]
-        
+
         if random.random() < 0.2:
             weekday_idx = dt.weekday()
-            patterns.append((f"{WEEKDAYS['ru'][weekday_idx]}, {day} {MONTHS['ru'][month_idx]} {year}", 'dt:date:weekday_rus'))
-        
+            # weekday_rus requires the year word ("года" or "г.")
+            year_word = random.choice(['года', 'г.'])
+            patterns.append((f"{WEEKDAYS['ru'][weekday_idx]}, {day} {MONTHS['ru'][month_idx]} {year} {year_word}", 'dt:date:weekday_rus'))
+
         dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def generate_italian_dates(count=600):
     """Generate Italian date formats."""
     dates = []
-    
+
     for _ in range(600):
         dt = random_date()
         day = dt.day
         month_idx = dt.month - 1
         year = dt.year
-        
+
         patterns = [
             (f"{day} {MONTHS['it'][month_idx]} {year}", 'dt:date:it_base'),
             (f"{day} {MONTHS['it_lc'][month_idx]} {year}", 'dt:date:it_base_lc'),
@@ -299,22 +305,22 @@ def generate_italian_dates(count=600):
             (f"{day} de {MONTHS['it'][month_idx]} de {year}", 'dt:date:it_base_article'),
             (f"{day} de {MONTHS['it_lc'][month_idx]} de {year}", 'dt:date:it_base_lc_article'),
         ]
-        
+
         dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def generate_portuguese_dates(count=600):
     """Generate Portuguese date formats."""
     dates = []
-    
+
     for _ in range(count):
         dt = random_date()
         day = dt.day
         month_idx = dt.month - 1
         year = dt.year
-        
+
         patterns = [
             (f"{day} de {MONTHS['pt'][month_idx]} de {year}", 'dt:date:pt_base_article'),
             (f"{day} de {MONTHS['pt_lc'][month_idx]} de {year}", 'dt:date:pt_base_lc_article'),
@@ -323,25 +329,25 @@ def generate_portuguese_dates(count=600):
             (f"{MONTHS['pt'][month_idx]} {day}, {year}", 'dt:date:pt_short_monthfirst'),
             (f"{MONTHS['pt_lc'][month_idx]} {day}, {year}", 'dt:date:pt_short_lc_monthfirst'),
         ]
-        
+
         dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def generate_other_language_dates(count=600):
     """Generate dates in Bulgarian, Czech, Polish, Dutch, Turkish."""
     dates = []
-    
+
     languages = ['bg', 'cz', 'pl', 'nl', 'tr']
-    
+
     for _ in range(count):
         dt = random_date()
         day = dt.day
         month_idx = dt.month - 1
         year = dt.year
         lang = random.choice(languages)
-        
+
         if lang == 'bg':
             patterns = [
                 (f"{day} {MONTHS['bg'][month_idx]} {year}", 'dt:date:bg_base'),
@@ -367,16 +373,16 @@ def generate_other_language_dates(count=600):
                 (f"{day} {MONTHS['tr'][month_idx]} {year}", 'dt:date:tr_base'),
                 (f"{day} {MONTHS['tr_lc'][month_idx]} {year}", 'dt:date:tr_base_lc'),
             ]
-        
+
         dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def generate_datetime_strings(count=1500):
     """Generate datetime strings with time components."""
     dates = []
-    
+
     for _ in range(count):
         dt = random_date()
         day = dt.day
@@ -385,14 +391,14 @@ def generate_datetime_strings(count=1500):
         hour = random.randint(0, 23)
         minute = random.randint(0, 59)
         second = random.randint(0, 59) if random.random() < 0.5 else None
-        
+
         # Numeric datetime formats (with time, pattern key is same as date pattern)
         if random.random() < 0.4:
             if second:
                 time_str = f"{hour:02d}:{minute:02d}:{second:02d}"
             else:
                 time_str = f"{hour:02d}:{minute:02d}"
-            
+
             date_formats = [
                 (f"{day:02d}.{month_idx+1:02d}.{year} {time_str}", 'dt:date:date_2'),
                 (f"{day:02d}/{month_idx+1:02d}/{year} {time_str}", 'dt:date:date_1'),
@@ -407,9 +413,9 @@ def generate_datetime_strings(count=1500):
                 time_str = f"{hour:02d}:{minute:02d}:{second:02d}"
             else:
                 time_str = f"{hour:02d}:{minute:02d}"
-            
+
             lang = random.choice(['en', 'es', 'fr', 'de', 'ru'])
-            
+
             if lang == 'en':
                 patterns = [
                     (f"{day} {MONTHS['en'][month_idx]} {year} {time_str}", 'dt:date:date_eng1x'),
@@ -431,18 +437,18 @@ def generate_datetime_strings(count=1500):
             elif lang == 'ru':
                 patterns = [
                     (f"{day} {MONTHS['ru'][month_idx]} {year} {time_str}", 'dt:date:date_rus'),
-                    (f"{day} {MONTHS['ru'][month_idx]} в {time_str}", 'dt:date:date_rus'),
+                    (f"{day} {MONTHS['ru'][month_idx]} в {time_str}", 'dt:date:date_rus_noyear'),
                 ]
-            
+
             dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def generate_edge_cases(count=500):
     """Generate edge cases and special formats."""
     dates = []
-    
+
     # Edge dates
     edge_dates = [
         datetime(1900, 1, 1),
@@ -452,17 +458,17 @@ def generate_edge_cases(count=500):
         datetime(1999, 12, 31),
         datetime(2001, 1, 1),
     ]
-    
+
     for _ in range(count):
         if random.random() < 0.3:
             dt = random.choice(edge_dates)
         else:
             dt = random_date()
-        
+
         day = dt.day
         month_idx = dt.month - 1
         year = dt.year
-        
+
         # Special formats (pattern keys approximate - these may match multiple patterns)
         patterns = [
             (f"{day:02d}{month_idx+1:02d}{year}", 'dt:date:date_2'),  # DDMMYYYY - compact format
@@ -471,64 +477,64 @@ def generate_edge_cases(count=500):
             (f"{day}.{month_idx+1}.{year} [11:23]", 'dt:date:date_2'),  # With brackets
             (f"{day} {MONTHS['en'][month_idx]} {year}:", 'dt:date:date_eng1x'),  # With colon
             (f"{day} {MONTHS['en'][month_idx]} {year} | 11:08", 'dt:date:date_eng1x'),  # With pipe
-            (f"{day} / {month_idx+1} '{year%100:02d}", 'dt:date:date_8'),  # With apostrophe
             (f"{day:02d}.{month_idx+1:02d}.{year} 14:53:12", 'dt:date:date_2'),  # Full datetime
         ]
-        
+
         dates.append(random.choice(patterns))
-    
+
     return dates
 
 
 def main():
     """Generate CSV file with test data."""
     print("Generating test data...")
-    
+    random.seed(SEED)
+
     all_dates = []
-    
+
     # Generate different types of dates
     print("  - Numeric dates...")
     all_dates.extend(generate_numeric_dates(2000))
-    
+
     print("  - English dates...")
     all_dates.extend(generate_english_dates(1500))
-    
+
     print("  - Spanish dates...")
     all_dates.extend(generate_spanish_dates(800))
-    
+
     print("  - French dates...")
     all_dates.extend(generate_french_dates(800))
-    
+
     print("  - German dates...")
     all_dates.extend(generate_german_dates(800))
-    
+
     print("  - Russian dates...")
     all_dates.extend(generate_russian_dates(800))
-    
+
     print("  - Italian dates...")
     all_dates.extend(generate_italian_dates(600))
-    
+
     print("  - Portuguese dates...")
     all_dates.extend(generate_portuguese_dates(600))
-    
+
     print("  - Other language dates...")
     all_dates.extend(generate_other_language_dates(600))
-    
+
     print("  - Datetime strings...")
     all_dates.extend(generate_datetime_strings(1500))
-    
+
     print("  - Edge cases...")
     all_dates.extend(generate_edge_cases(500))
-    
+
     # Shuffle to mix patterns
     random.shuffle(all_dates)
-    
+
     # Ensure we have at least 10,000
     if len(all_dates) < 10000:
-        print(f"  - Adding more numeric dates to reach 10,000...")
+        print("  - Adding more numeric dates to reach 10,000...")
         additional = generate_numeric_dates(10000 - len(all_dates))
         all_dates.extend(additional)
-    
+
     # Remove duplicates while preserving order (based on date string only)
     seen = set()
     unique_dates = []
@@ -537,10 +543,10 @@ def main():
         if date_str not in seen:
             seen.add(date_str)
             unique_dates.append(date_tuple)
-    
+
     # If we lost too many, add more
     if len(unique_dates) < 10000:
-        print(f"  - Adding more dates after deduplication...")
+        print("  - Adding more dates after deduplication...")
         formats_with_keys = [
             ('%d/%m/%Y', 'dt:date:date_1'),
             ('%d.%m.%Y', 'dt:date:date_2'),
@@ -554,17 +560,17 @@ def main():
             if date_str not in seen:
                 seen.add(date_str)
                 unique_dates.append((date_str, pattern_key))
-    
+
     # Write to CSV
     output_file = Path(__file__).parent / 'test_data.csv'
     print(f"\nWriting {len(unique_dates)} dates to {output_file}...")
-    
+
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['date_string', 'pattern_key'])  # Header
         for date_str, pattern_key in unique_dates:
             writer.writerow([date_str, pattern_key])
-    
+
     print(f"✓ Generated {len(unique_dates)} unique date/datetime strings")
     print(f"✓ Saved to {output_file}")
 

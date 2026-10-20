@@ -77,14 +77,75 @@ date that is exclusive to a non-selected language's month-name patterns.
 - **WHEN** `parse("3 Января 2003 года")` is called
 - **THEN** the result SHALL be `None`
 
+#### Scenario: Ukrainian excluded by Russian-only parser
+- **GIVEN** `DateParser(languages="ru")`
+- **WHEN** `parse("21 травня 2026")` is called
+- **THEN** the result SHALL be `None`
+
 ---
 
 ### Requirement: Automatic language detection for filtering
 
-The parser MAY use automatic language detection (based on character sets and month
-names) purely as an internal candidate-narrowing optimization. It SHALL NOT cause a
-user-requested language (via `languages=`) to be dropped from consideration.
+The parser MAY use automatic language detection (based on character sets,
+month names and weekday names) purely as an internal candidate-narrowing
+optimization. Detection SHALL NOT change the result of a parse:
 
-> Note: the current shipped behavior violates this requirement for shared month names
-> (e.g. German "Juli" detected as Dutch). That violation is tracked as a proposed
-> change in `changes/fix-correctness-regressions/`, not as accepted behavior.
+- when the caller supplied a `languages=` allow-list, detected languages SHALL
+  be intersected with it and SHALL NOT remove patterns of a requested language;
+- when a month name is shared by several languages, a weekday name in the input
+  SHALL pick the language;
+- when the patterns of the detected language find no match, the parser SHALL
+  try the patterns of every active language.
+
+#### Scenario: Shared month name does not drop a requested language
+- **GIVEN** `DateParser(languages=["en", "de"])`
+- **WHEN** `parse("28. Juli 2015")` is called ("Juli" is shared by German and Dutch)
+- **THEN** the result SHALL equal `datetime.datetime(2015, 7, 28)`
+
+#### Scenario: Weekday picks the language of a shared month
+- **GIVEN** `DateParser()`
+- **WHEN** `parse("Montag, 18 Juni 1953")` is called
+- **THEN** the result SHALL equal `datetime.datetime(1953, 6, 18)`
+
+#### Scenario: Wrongly detected language falls back to all languages
+- **GIVEN** `DateParser()`
+- **WHEN** `parse("11 Август 2009")` is called (Bulgarian; "Август" is also Russian)
+- **THEN** the result SHALL equal `datetime.datetime(2009, 8, 11)`
+
+---
+
+### Requirement: Romanian month-name dates
+
+The library SHALL parse Romanian day-month-year dates using all twelve full month
+names and standard abbreviated month forms in lowercase or title case, and SHALL
+make those patterns available through the `ro` language filter with Romanian
+pattern metadata.
+
+#### Scenario: Full Romanian month name
+- **GIVEN** `DateParser(languages="ro")`
+- **WHEN** `parse("19 Februarie 2026")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2026, 2, 19)`
+
+#### Scenario: Lowercase Romanian month name
+- **WHEN** `DateParser().parse("4 decembrie 2025")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2025, 12, 4)`
+
+#### Scenario: Abbreviated Romanian month name
+- **GIVEN** `DateParser(languages="ro")`
+- **WHEN** `parse("23 apr. 2025")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2025, 4, 23)`
+
+#### Scenario: Shared month under Romanian filter
+- **GIVEN** `DateParser(languages="ro")`
+- **WHEN** `match("21 Mai 2026")` is called
+- **THEN** the result SHALL represent `2026-05-21` and its pattern metadata SHALL identify `ro`
+
+#### Scenario: Generated time and trailing text variant
+- **GIVEN** `DateParser(languages="ro")`
+- **WHEN** `parse("31 Martie 2025, 14:30 actualizare")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2025, 3, 31, 14, 30)`
+
+#### Scenario: Romanian filter excludes French
+- **GIVEN** `DateParser(languages="ro")`
+- **WHEN** `parse("21 janvier 2026")` is called
+- **THEN** the result SHALL be `None`

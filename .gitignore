@@ -28,13 +28,13 @@ dist
 build
 eggs
 parts
-bin
+/bin/
 var
 sdist
 develop-eggs
 .installed.cfg
-lib
-lib64
+/lib/
+/lib64/
 pip-wheel-metadata/
 share/python-wheels/
 

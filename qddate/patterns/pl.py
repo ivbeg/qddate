@@ -68,7 +68,7 @@ PATTERNS_PL = [
         Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],
         "length": {
-            "min": 11,
+            "min": 10,
             "max": 28
         },
         "format":
@@ -87,7 +87,7 @@ PATTERNS_PL = [
         Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],
         "length": {
-            "min": 11,
+            "min": 10,
             "max": 28
         },
         "format":

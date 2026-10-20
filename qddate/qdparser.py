@@ -6,6 +6,7 @@ __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
 import datetime
+import numbers
 import re
 import time
 import warnings
@@ -13,7 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Iterator, Optional, Union
 from typing import Optional as TOptional
 
-from pyparsing import Literal, Regex, Word, lineStart, nums, one_of, restOfLine
+from pyparsing import Literal, Regex, Word, lineStart, nums, one_of
 from pyparsing import Optional as PpOptional
 
 # Enable packrat parsing for better performance
@@ -31,9 +32,19 @@ from .patterns import (
     ALL_PATTERNS,
     BASE_TIME_PATTERNS,
     MONTHS_BY_LANGUAGE,
+    TIME_PREFIXES_BY_LANGUAGE,
     _infer_required_chars,
     get_patterns_for_languages,
 )
+from .patterns.base import ENG_WEEKDAYS
+from .patterns.cz import CZ_WEEKDAYS
+from .patterns.de import DE_WEEKDAYS
+from .patterns.es import ES_WEEKDAYS
+from .patterns.fr import FR_WEEKDAYS
+from .patterns.it import IT_WEEKDAYS
+from .patterns.nl import NL_WEEKDAYS
+from .patterns.pt import PT_WEEKDAYS
+from .patterns.ru import RUS_WEEKDAYS
 from .relative import parse_relative as _parse_relative
 
 
@@ -81,12 +92,82 @@ _ENGLISH_MONTHS = _lang_month_names("en")
 _GERMAN_MONTHS = _lang_month_names("de")
 _DUTCH_MONTHS = _lang_month_names("nl")
 _TURKISH_MONTHS = _lang_month_names("tr")
+_BULGARIAN_MONTHS = _lang_month_names("bg")
 
-# Pre-compiled pyparsing patterns for language detection (compiled once at module level)
-# Use Regex within pyparsing for word boundary matching (pyparsing's one_of doesn't support word boundaries)
-# Create regex patterns that match any English/German month with word boundaries
-_ENGLISH_MONTH_PATTERN = Regex(r'\b(' + '|'.join(re.escape(m) for m in _ENGLISH_MONTHS) + r')\b')
-_GERMAN_MONTH_PATTERN = Regex(r'\b(' + '|'.join(re.escape(m) for m in _GERMAN_MONTHS) + r')\b')
+# Word tokenizer shared by language detection: letters only, so "28." and
+# "Segunda-feira" split into words the same way the month/weekday sets do.
+_WORD_RE = re.compile(r"[^\W\d_]+")
+
+# Month sets that claim a language, in precedence order. Several full month
+# names are shared (German/Dutch "Juni", German/French "Mai", Russian/Bulgarian
+# "Август"; every shared name maps to the same month number, see
+# tests/test_regressions_2026_10.py). ``_detect_language`` narrows to the first
+# claiming language; when its patterns find nothing, ``_iter_matches`` tries
+# the patterns of every language.
+_CYRILLIC_DETECTION: tuple[tuple[str, frozenset[str]], ...] = (
+    ("uk", _UKRAINIAN_MONTHS),
+    ("ru", _RUSSIAN_MONTHS),
+    ("bg", _BULGARIAN_MONTHS),
+)
+# Romanian stays after the other Romance languages so an unrestricted parser
+# does not relabel ambiguous "mai"; Dutch is listed before German as before.
+_LATIN_DETECTION: tuple[tuple[str, frozenset[str]], ...] = (
+    ("fr", _FRENCH_MONTHS),
+    ("es", _SPANISH_MONTHS),
+    ("it", _ITALIAN_MONTHS),
+    ("pt", _PORTUGUESE_MONTHS),
+    ("cz", _CZECH_MONTHS),
+    ("pl", _POLISH_MONTHS),
+    ("ro", _ROMANIAN_MONTHS),
+    ("en", _ENGLISH_MONTHS),
+    ("nl", _DUTCH_MONTHS),
+    ("de", _GERMAN_MONTHS),
+    ("tr", _TURKISH_MONTHS),
+)
+
+
+def _lang_weekday_words(*names_lists) -> frozenset:
+    """Lower-cased word tokens of the given weekday names."""
+    return frozenset(
+        word
+        for names in names_lists
+        for name in names
+        for word in _WORD_RE.findall(name.lower())
+    )
+
+
+# Full weekday names of the languages that have weekday patterns. A weekday
+# breaks the tie when the month name is shared ("Montag, 18 Juni 1953" is
+# German, not Dutch).
+_WEEKDAYS_BY_LANGUAGE = {
+    "en": _lang_weekday_words(ENG_WEEKDAYS),
+    "de": _lang_weekday_words(DE_WEEKDAYS),
+    "nl": _lang_weekday_words(NL_WEEKDAYS),
+    "fr": _lang_weekday_words(FR_WEEKDAYS),
+    "es": _lang_weekday_words(ES_WEEKDAYS),
+    "it": _lang_weekday_words(IT_WEEKDAYS),
+    "pt": _lang_weekday_words(PT_WEEKDAYS),
+    "cz": _lang_weekday_words(CZ_WEEKDAYS),
+    "ru": _lang_weekday_words(RUS_WEEKDAYS),
+}
+
+
+def _resolve_month_claims(claims: list, words: frozenset) -> list:
+    """Pick the language among those whose month names occur in the text.
+
+    A single claim is returned as is. With a shared month name, a weekday
+    name of exactly one claiming language decides; otherwise every claiming
+    language is returned, so the filters do not narrow to one of them.
+    """
+    if len(claims) <= 1:
+        return claims
+    by_weekday = [
+        lang for lang in claims
+        if not words.isdisjoint(_WEEKDAYS_BY_LANGUAGE.get(lang, ()))
+    ]
+    if len(by_weekday) == 1:
+        return by_weekday
+    return claims
 
 # Pre-compiled pyparsing patterns for year format detection (compiled once at module level)
 # 4-digit year: 4 consecutive digits (Word naturally handles word boundaries)
@@ -223,6 +304,11 @@ def format_date(dt: datetime.datetime, pattern_key: str) -> str:
     )
 
 
+def _append(expr, extra):
+    """Return ``expr + extra``, or ``expr`` unchanged when ``extra`` is None."""
+    return expr if extra is None else expr + extra
+
+
 def _values_in_range(d):
     """Sanity-check matched date/time components.
 
@@ -273,6 +359,21 @@ def _pattern_separator(pattern):
     return entry[1] if entry else "mixed"
 
 
+def _index_by_fingerprint(patterns):
+    """Group pattern dicts by fingerprint: ``{FingerprintKey: [pattern, ...]}``.
+
+    Buckets keep the order of ``patterns``.
+    """
+    # Local import: ``qddate.patterns.fingerprint`` imports from
+    # ``qddate.patterns``, which this module imports at load time.
+    from .patterns.fingerprint import compute_pattern_fingerprint
+
+    index: dict = {}
+    for p in patterns:
+        index.setdefault(compute_pattern_fingerprint(p), []).append(p)
+    return index
+
+
 def scan_char_sets(text):
     """Single-pass scanner returning set of character categories present in text.
 
@@ -319,6 +420,25 @@ def scan_char_sets(text):
     return char_sets
 
 
+def _month_claims(text: str, char_sets) -> list:
+    """Languages whose month names occur in ``text`` as whole words.
+
+    ``char_sets`` is ``scan_char_sets(text)``; it selects the Cyrillic or the
+    Latin-script table. See :meth:`DateParser._language_claims`.
+    """
+    if CHAR_SET_CYRILLIC in char_sets:
+        table = _CYRILLIC_DETECTION
+    elif CHAR_SET_ACCENTED in char_sets or CHAR_SET_LATIN in char_sets:
+        table = _LATIN_DETECTION
+    else:
+        return []
+    # Whole words only: a substring check lets French "mai" claim
+    # Portuguese "maio", which then filters out the Portuguese patterns.
+    words = frozenset(_WORD_RE.findall(text.lower()))
+    claims = [lang for lang, months in table if not words.isdisjoint(months)]
+    return _resolve_month_claims(claims, words)
+
+
 class DateParser:
     """Class to use pyparsing-based patterns to parse dates"""
 
@@ -339,7 +459,10 @@ class DateParser:
         :param pivot_year: Optional 4-digit pivot year for interpreting 2-digit years (patterns with the
                           ``yearshort`` flag). Years ``00`` to ``(pivot_year % 100) - 1`` map to 20xx, the
                           rest to 19xx. Example: pivot_year=1968 maps 05/16/99 to 1999 and 05/16/20 to 2020.
-                          If None (default), 2-digit years are passed through unchanged.
+                          If None (default), 2-digit years are passed through unchanged. A bool or any
+                          other non-integer raises ``TypeError``: ``True`` would act as pivot year 1
+                          (only ``00`` maps to 2000), so ``pivot_year=True`` is not a way to switch the
+                          pivot on.
         :type pivot_year: int|None
         :param tz_aware: If True, a parsed ``+HHMM`` timezone offset is attached to the returned datetime
                          (making it timezone-aware). Default False keeps returning naive datetimes.
@@ -362,7 +485,15 @@ class DateParser:
                                     emits a ``DeprecationWarning``. Omit the parameter (or pass
                                     ``True``) to silence the warning.
         :type use_fingerprint: bool
+        :raises TypeError: if ``pivot_year`` is a bool or not an integer.
         """
+        # ``bool`` is an ``int`` subclass, so ``pivot_year=True`` would silently
+        # mean pivot year 1. Reject it along with non-integers.
+        if pivot_year is not None and (
+                isinstance(pivot_year, bool) or not isinstance(pivot_year, numbers.Integral)):
+            raise TypeError(
+                "pivot_year must be a 4-digit year such as 1968, or None; "
+                f"got {pivot_year!r}")
         # ``use_fingerprint=False`` is deprecated since ``1.0.15`` and will be
         # removed in ``v2.0.0``. Emit a warning when the caller explicitly
         # opts in to the legacy 6-level filter so downstream code has a
@@ -400,6 +531,8 @@ class DateParser:
         self._next_year_refresh = time.monotonic() + self._year_refresh_interval
         if generate:
             self.__generate(base_only)
+        # Generation order; breaks priority ties in ``_match_candidates``.
+        self._pattern_rank = {p["key"]: i for i, p in enumerate(self.patterns)}
         self._build_length_index()
         self._build_separator_index()
         self._build_year_format_index()
@@ -412,12 +545,16 @@ class DateParser:
         # between the legacy and fingerprint paths.
         self._build_fingerprint_index()
         self.cachedpats: Union[list[dict], None] = None
+        # Fingerprint index over ``cachedpats`` and the list it was built from;
+        # see ``_session_fingerprint_index``.
+        self._session_fingerprints: dict = {}
+        self._session_fingerprints_source: Union[list[dict], None] = None
         self.ind: list[Any] = []
         # When ``True``, ``match()``/``match_all()``/``parse()`` route through the
         # single-walk fingerprint-based filter (``_filter_patterns_fingerprint``)
         # instead of the 6-level filter (``_filter_patterns_hierarchical``).
-        # Default ``False`` preserves the legacy behaviour bit-for-bit; a future
-        # round flips the default after parity is locked on the full corpus.
+        # Default ``True`` since ``1.0.14``; ``False`` (deprecated) keeps the
+        # legacy pipeline reachable for debugging.
         self.use_fingerprint = use_fingerprint
 
     def __matchPrefix(self, text):
@@ -433,9 +570,13 @@ class DateParser:
     def start_session(self, cached_p: Union[list[str], set[str]]) -> None:
         cached_set = set(cached_p) if not isinstance(cached_p, set) else cached_p
         self.cachedpats = [x for x in self.patterns if x["key"] in cached_set]
+        # Build the session's fingerprint index now, not on the first parse.
+        self._session_fingerprint_index()
 
     def end_session(self) -> None:
         self.cachedpats = None
+        self._session_fingerprints = {}
+        self._session_fingerprints_source = None
 
     def startSession(self, cached_p):
         """Deprecated alias of :meth:`start_session`."""
@@ -462,17 +603,28 @@ class DateParser:
             # already stamped by ``annotate_patterns`` at import time.
             pass
 
+            # A word the pattern's language writes before the time ("в" in
+            # "4 Сентября 2020 в 04:06") is accepted in the time variants; it
+            # widens their maximum length by the word and its space.
+            prefixes = TIME_PREFIXES_BY_LANGUAGE.get(pat.get("language"))
+            if prefixes:
+                time_prefix = PpOptional(one_of(list(prefixes))).suppress()
+                prefix_len = max(len(word) for word in prefixes) + 1
+            else:
+                time_prefix = None
+                prefix_len = 0
+
             data = {**pat}
             data["basekey"] = data["key"]
             data["key"] += ":time_1"
             data["right"] = True
-            data["pattern"] = (data["pattern"] +
-                               PpOptional(Literal(",")).suppress() +
+            data["pattern"] = (_append(data["pattern"] + PpOptional(Literal(",")).suppress(),
+                                       time_prefix) +
                                BASE_TIME_PATTERNS["pat:time:minutes"])
             data["time_format"] = "%H:%M"
             data["length"] = {
                 "min": data["length"]["min"] + 5,
-                "max": data["length"]["max"] + 8,
+                "max": data["length"]["max"] + 8 + prefix_len,
             }
             # Preserve character set metadata
             if "required_chars" in pat:
@@ -483,8 +635,9 @@ class DateParser:
             data["basekey"] = data["key"]
             data["right"] = True
             data["key"] += ":time_2"
-            data["pattern"] = (data["pattern"] +
-                               PpOptional(one_of([",", "|", "T"])).suppress() +
+            data["pattern"] = (_append(data["pattern"] +
+                                       PpOptional(one_of([",", "|", "T"])).suppress(),
+                                       time_prefix) +
                                BASE_TIME_PATTERNS["pat:time:full"])
             data["time_format"] = "%H:%M:%S"
             data["length"] = {
@@ -493,7 +646,7 @@ class DateParser:
                 # adds up to 6 more (sign, four digits and one separating space).
                 # Without them, offset-carrying timestamps never fit this
                 # variant and silently fell back to HH:MM (seconds dropped).
-                "max": data["length"]["max"] + 15,
+                "max": data["length"]["max"] + 15 + prefix_len,
             }
             # Preserve character set metadata
             if "required_chars" in pat:
@@ -504,14 +657,14 @@ class DateParser:
             data["basekey"] = data["key"]
             data["right"] = True
             data["key"] += ":time_3"
-            data["pattern"] = (data["pattern"] +
+            data["pattern"] = (_append(data["pattern"], time_prefix) +
                                PpOptional(Literal("[")).suppress() +
                                BASE_TIME_PATTERNS["pat:time:minutes"] +
                                PpOptional(Literal("]")).suppress())
             data["time_format"] = "%H:%M"
             data["length"] = {
                 "min": data["length"]["min"] + 7,
-                "max": data["length"]["max"] + 10,
+                "max": data["length"]["max"] + 10 + prefix_len,
             }
             # Preserve character set metadata
             if "required_chars" in pat:
@@ -529,13 +682,15 @@ class DateParser:
 
         if not base_only:
             for pat in base:
-                # Right
+                # Right: the date followed by any text. The trailing text is
+                # left unconsumed (scan_string accepts a prefix match), so the
+                # match end marks where the date stops and match() can compare
+                # it with the other candidates'.
                 data = {**pat}
                 data["key"] += ":t_right"
                 data["pattern"] = (
                     lineStart + data["pattern"] +
-                    PpOptional(one_of([",", "|", ":", ")"])).suppress() +
-                    restOfLine.suppress())
+                    PpOptional(one_of([",", "|", ":", ")"])).suppress())
                 data["length"] = {
                     "min": data["length"]["min"] + 1,
                     "max": data["length"]["max"] + 90,
@@ -633,16 +788,25 @@ class DateParser:
         from ``FingerprintKey`` to a list of pattern dicts; ``_filter_patterns_fingerprint``
         uses ``set`` arithmetic on the keys to compute intersections.
         """
+        self._pattern_fingerprints = _index_by_fingerprint(self.patterns)
 
-        from .patterns.fingerprint import (
-            compute_pattern_fingerprint,
-        )
+    def _session_fingerprint_index(self) -> dict:
+        """Return the fingerprint index the fingerprint filter walks.
 
-        index: dict = {}
-        for p in self.patterns:
-            fp = compute_pattern_fingerprint(p)
-            index.setdefault(fp, []).append(p)
-        self._pattern_fingerprints = index
+        Outside a session this is the full per-instance index. Inside one it
+        is an index over ``self.cachedpats`` only, so the fingerprint path
+        honours ``start_session()`` the way the legacy filter does (session
+        patterns are its level-1 set). The session index is rebuilt whenever
+        ``cachedpats`` is a different list from the one it was built from,
+        which also covers callers that assign ``cachedpats`` directly.
+        """
+        cached = self.cachedpats
+        if cached is None:
+            return self._pattern_fingerprints
+        if self._session_fingerprints_source is not cached:
+            self._session_fingerprints = _index_by_fingerprint(cached)
+            self._session_fingerprints_source = cached
+        return self._session_fingerprints
 
     def _build_year_format_index(self):
         """Pre-index patterns by year format requirements for faster filtering"""
@@ -692,10 +856,31 @@ class DateParser:
 
         return 'unknown'
 
+    def _language_claims(self, text):
+        """Return every language whose month names occur in ``text``.
+
+        Languages come in detection precedence order. When a month name is
+        shared (German/Dutch "Juni", German/French "Mai", Russian/Bulgarian
+        "Август") and a weekday name belongs to exactly one claiming language,
+        only that language is returned.
+
+        :param text: Input string to analyze
+        :type text: str
+        :return: List of language codes (empty when no month name is found)
+        :rtype: list
+        """
+        if not text:
+            return []
+        return _month_claims(text, scan_char_sets(text))
+
     def _detect_language(self, text):
         """Detect language from text using character sets and month name detection.
 
-        Optimized version: uses simple 'in' operator instead of regex for faster matching.
+        Returns the first language of :meth:`_language_claims` (``['ru', 'bg']``
+        for Cyrillic text without a Russian or Ukrainian month name), so a
+        shared month name still narrows the filters to one language;
+        ``_iter_matches`` retries without the language filter when that
+        language finds nothing.
 
         :param text: Input string to analyze
         :type text: str
@@ -706,93 +891,15 @@ class DateParser:
             return None
 
         char_sets = scan_char_sets(text)
-        text_lower = text.lower()
-        # Whole words only: a substring check lets French "mai" claim
-        # Portuguese "maio", which then filters out the Portuguese patterns.
-        words = frozenset(re.findall(r"[^\W\d_]+", text_lower))
-        detected_languages = []
-
-        # Check for Cyrillic languages
+        claims = _month_claims(text, char_sets)
         if CHAR_SET_CYRILLIC in char_sets:
-            # Use simple 'in' operator - faster than regex for date strings
-            if not words.isdisjoint(_UKRAINIAN_MONTHS):
-                detected_languages.append('uk')
-                return detected_languages
-            if not words.isdisjoint(_RUSSIAN_MONTHS):
-                detected_languages.append('ru')
-                # Early exit: high confidence match
-                return detected_languages
-            else:
+            if not claims or claims == ['bg']:
                 # Could be Russian or Bulgarian
-                detected_languages.extend(['ru', 'bg'])
-                return detected_languages
-
-        # Check for accented languages with month name detection
-        if CHAR_SET_ACCENTED in char_sets or CHAR_SET_LATIN in char_sets:
-            # Use simple 'in' operator instead of regex - sufficient for date strings
-            # French month names
-            if not words.isdisjoint(_FRENCH_MONTHS):
-                detected_languages.append('fr')
-                return detected_languages  # Early exit: high confidence
-
-            # Spanish month names
-            if not words.isdisjoint(_SPANISH_MONTHS):
-                detected_languages.append('es')
-                return detected_languages  # Early exit: high confidence
-
-            # Italian month names
-            if not words.isdisjoint(_ITALIAN_MONTHS):
-                detected_languages.append('it')
-                return detected_languages  # Early exit: high confidence
-
-            # Portuguese month names
-            if not words.isdisjoint(_PORTUGUESE_MONTHS):
-                detected_languages.append('pt')
-                return detected_languages  # Early exit: high confidence
-
-            # Czech month names
-            if not words.isdisjoint(_CZECH_MONTHS):
-                detected_languages.append('cz')
-                return detected_languages  # Early exit: high confidence
-
-            # Polish month names (including genitive forms)
-            if not words.isdisjoint(_POLISH_MONTHS):
-                detected_languages.append('pl')
-                return detected_languages  # Early exit: high confidence
-
-            # Romanian month names. Keep this after the existing Romance-language
-            # checks so an unrestricted parser does not relabel ambiguous "mai".
-            if not words.isdisjoint(_ROMANIAN_MONTHS):
-                detected_languages.append('ro')
-                return detected_languages  # Early exit: high confidence
-
-        # Check for Latin-based languages (English, German, Dutch, Turkish)
-        # Only check if no accented languages were detected (to avoid false matches)
-        if CHAR_SET_LATIN in char_sets and not detected_languages:
-            # English month names (use pyparsing for consistency with codebase)
-            # pyparsing's one_of with scan_string naturally handles word boundaries
-            if next(_ENGLISH_MONTH_PATTERN.scan_string(text_lower, max_matches=1), None) is not None:
-                detected_languages.append('en')
-                return detected_languages  # Early exit: high confidence
-
-            # Dutch month names (check before German since they share month names like "juli")
-            if not words.isdisjoint(_DUTCH_MONTHS):
-                detected_languages.append('nl')
-                return detected_languages  # Early exit: high confidence
-
-            # German month names (use pyparsing for consistency)
-            if next(_GERMAN_MONTH_PATTERN.scan_string(text_lower, max_matches=1), None) is not None:
-                detected_languages.append('de')
-                return detected_languages  # Early exit: high confidence
-
-            # Turkish month names
-            if not words.isdisjoint(_TURKISH_MONTHS):
-                detected_languages.append('tr')
-                return detected_languages  # Early exit: high confidence
-
-        # If no specific language detected but we have character sets, return None
+                return ['ru', 'bg']
+            return claims[:1]
+        # If no specific language detected, return None
         # (let other filters handle it)
-        return detected_languages if detected_languages else None
+        return claims[:1] or None
 
     def _build_language_index(self):
         """Pre-index patterns by language for faster filtering.
@@ -1023,16 +1130,25 @@ class DateParser:
         on the candidate set and the prefix index, not on text-fingerprint
         dimensions.
 
-        The result is a **superset-or-equal** of the legacy 6-level pipeline's
-        candidate set on every probe string (``tests/test_fingerprint_parity.py``
-        locks this property). The legacy pipeline remains the default
-        (``use_fingerprint=False``) until parity is fully locked.
+        During a session (:meth:`start_session`) only the session's patterns
+        are candidates, as on the legacy path.
+
+        This is the default path since ``1.0.14``; the legacy pipeline is only
+        reachable through the deprecated ``use_fingerprint=False``. The result
+        is a **superset-or-equal** of the legacy pipeline's candidate set under
+        every combination of filter toggles, and both paths yield the same
+        matches (``tests/test_fingerprint_parity.py`` locks both properties).
+
+        Each ``no*filter`` toggle skips its dimension entirely, exactly as the
+        matching legacy level is skipped, so disabling a filter can only widen
+        the candidate set.
 
         :param text: Input text to match.
         :type text: str
         :param n: Length of text (``len(text)``).
         :type n: int
-        :param noprefix: If True, skip the prefix filter.
+        :param noprefix: If True, skip the prefix filter and, as the legacy
+                         pipeline does, the character-set filter.
         :type noprefix: bool
         :param allow_no_year: Currently a no-op for parity; the year-format
                               filter inside ``candidate_keys_for`` already keeps
@@ -1059,9 +1175,18 @@ class DateParser:
             CHAR_SET_LATIN,
         )
 
-        text_char_sets = scan_char_sets(text) if not nocharsetfilter else frozenset()
-        separators = self._detect_separators(text) if not noseparatorfilter else {"mixed"}
-        if nolanguagefilter:
+        # A disabled dimension is skipped, not matched against a placeholder:
+        # an empty text charset or a ``{"mixed"}`` separator would *narrow*
+        # the candidate set (``fp_chars <= frozenset()`` rejects every pattern
+        # that needs a character class). The legacy levels 2 and 4 also skip
+        # the charset filter under ``noprefix`` and both filters for texts of
+        # five characters or fewer; mirror that, so a short pattern in another
+        # script ("5 мая") stays a candidate for "05.12" as it does there.
+        check_chars = n > 5 and not noprefix and not nocharsetfilter
+        check_separator = not noseparatorfilter
+        text_char_sets = scan_char_sets(text) if check_chars else frozenset()
+        separators = self._detect_separators(text) if check_separator else set()
+        if nolanguagefilter or n <= 5:
             detected_languages: list[str] = []
         else:
             detected_languages = self._detect_language(text)
@@ -1166,7 +1291,8 @@ class DateParser:
                 return fp_year in ("noyear", "2digit")
             return False
 
-        # Single-walk intersection over the per-instance fingerprint index.
+        # Single-walk intersection over the per-instance fingerprint index
+        # (restricted to the session's patterns while a session is active).
         # Includes generated variants (suffix :time_N, :t_right) that the
         # module-level ``_PATTERN_FINGERPRINTS`` does not carry.
         #
@@ -1182,14 +1308,17 @@ class DateParser:
         # but a pattern whose basekey is ``date_1``/``date_8``/``date_3``
         # gets a free pass via ``_space_compat_basekey``.
         pats: list[dict] = []
-        for fp, bucket in self._pattern_fingerprints.items():
+        for fp, bucket in self._session_fingerprint_index().items():
             if fp.length_min > n or fp.length_max < n:
                 continue
-            if not _chars_match(fp.chars):
+            if check_chars and not _chars_match(fp.chars):
                 continue
             if not _lang_match(fp.language):
                 continue
             if not _year_match(fp.year_format):
+                continue
+            if not check_separator:
+                pats.extend(bucket)
                 continue
             for p in bucket:
                 if _sep_match(fp.separator, fp.language):
@@ -1262,10 +1391,13 @@ class DateParser:
             if _pattern_language(pattern) is not None:
                 score += 20
 
-        # Boost if length is exact match (more likely to be correct)
+        # Boost if length is exact match (more likely to be correct). Not for
+        # ":t_right" variants: their bounds include the trailing text, so the
+        # input length says nothing about them, and the bonus let them outrank
+        # the plain variant that matches the same text.
         length_min = pattern.get("length", {}).get("min", 0)
         length_max = pattern.get("length", {}).get("max", 0)
-        if length_min <= n <= length_max:
+        if length_min <= n <= length_max and not key.endswith(":t_right"):
             if n == length_min or n == length_max:
                 score += 10
             else:
@@ -1285,37 +1417,62 @@ class DateParser:
                       noseparatorfilter=False, noyearformatfilter=False,
                       nolanguagefilter=False):
         """Yield ``(priority, end, result)`` for every candidate pattern matching
-        ``text`` at position 0, highest priority first.
+        ``text`` at position 0, highest priority first. ``end`` is where the
+        match stops, not counting trailing whitespace.
 
         Shared engine behind :meth:`match` and :meth:`match_all`. Components are
         sanity-checked (month/day/hour/minute/second ranges) before yielding.
         """
-        n = len(text)
+        filter_flags = {
+            "noprefix": noprefix,
+            "allow_no_year": allow_no_year,
+            "nocharsetfilter": nocharsetfilter,
+            "noseparatorfilter": noseparatorfilter,
+            "noyearformatfilter": noyearformatfilter,
+        }
+        tried: set[str] = set()
+        found = False
+        pats = self._filter_patterns(text, nolanguagefilter=nolanguagefilter, **filter_flags)
+        for item in self._match_candidates(text, pats, allow_no_year, tried):
+            found = True
+            yield item
+        if found or nolanguagefilter or len(self._language_claims(text)) < 2:
+            return
+        # The month name is shared by several languages and the language filter
+        # kept only the first one ("30. Mai 1953": French before German). It
+        # found nothing, so try the patterns of every language.
+        pats = self._filter_patterns(text, nolanguagefilter=True, **filter_flags)
+        yield from self._match_candidates(text, pats, allow_no_year, tried)
 
+    def _filter_patterns(self, text, **flags):
+        """Return the candidate patterns for ``text`` (or None) from the active filter."""
         # Route to the fingerprint-based filter when the constructor flag is set,
         # otherwise fall through to the existing 6-level pipeline. Both paths
         # share the same candidate-set semantics (level 6 prefix + score +
         # component-range validation); the fingerprint path is parity-locked
         # to be a superset-or-equal of the legacy path on every probe string.
         if self.use_fingerprint:
-            pats = self._filter_patterns_fingerprint(text, n, noprefix=noprefix, allow_no_year=allow_no_year,
-                                                     nocharsetfilter=nocharsetfilter,
-                                                     noseparatorfilter=noseparatorfilter,
-                                                     noyearformatfilter=noyearformatfilter,
-                                                     nolanguagefilter=nolanguagefilter)
-        else:
-            pats = self._filter_patterns_hierarchical(text, n, noprefix=noprefix, allow_no_year=allow_no_year,
-                                                      nocharsetfilter=nocharsetfilter,
-                                                      noseparatorfilter=noseparatorfilter,
-                                                      noyearformatfilter=noyearformatfilter,
-                                                      nolanguagefilter=nolanguagefilter)
+            return self._filter_patterns_fingerprint(text, len(text), **flags)
+        return self._filter_patterns_hierarchical(text, len(text), **flags)
+
+    def _match_candidates(self, text, pats, allow_no_year, tried):
+        """Yield ``(priority, end, result)`` for the patterns in ``pats`` that
+        match ``text`` at position 0, highest priority first.
+
+        Keys of the patterns run are added to ``tried``; patterns already in it
+        are skipped.
+        """
         if not pats:
             return
+        n = len(text)
 
-        # Sort patterns by priority (try most likely patterns first)
+        # Sort patterns by priority (try most likely patterns first). Ties
+        # keep the generation order: the two filters return candidates in
+        # different orders, and both must pick the same pattern.
+        rank = self._pattern_rank
         scored = sorted(
             ((self._calculate_pattern_priority(p, text), p) for p in pats),
-            key=lambda item: item[0], reverse=True)
+            key=lambda item: (-item[0], rank.get(item[1]["key"], len(rank))))
 
         for _score, p in scored:
             # Cache dictionary lookups
@@ -1326,6 +1483,9 @@ class DateParser:
             if not allow_no_year:
                 if p.get("noyear", False):
                     continue
+            if p["key"] in tried:
+                continue
+            tried.add(p["key"])
             match_data = next(p["pattern"].scan_string(text, max_matches=1), None)
             if match_data is None:
                 continue
@@ -1334,6 +1494,10 @@ class DateParser:
                 continue
             if not _values_in_range(r.as_dict()):
                 continue
+            # An optional element that matches nothing still skips the
+            # whitespace before it; that whitespace is not part of the date.
+            while end > 0 and text[end - 1].isspace():
+                end -= 1
             yield _score, end, {"values": r, "pattern": p}
 
     def match(self, text: str, noprefix: bool = False, allow_no_year: bool = True, nocharsetfilter: bool = False,
@@ -1380,19 +1544,23 @@ class DateParser:
                 DeprecationWarning, stacklevel=2,
             )
             allow_no_year = noyear
-        # Among equally-prioritized matches prefer the one consuming the most
-        # input (e.g. HH:MM:SS over HH:MM). Iteration is priority-sorted, so we
-        # stop as soon as the priority drops below the current best.
+        # The match consuming the most input wins (a date with its time over
+        # the bare date, HH:MM:SS over HH:MM); priority only breaks ties.
+        # Patterns are not anchored at the end, so without this a partial
+        # match with a length bonus beat a complete one. Candidates come in
+        # priority order: keep the first of each length and stop once one
+        # covers the whole text.
+        n = len(text.rstrip())
         best = None
-        for score, end, result in self._iter_matches(
+        for _score, end, result in self._iter_matches(
                 text, noprefix=noprefix, allow_no_year=allow_no_year,
                 nocharsetfilter=nocharsetfilter, noseparatorfilter=noseparatorfilter,
                 noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter):
-            if best is None or (score == best[0] and end > best[1]):
-                best = (score, end, result)
-            else:
-                break
-        return best[2] if best else None
+            if best is None or end > best[0]:
+                best = (end, result)
+                if end >= n:
+                    break
+        return best[1] if best else None
 
     def match_all(self, text: str, noprefix: bool = False, allow_no_year: bool = True,
                   nocharsetfilter: bool = False, noseparatorfilter: bool = False,
@@ -1405,7 +1573,8 @@ class DateParser:
         ambiguity: ``01/02/2020`` is valid as both D/M/Y and M/D/Y, and scraping
         callers often need to know that instead of silently getting one
         interpretation. Results are deduplicated by base pattern, keeping the
-        longest-consuming variant of each.
+        longest-consuming variant of each, and ordered the way :meth:`match`
+        picks: most input consumed first, then priority.
 
         Accepts the same filter flags as :meth:`match`. ``noyear=`` is the
         deprecated alias for ``allow_no_year=``.
@@ -1420,22 +1589,18 @@ class DateParser:
                 DeprecationWarning, stacklevel=2,
             )
             allow_no_year = noyear
-        results: list[tuple[int, dict]] = []
-        index_by_basekey: dict[str, int] = {}
-        for _score, end, result in self._iter_matches(
+        # basekey -> (end, position in priority order, result)
+        best: dict[str, tuple[int, int, dict]] = {}
+        for order, (_score, end, result) in enumerate(self._iter_matches(
                 text, noprefix=noprefix, allow_no_year=allow_no_year,
                 nocharsetfilter=nocharsetfilter, noseparatorfilter=noseparatorfilter,
-                noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter):
+                noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter)):
             p = result["pattern"]
             basekey = p.get("basekey", p.get("key", ""))
-            if basekey in index_by_basekey:
-                idx = index_by_basekey[basekey]
-                if end > results[idx][0]:
-                    results[idx] = (end, result)
-                continue
-            index_by_basekey[basekey] = len(results)
-            results.append((end, result))
-        return [result for _end, result in results]
+            if basekey not in best or end > best[basekey][0]:
+                best[basekey] = (end, order, result)
+        ranked = sorted(best.values(), key=lambda item: (-item[0], item[1]))
+        return [result for _end, _order, result in ranked]
 
     def parse(self, text: str, noprefix: bool = False, nocharsetfilter: bool = False,
               noseparatorfilter: bool = False, noyearformatfilter: bool = False,
