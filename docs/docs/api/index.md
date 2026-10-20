@@ -22,7 +22,7 @@ qddate.__version__
 | [`DateParser`](/api/dateparser) | Constructs and indexes the pattern catalog |
 | [`DateParser.parse`](/api/parse) | String → `datetime.datetime` or `None` |
 | [`DateParser.match`](/api/match) | String → `{values, pattern}` or `None` |
-| [`DateParser.match_all`](/api/dateparser#methods) | String → every matching `{values, pattern}`, highest priority first |
+| [`DateParser.match_all`](/api/dateparser#methods) | String → every matching `{values, pattern}`, best first |
 | [`DateParser.match_typed`](/api/dateparser#datematch) | String → `DateMatch` or `None` |
 | [`DateParser.parse_many`](/api/dateparser#methods) | Iterable of strings → iterator of `datetime.datetime` or `None` |
 | [`DateParser.parse_relative`](/api/dateparser#relative-date-parsing) | `today`, `3 days ago`, `через 5 дней` → `datetime.datetime` or `None` |

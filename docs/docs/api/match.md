@@ -55,10 +55,14 @@ dict(result["values"])     # {'day': '01', 'month': '12', 'year': '2009'}
 Candidates with a month outside 1–12, a day outside 1–31, an hour above 23, or a
 minute or second above 59 are skipped; the next candidate pattern is tried.
 
+Among the remaining candidates, the one that consumes the most input wins, so
+`14 Avril 1995 20:16:12` keeps its time; the internal priority only breaks ties
+between matches of the same length.
+
 ## Related methods
 
-- `match_all(text, ...)` returns every matching pattern, highest priority first,
-  so you can spot ambiguous dates such as `01/02/2020` (day-first and
+- `match_all(text, ...)` returns every matching pattern, ranked the way
+  `match()` picks (longest match first, then priority), so you can spot ambiguous dates such as `01/02/2020` (day-first and
   month-first).
 - `match_typed(text, ...)` returns the best match as a `DateMatch` with the
   datetime already built. See [DateParser](/api/dateparser#datematch).

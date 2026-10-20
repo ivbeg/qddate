@@ -73,6 +73,31 @@ word `в` ("at"); the word SHALL NOT be accepted after a date in another languag
 
 ---
 
+### Requirement: Longest match wins
+
+Patterns are not anchored at the end of the input, so several candidates can
+match different lengths of it. `match()` SHALL return the candidate that
+consumes the most input, not counting trailing whitespace; the internal
+priority SHALL only break ties between candidates of equal length, and equal
+priorities SHALL be broken by pattern generation order, so the result does not
+depend on which filter produced the candidates. A trailing-text (`:t_right`)
+variant SHALL NOT count the text after the date as consumed.
+
+#### Scenario: Time is not dropped for a shorter date-only match
+- **WHEN** `parse("14 Avril 1995 20:16:12")` is called
+- **THEN** the result SHALL equal `datetime.datetime(1995, 4, 14, 20, 16, 12)`
+
+#### Scenario: Seconds are not dropped for an HH:MM match
+- **WHEN** `parse("22 August 2005 08:47:19")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2005, 8, 22, 8, 47, 19)`
+
+#### Scenario: Clean date matches the plain variant
+- **WHEN** `match("25 Jan 1936")` is called
+- **THEN** the pattern key SHALL be `dt:date:date_eng1_short`, not its
+  `:t_right` variant
+
+---
+
 ### Requirement: Date component validation
 
 The parser SHALL reject any match whose month is outside `1..12`, whose day is
@@ -399,10 +424,11 @@ remain unchanged.
 
 ### Requirement: Ambiguity reporting
 
-`match_all()` SHALL return every matching pattern for an input, ordered by
-descending internal priority, so that callers can detect dates that are valid
-under more than one interpretation. The first entry SHALL be the pattern
-`match()` returns.
+`match_all()` SHALL return every matching pattern for an input, one per base
+pattern (its variant consuming the most input), ordered the way `match()`
+picks: most input consumed first, then descending internal priority, so that
+callers can detect dates that are valid under more than one interpretation.
+The first entry SHALL be the pattern `match()` returns.
 
 #### Scenario: Ambiguous numeric date
 - **WHEN** `match_all("01/02/2020")` is called

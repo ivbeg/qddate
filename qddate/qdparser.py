@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Iterator, Optional, Union
 from typing import Optional as TOptional
 
-from pyparsing import Literal, Regex, Word, lineStart, nums, one_of, restOfLine
+from pyparsing import Literal, Regex, Word, lineStart, nums, one_of
 from pyparsing import Optional as PpOptional
 
 # Enable packrat parsing for better performance
@@ -531,6 +531,8 @@ class DateParser:
         self._next_year_refresh = time.monotonic() + self._year_refresh_interval
         if generate:
             self.__generate(base_only)
+        # Generation order; breaks priority ties in ``_match_candidates``.
+        self._pattern_rank = {p["key"]: i for i, p in enumerate(self.patterns)}
         self._build_length_index()
         self._build_separator_index()
         self._build_year_format_index()
@@ -680,13 +682,15 @@ class DateParser:
 
         if not base_only:
             for pat in base:
-                # Right
+                # Right: the date followed by any text. The trailing text is
+                # left unconsumed (scan_string accepts a prefix match), so the
+                # match end marks where the date stops and match() can compare
+                # it with the other candidates'.
                 data = {**pat}
                 data["key"] += ":t_right"
                 data["pattern"] = (
                     lineStart + data["pattern"] +
-                    PpOptional(one_of([",", "|", ":", ")"])).suppress() +
-                    restOfLine.suppress())
+                    PpOptional(one_of([",", "|", ":", ")"])).suppress())
                 data["length"] = {
                     "min": data["length"]["min"] + 1,
                     "max": data["length"]["max"] + 90,
@@ -1387,10 +1391,13 @@ class DateParser:
             if _pattern_language(pattern) is not None:
                 score += 20
 
-        # Boost if length is exact match (more likely to be correct)
+        # Boost if length is exact match (more likely to be correct). Not for
+        # ":t_right" variants: their bounds include the trailing text, so the
+        # input length says nothing about them, and the bonus let them outrank
+        # the plain variant that matches the same text.
         length_min = pattern.get("length", {}).get("min", 0)
         length_max = pattern.get("length", {}).get("max", 0)
-        if length_min <= n <= length_max:
+        if length_min <= n <= length_max and not key.endswith(":t_right"):
             if n == length_min or n == length_max:
                 score += 10
             else:
@@ -1410,7 +1417,8 @@ class DateParser:
                       noseparatorfilter=False, noyearformatfilter=False,
                       nolanguagefilter=False):
         """Yield ``(priority, end, result)`` for every candidate pattern matching
-        ``text`` at position 0, highest priority first.
+        ``text`` at position 0, highest priority first. ``end`` is where the
+        match stops, not counting trailing whitespace.
 
         Shared engine behind :meth:`match` and :meth:`match_all`. Components are
         sanity-checked (month/day/hour/minute/second ranges) before yielding.
@@ -1458,10 +1466,13 @@ class DateParser:
             return
         n = len(text)
 
-        # Sort patterns by priority (try most likely patterns first)
+        # Sort patterns by priority (try most likely patterns first). Ties
+        # keep the generation order: the two filters return candidates in
+        # different orders, and both must pick the same pattern.
+        rank = self._pattern_rank
         scored = sorted(
             ((self._calculate_pattern_priority(p, text), p) for p in pats),
-            key=lambda item: item[0], reverse=True)
+            key=lambda item: (-item[0], rank.get(item[1]["key"], len(rank))))
 
         for _score, p in scored:
             # Cache dictionary lookups
@@ -1483,6 +1494,10 @@ class DateParser:
                 continue
             if not _values_in_range(r.as_dict()):
                 continue
+            # An optional element that matches nothing still skips the
+            # whitespace before it; that whitespace is not part of the date.
+            while end > 0 and text[end - 1].isspace():
+                end -= 1
             yield _score, end, {"values": r, "pattern": p}
 
     def match(self, text: str, noprefix: bool = False, allow_no_year: bool = True, nocharsetfilter: bool = False,
@@ -1529,19 +1544,23 @@ class DateParser:
                 DeprecationWarning, stacklevel=2,
             )
             allow_no_year = noyear
-        # Among equally-prioritized matches prefer the one consuming the most
-        # input (e.g. HH:MM:SS over HH:MM). Iteration is priority-sorted, so we
-        # stop as soon as the priority drops below the current best.
+        # The match consuming the most input wins (a date with its time over
+        # the bare date, HH:MM:SS over HH:MM); priority only breaks ties.
+        # Patterns are not anchored at the end, so without this a partial
+        # match with a length bonus beat a complete one. Candidates come in
+        # priority order: keep the first of each length and stop once one
+        # covers the whole text.
+        n = len(text.rstrip())
         best = None
-        for score, end, result in self._iter_matches(
+        for _score, end, result in self._iter_matches(
                 text, noprefix=noprefix, allow_no_year=allow_no_year,
                 nocharsetfilter=nocharsetfilter, noseparatorfilter=noseparatorfilter,
                 noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter):
-            if best is None or (score == best[0] and end > best[1]):
-                best = (score, end, result)
-            else:
-                break
-        return best[2] if best else None
+            if best is None or end > best[0]:
+                best = (end, result)
+                if end >= n:
+                    break
+        return best[1] if best else None
 
     def match_all(self, text: str, noprefix: bool = False, allow_no_year: bool = True,
                   nocharsetfilter: bool = False, noseparatorfilter: bool = False,
@@ -1554,7 +1573,8 @@ class DateParser:
         ambiguity: ``01/02/2020`` is valid as both D/M/Y and M/D/Y, and scraping
         callers often need to know that instead of silently getting one
         interpretation. Results are deduplicated by base pattern, keeping the
-        longest-consuming variant of each.
+        longest-consuming variant of each, and ordered the way :meth:`match`
+        picks: most input consumed first, then priority.
 
         Accepts the same filter flags as :meth:`match`. ``noyear=`` is the
         deprecated alias for ``allow_no_year=``.
@@ -1569,22 +1589,18 @@ class DateParser:
                 DeprecationWarning, stacklevel=2,
             )
             allow_no_year = noyear
-        results: list[tuple[int, dict]] = []
-        index_by_basekey: dict[str, int] = {}
-        for _score, end, result in self._iter_matches(
+        # basekey -> (end, position in priority order, result)
+        best: dict[str, tuple[int, int, dict]] = {}
+        for order, (_score, end, result) in enumerate(self._iter_matches(
                 text, noprefix=noprefix, allow_no_year=allow_no_year,
                 nocharsetfilter=nocharsetfilter, noseparatorfilter=noseparatorfilter,
-                noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter):
+                noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter)):
             p = result["pattern"]
             basekey = p.get("basekey", p.get("key", ""))
-            if basekey in index_by_basekey:
-                idx = index_by_basekey[basekey]
-                if end > results[idx][0]:
-                    results[idx] = (end, result)
-                continue
-            index_by_basekey[basekey] = len(results)
-            results.append((end, result))
-        return [result for _end, result in results]
+            if basekey not in best or end > best[basekey][0]:
+                best[basekey] = (end, order, result)
+        ranked = sorted(best.values(), key=lambda item: (-item[0], item[1]))
+        return [result for _end, _order, result in ranked]
 
     def parse(self, text: str, noprefix: bool = False, nocharsetfilter: bool = False,
               noseparatorfilter: bool = False, noyearformatfilter: bool = False,

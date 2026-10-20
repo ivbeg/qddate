@@ -25,21 +25,21 @@ description: "Base date patterns for English (en)"
 | `dt:date:date_eng1` | Date with english month and possible dots | `%d.%b.%Y` | 10 | 20 |  |  |  | `15.March.2024`, `3.December.2023`, `28.July.2025` |
 | `dt:date:date_eng1x` | Date with english month and ,  | `%d.%b.%Y` | 10 | 20 |  |  |  | `15.March.2024`, `3.December.2023`, `28.July.2025` |
 | `dt:date:date_eng1_lc` | Date with english month lowcase | `%d.%b.%Y` | 10 | 20 |  |  |  | `15.march.2024`, `3.december.2023`, `28.july.2025` |
-| `dt:date:date_eng1_short` | Date with english month short | `%d.%b.%Y` | 10 | 11 |  |  |  | `15.mar.2024`, `3.dec.2023`, `28.jul.2025` |
+| `dt:date:date_eng1_short` | Date with english month short | `%d.%b.%Y` | 10 | 12 |  |  |  | `15.mar.2024`, `3.dec.2023`, `28.jul.2025` |
 | `dt:date:date_eng2` | Date with english month 2 | `%b %d, %Y` | 10 | 22 |  |  |  | `March 15, 2024`, `December 3, 2023`, `July 28, 2025` |
 | `dt:date:date_eng2_lc` | Date with english month 2 lowcase | `%b %d, %Y` | 10 | 22 |  |  |  | `march 15, 2024`, `december 3, 2023`, `july 28, 2025` |
-| `dt:date:date_eng2_short` | Date with english month 2 short | `%b %d, %Y` | 10 | 10 |  |  |  | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
+| `dt:date:date_eng2_short` | Date with english month 2 short | `%b %d, %Y` | 10 | 12 |  |  |  | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
 | `dt:date:date_eng3` | Date with english month full lowcase | `%b %d, %Y` | 10 | 20 |  |  | 2 | `march 15, 2024`, `december 3, 2023`, `july 28, 2025` |
 | `dt:date:date_eng3_nolc` | Date with english month full | `%b %d, %Y` | 10 | 20 |  |  | 2 | `March 15, 2024`, `December 3, 2023`, `July 28, 2025` |
 | `dt:date:date_eng4_short` | Date with english month short with dash | `%d-%b-%y` | 6 | 9 | Yes |  |  | `15-mar-24`, `3-dec-23`, `28-jul-25` |
 | `dt:date:noyear_1` | Datetime string without year | `%d.%m` | 5 | 5 |  | Yes |  | `15.03`, `3.12`, `28.07` |
 | `dt:date:date_4_point` | Datetime string | `%d.%m.%y` | 6 | 9 | Yes |  |  | `15.03.24`, `3.12.23`, `28.07.25` |
-| `dt:date:weekday_eng` | Date with english month and weekday | `%d %m %Y` | 17 | 27 |  |  | 1 | `Monday, 15 March 2024`, `Monday, 3 December 2023`, `Monday, 28 July 2025` |
-| `dt:date:weekday_eng_lc` | Date with english month and weekday | `%d %m %Y` | 17 | 27 |  |  | 1 | `Monday, 15 March 2024`, `Monday, 3 December 2023`, `Monday, 28 July 2025` |
-| `dt:date:weekday_eng_wshort` | Date with english month and weekday | `%d %m %Y` | 16 | 27 |  |  | 1 | `Monday, 15 March 2024`, `Monday, 3 December 2023`, `Monday, 28 July 2025` |
-| `dt:date:weekday_eng_mshort_wshort` | Date with short english month and short weekday | `%d %m %Y` | 15 | 15 |  |  | 1 | `mon, 15 mar 2024`, `mon, 3 dec 2023`, `mon, 28 jul 2025` |
+| `dt:date:weekday_eng` | Date with english month and weekday | `%d %m %Y` | 17 | 29 |  |  | 1 | `Monday, 15 March 2024`, `Monday, 3 December 2023`, `Monday, 28 July 2025` |
+| `dt:date:weekday_eng_lc` | Date with english month and weekday | `%d %m %Y` | 17 | 29 |  |  | 1 | `Monday, 15 March 2024`, `Monday, 3 December 2023`, `Monday, 28 July 2025` |
+| `dt:date:weekday_eng_wshort` | Date with english month and weekday | `%d %m %Y` | 14 | 27 |  |  | 1 | `Monday, 15 March 2024`, `Monday, 3 December 2023`, `Monday, 28 July 2025` |
+| `dt:date:weekday_eng_mshort_wshort` | Date with short english month and short weekday | `%d %m %Y` | 14 | 15 |  |  | 1 | `mon, 15 mar 2024`, `mon, 3 dec 2023`, `mon, 28 jul 2025` |
 | `dt:date:weekday_eng_iso` | Date with english weekday and iso date | `%d/%m/%Y` | 13 | 25 |  |  | 1 | `15/03/2024`, `3/12/2023`, `28/7/2025` |
-| `dt:date:weekday_short_eng_iso` | Date with english short weekday and iso date | `%d/%m/%Y` | 13 | 18 |  |  | 1 | `15/03/2024`, `3/12/2023`, `28/7/2025` |
+| `dt:date:weekday_short_eng_iso` | Date with english short weekday and iso date | `%d/%m/%Y` | 12 | 18 |  |  | 1 | `15/03/2024`, `3/12/2023`, `28/7/2025` |
 | `dt:date:weekday_eng_mixed` | Date with english full weekday and short month | `%d %m %Y` | 13 | 27 |  |  | 1 | `mon, 15 mar 2024`, `mon, 3 dec 2023`, `mon, 28 jul 2025` |
 | `dt:date:date_eng_abbrev1` | Date with abbreviated English month (day first) | `%d %b %Y` | 9 | 13 |  |  | 1 | `15 mar 2024`, `3 dec 2023`, `28 jul 2025` |
 | `dt:date:date_eng_abbrev2` | Date with abbreviated English month (month first) | `%b %d, %Y` | 9 | 15 |  |  | 1 | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |

@@ -78,9 +78,12 @@ the others one at a time.
 
 ## Filter vs. `match_all()`
 
-`match()` returns the highest-priority match; it stops scanning as soon as
-the priority drops below the current best. `match_all()` keeps going and
-returns every distinct match. Both methods go through the same filters.
+`match()` returns the match that consumes the most input (a date with its
+time beats the bare date); among matches of the same length the
+highest-priority one wins. It tries candidates in priority order and stops
+as soon as one covers the whole text. `match_all()` keeps going and returns
+every distinct match, ranked the same way. Both methods go through the same
+filters.
 
 If you need to know **whether** an input has more than one plausible
 interpretation (e.g. `01/02/2020` could be D/M/Y or M/D/Y), use

@@ -61,12 +61,42 @@ All notable changes to this project are tracked here.
   so it mapped only `00` to 2000 and `05` to 1905. `pivot_year` takes a
   4-digit year such as `1968` or `None`; other non-integers (`"1968"`,
   `1968.0`) raise too.
+- A date followed by a time keeps the time. `match()` now picks the
+  candidate that consumes the most input and uses the priority score only to
+  break ties. Before, a pattern matching just the date outranked its time
+  variant on the exact-length bonus: `14 Avril 1995 20:16:12` and
+  `29 de Agosto de 1925 07:30` parsed as midnight, and
+  `9 Июня 1927 15:18:03` / `22 August 2005 08:47:19` lost their seconds.
+  On `benchmarks/test_data.csv` 141 rows gain their time. On it and
+  `benchmarks/webpage_test_data.csv` no row loses a match or a time, and
+  no date changes.
+- Length limits narrower than their grammar are widened, so these parse:
+  `Mon 1/1/2020` (`weekday_short_eng_iso`), `Sábado 1 Maio 2020`
+  (`pt_weekday`, `pt_weekday_lc`). Also widened: `date_eng1_short`,
+  `date_eng2_short`, `weekday_eng(_lc)`, `weekday_eng_wshort`,
+  `weekday_eng_mshort_wshort`, `de_base(_lc)`, `fr_base(_lc)`,
+  `nl_base(_lc)`, `pt_weekday_short(_lc)`, `date_rus2`, `date_rus3`,
+  `date_rus_lc2`, `rus_rare_2`, `rus_rare_6`.
+
+**Behaviour changes**
+- `:t_right` variants no longer consume the text after the date, and get no
+  exact-length bonus (their limits include that text). A clean date now
+  matches the plain variant (`25 Jan 1936` gives `dt:date:date_eng1_short`,
+  not `...:t_right`). Equal-priority candidates are tried in pattern
+  generation order, so both filters pick the same one. With the widened
+  limits, the matched pattern key changes on 1,288 rows of
+  `benchmarks/test_data.csv` and 9 rows of
+  `benchmarks/webpage_test_data.csv` with the same datetime; the base
+  pattern now equals the one the generator used on 8,357 of 10,383 rows
+  (was 8,120).
+- `match_all()` ranks results the way `match()` picks, most input consumed
+  first, so its first result is the `match()` result.
 
 **Tests**
 - `tests/test_pattern_lengths.py` renders every pattern's grammar and fails
-  when a declared length limit rejects a rendered date. Patterns whose
-  limits are still too narrow are listed there; widening them changes which
-  pattern wins for other inputs and needs a scoring change first.
+  when a declared length limit rejects a rendered date. Every pattern
+  passes it now except `date_5`/`date_6`, whose grammar also accepts
+  space-separated digit groups.
 
 **Benchmarks**
 - `benchmarks/generate_test_data.py` uses a fixed seed and no longer emits
@@ -105,6 +135,8 @@ All notable changes to this project are tracked here.
   pipeline page describes the fingerprint default and the real level order.
 - `CHANGELOG.md`: 1.0.12 is listed before 1.0.11, and the stray "Unreleased"
   section that held 1.0.11 changes is merged into 1.0.11.
+- The date-parsing spec states that the longest match wins and how
+  `match_all()` is ordered; the `match()` and filter pipeline docs say so too.
 
 ## 1.0.17 (2026-10-17)
 

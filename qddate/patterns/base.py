@@ -342,7 +342,7 @@ PATTERNS_EN = [
         Optional(".").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 10,
-            "max": 11
+            "max": 12
         },
         "format":
         "%d.%b.%Y",
@@ -393,7 +393,7 @@ PATTERNS_EN = [
         Optional(",").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 10,
-            "max": 10
+            "max": 12
         },
         "format":
         "%b %d, %Y",
@@ -492,7 +492,7 @@ PATTERNS_EN = [
         Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 17,
-            "max": 27
+            "max": 29
         },
         "format":
         "%d %m %Y",
@@ -513,7 +513,7 @@ PATTERNS_EN = [
         Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 17,
-            "max": 27
+            "max": 29
         },
         "format":
         "%d %m %Y",
@@ -533,7 +533,7 @@ PATTERNS_EN = [
         Optional(Literal(",")).suppress() +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 16,
+            "min": 14,
             "max": 27
         },
         "format":
@@ -552,7 +552,7 @@ PATTERNS_EN = [
         BASE_PATTERNS_EN["pat:eng:months:short"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 15,
+            "min": 14,
             "max": 15
         },
         "format":
@@ -586,7 +586,7 @@ PATTERNS_EN = [
         BASE_PATTERNS_EN["pat:eng:weekdays:short"].suppress() +
         Optional(",").suppress() + BASE_DATE_PATTERNS["pat:date:d/m/yyyy"],
         "length": {
-            "min": 13,
+            "min": 12,
             "max": 18
         },
         "format":

@@ -11,8 +11,8 @@ description: "Base date patterns for Dutch (nl)"
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
-| `dt:date:nl_base` | Base Dutch date with month name | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 Maart 2024`, `3 December 2023`, `28 Juli 2025` |
-| `dt:date:nl_base_lc` | Base Dutch date with month name lowercase | `%d %m %Y` | 11 | 22 |  |  | 1 | `15 maart 2024`, `3 december 2023`, `28 juli 2025` |
+| `dt:date:nl_base` | Base Dutch date with month name | `%d %m %Y` | 10 | 22 |  |  | 1 | `15 Maart 2024`, `3 December 2023`, `28 Juli 2025` |
+| `dt:date:nl_base_lc` | Base Dutch date with month name lowercase | `%d %m %Y` | 10 | 22 |  |  | 1 | `15 maart 2024`, `3 december 2023`, `28 juli 2025` |
 | `dt:date:nl_weekday` | Dutch date with weekday | `%d %m %Y` | 15 | 32 |  |  | 1 | `Maandag, 15 Maart 2024`, `Maandag, 3 December 2023`, `Maandag, 28 Juli 2025` |
 | `dt:date:nl_weekday_lc` | Dutch date with weekday lowercase | `%d %m %Y` | 15 | 32 |  |  | 1 | `Maandag, 15 maart 2024`, `Maandag, 3 december 2023`, `Maandag, 28 juli 2025` |
 | `dt:date:nl_short` | Dutch date with abbreviated month | `%d %m %Y` | 9 | 18 |  |  | 1 | `15 Mrt 2024`, `3 Dec 2023`, `28 Jul 2025` |

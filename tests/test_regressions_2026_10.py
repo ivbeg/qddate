@@ -16,6 +16,12 @@
   ``None``; it also swallowed a trailing time without naming its parts, so
   ``4 Сентября 2020 в 04:06:33`` parsed to midnight.
 - ``DateParser(pivot_year=True)`` was accepted and meant pivot year 1.
+- ``match()`` took the highest priority and only then the longest match, so a
+  pattern matching just the date beat its time variant on the exact-length
+  bonus: ``14 Avril 1995 20:16:12`` parsed without its time and
+  ``9 Июня 1927 15:18:03`` without its seconds. Length bounds narrower than
+  the grammar (``Mon 1/1/2020``, ``Sábado 1 Maio 2020``) could not be widened
+  before.
 """
 import datetime
 import itertools
@@ -236,3 +242,67 @@ def test_pivot_year_rejects_bool_and_non_integers(value):
 def test_pivot_year_accepts_integers():
     assert DateParser(pivot_year=1968).parse("05/16/20") == datetime.datetime(2020, 5, 16)
     assert DateParser(pivot_year=None).parse("05/16/99") == datetime.datetime(99, 5, 16)
+
+
+# ---------------------------------------------------------------------------
+# Longest match wins; widened length limits
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text,expected", [
+    ("2 Января 1981 21:04:08", datetime.datetime(1981, 1, 2, 21, 4, 8)),
+    ("2 Января 1981 в 21:04", datetime.datetime(1981, 1, 2, 21, 4)),
+    ("9 Июня 1927 15:18:03", datetime.datetime(1927, 6, 9, 15, 18, 3)),
+    ("29 Мая 2005 07:36:05", datetime.datetime(2005, 5, 29, 7, 36, 5)),
+    ("22 August 2005 08:47:19", datetime.datetime(2005, 8, 22, 8, 47, 19)),
+    ("14 August 1995 23:54", datetime.datetime(1995, 8, 14, 23, 54)),
+    ("April 25, 1953 08:02", datetime.datetime(1953, 4, 25, 8, 2)),
+    ("May 2, 1915 09:25:57", datetime.datetime(1915, 5, 2, 9, 25, 57)),
+    ("14 Avril 1995 20:16:12", datetime.datetime(1995, 4, 14, 20, 16, 12)),
+    ("26 Dezember 1964 14:37", datetime.datetime(1964, 12, 26, 14, 37)),
+    ("29 de Agosto de 1925 07:30", datetime.datetime(1925, 8, 29, 7, 30)),
+    ("12.05.2020 10:30 Moscow", datetime.datetime(2020, 5, 12, 10, 30)),
+])
+def test_time_after_date_is_kept(parser, legacy_parser, text, expected):
+    """The candidate consuming the most input wins over the length bonus."""
+    assert parser.parse(text) == expected
+    assert legacy_parser.parse(text) == expected
+
+
+@pytest.mark.parametrize("text,expected,key", [
+    # Rejected by the old length bounds; no other pattern matched.
+    ("Mon 1/1/2020", datetime.datetime(2020, 1, 1), "dt:date:weekday_short_eng_iso"),
+    ("Sábado 1 Maio 2020", datetime.datetime(2020, 5, 1), "dt:date:pt_weekday"),
+    ("sábado 1 maio 2020", datetime.datetime(2020, 5, 1), "dt:date:pt_weekday_lc"),
+    # Parsed before through another pattern; now their own pattern takes them.
+    ("1.5.2005 г.", datetime.datetime(2005, 5, 1), "dt:date:date_rus3"),
+    ("9 Mei 1998", datetime.datetime(1998, 5, 9), "dt:date:nl_base"),
+    ("1 Mai 1998", datetime.datetime(1998, 5, 1), "dt:date:fr_base"),
+])
+def test_widened_length_bounds(parser, text, expected, key):
+    res = parser.match(text)
+    assert res is not None
+    assert res["pattern"]["key"] == key
+    assert parser.parse(text) == expected
+
+
+@pytest.mark.parametrize("text,key", [
+    ("25 Jan 1936", "dt:date:date_eng1_short"),
+    ("Wednesday, 30 September 2020", "dt:date:weekday_eng"),
+    ("Sáb, 15 Setembro 2020", "dt:date:pt_weekday_short"),
+])
+def test_plain_variant_preferred_over_t_right(parser, text, key):
+    """A ``:t_right`` variant matching the same text as the plain one does not
+    win on the length bonus: its bounds include the trailing text."""
+    assert parser.match(text)["pattern"]["key"] == key
+
+
+@pytest.mark.parametrize("text", [
+    "2 Января 1981 21:04:08",
+    "14 Avril 1995 20:16:12",
+    "01/02/2020",
+    "1.5.2005 г.",
+    "12.05.2020 10:30 Moscow",
+])
+def test_match_all_ranks_like_match(parser, text):
+    results = parser.match_all(text)
+    assert results[0]["pattern"]["key"] == parser.match(text)["pattern"]["key"]

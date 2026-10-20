@@ -15,6 +15,11 @@
 > The 81 Russian strings like `4 Сентября в 04:06:33`, which matched without a
 > year and did not parse on 2026-10-20, now parse with the current year
 > (`dt:date:date_rus_noyear`).
+>
+> Since `match()` prefers the candidate consuming the most input, the same
+> run gives the same counts and misses, and 141 strings that parsed without
+> their time or seconds keep them (`14 Avril 1995 20:16:12`,
+> `22 August 2005 08:47:19`).
 
 ## Summary
 

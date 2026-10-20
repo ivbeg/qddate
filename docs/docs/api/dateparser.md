@@ -57,7 +57,7 @@ The parser uses exactly those patterns. Each item is a dict with at least
 |--------|---------|-------|
 | [`parse(text, ...)`](/api/parse) | `datetime` or `None` | Best match as a datetime |
 | [`match(text, ...)`](/api/match) | `dict` or `None` | Best match as `{"values", "pattern"}` |
-| `match_all(text, ...)` | `list[dict]` | Every matching pattern, highest priority first; the first item is what `match()` returns |
+| `match_all(text, ...)` | `list[dict]` | Every matching pattern, longest match first, then priority; the first item is what `match()` returns |
 | `match_typed(text, **kwargs)` | `DateMatch` or `None` | Best match as a typed object (below) |
 | `parse_many(texts, **kwargs)` | iterator of `datetime` or `None` | One `parse()` result per input, in order |
 | `parse_relative(text, reference=None)` | `datetime` or `None` | Relative phrases (below) |

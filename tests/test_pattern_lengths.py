@@ -29,38 +29,13 @@ _EXEMPT = frozenset({
     "dt:date:date_6",
 })
 
-# Bounds known to be narrower than the grammar. Widening them changes which
-# pattern wins elsewhere: ``_calculate_pattern_priority`` gives a bonus when the
-# input length equals ``min`` or ``max``, and a base pattern whose ``max`` covers
-# a longer input wins with a partial match (``22 Января 2003 14:15:01`` parsed
-# without its time when ``date_rus2.max`` was raised to 23). A sibling pattern
-# or a ``:t_right`` variant matches some of the inputs these bounds reject;
-# others (``Sábado 1 Maio 2020``, ``Mon 1/1/2020``) do not parse.
-# Remove an entry once its bounds are fixed; the test fails on stale entries.
-_KNOWN_NARROW = frozenset({
-    "dt:date:date_eng1_short",
-    "dt:date:date_eng2_short",
-    "dt:date:weekday_eng",
-    "dt:date:weekday_eng_lc",
-    "dt:date:weekday_eng_wshort",
-    "dt:date:weekday_eng_mshort_wshort",
-    "dt:date:weekday_short_eng_iso",
-    "dt:date:de_base",
-    "dt:date:de_base_lc",
-    "dt:date:fr_base",
-    "dt:date:fr_base_lc",
-    "dt:date:nl_base",
-    "dt:date:nl_base_lc",
-    "dt:date:pt_weekday",
-    "dt:date:pt_weekday_lc",
-    "dt:date:pt_weekday_short",
-    "dt:date:pt_weekday_short_lc",
-    "dt:date:date_rus2",
-    "dt:date:date_rus3",
-    "dt:date:date_rus_lc2",
-    "dt:date:rus_rare_2",
-    "dt:date:rus_rare_6",
-})
+# Bounds known to be narrower than the grammar, each with the reason it stays
+# narrow. Remove an entry once its bounds are fixed; the test fails on stale
+# entries. Widening a bound is safe since ``match()`` prefers the candidate
+# that consumes the most input: before, the length bonus in
+# ``_calculate_pattern_priority`` let a pattern whose widened ``max`` covered
+# ``22 Января 2003 14:15:01`` win with a partial match and drop the time.
+_KNOWN_NARROW = frozenset()
 
 _MAX_VARIANTS = 4096
 

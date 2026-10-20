@@ -112,8 +112,8 @@ PATTERNS_RU = [
         Optional(",").suppress() + Word(nums, exact=4).set_results_name("year") +
         Optional(BASE_PATTERNS_RU["pat:rus:years"]).suppress(),
         "length": {
-            "min": 13,
-            "max": 20
+            "min": 10,
+            "max": 23
         },
         "format":
         "%d %m %Y",
@@ -129,7 +129,7 @@ PATTERNS_RU = [
         BASE_DATE_PATTERNS["pat:date:d.m.yyyy"] +
         BASE_PATTERNS_RU["pat:rus:years"].suppress(),
         "length": {
-            "min": 14,
+            "min": 11,
             "max": 20
         },
         "format":
@@ -170,7 +170,7 @@ PATTERNS_RU = [
         Word(nums, exact=4).set_results_name("year") +
         Optional(BASE_PATTERNS_RU["pat:rus:years"]).suppress(),
         "length": {
-            "min": 13,
+            "min": 10,
             "max": 25
         },
         "format":
@@ -231,7 +231,7 @@ PATTERNS_RU = [
         BASE_PATTERNS_RU["pat:rus:months"].set_results_name("month") +
         Optional(".").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
-            "min": 11,
+            "min": 10,
             "max": 20
         },
         "format":
@@ -291,7 +291,7 @@ PATTERNS_RU = [
         Literal(",").suppress() + Word(nums, exact=4).set_results_name("year"),
         "length": {
             "min": 13,
-            "max": 22
+            "max": 30
         },
         "format":
         "%d %m %Y",
