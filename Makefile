@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build docs docs-serve docs-patterns clean
+.PHONY: clean-pyc clean-build lint docs docs-serve docs-patterns clean
 SHELL := /bin/bash
 
 help:
@@ -6,7 +6,7 @@ help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "clean-test - remove test and coverage artifacts"
-	@echo "lint - check style with flake8"
+	@echo "lint - check style with ruff"
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - build the Docusaurus documentation site"
 	@echo "docs-serve - serve the documentation site locally"
@@ -35,7 +35,7 @@ clean-test:
 	rm -fr htmlcov/
 
 lint:
-	flake8 qddate tests --config=./flake8
+	ruff check qddate tests scripts benchmarks
 
 coverage:
 	pytest --cov=qddate --cov-report=term-missing --cov-report=html

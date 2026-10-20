@@ -102,14 +102,14 @@ _WORD_RE = re.compile(r"[^\W\d_]+")
 # tests/test_regressions_2026_10.py). ``_detect_language`` narrows to the first
 # claiming language; when its patterns find nothing, ``_iter_matches`` tries
 # the patterns of every language.
-_CYRILLIC_DETECTION = (
+_CYRILLIC_DETECTION: tuple[tuple[str, frozenset[str]], ...] = (
     ("uk", _UKRAINIAN_MONTHS),
     ("ru", _RUSSIAN_MONTHS),
     ("bg", _BULGARIAN_MONTHS),
 )
 # Romanian stays after the other Romance languages so an unrestricted parser
 # does not relabel ambiguous "mai"; Dutch is listed before German as before.
-_LATIN_DETECTION = (
+_LATIN_DETECTION: tuple[tuple[str, frozenset[str]], ...] = (
     ("fr", _FRENCH_MONTHS),
     ("es", _SPANISH_MONTHS),
     ("it", _ITALIAN_MONTHS),

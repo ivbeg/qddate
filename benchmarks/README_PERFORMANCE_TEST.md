@@ -1,12 +1,12 @@
 # Comprehensive Performance Test Suite
 
-This directory contains a comprehensive performance test suite for the qddate library that uses all test cases from `test_data.csv` (~10,360 cases).
+This directory contains a comprehensive performance test suite for the qddate library that uses all test cases from `test_data.csv` (~10,380 cases).
 
 ## Overview
 
 The `comprehensive_performance_test.py` script provides extensive performance testing capabilities:
 
-- **Full Dataset Testing**: Processes all ~10,360 test cases from CSV
+- **Full Dataset Testing**: Processes all ~10,380 test cases from CSV
 - **Comprehensive Metrics**: Tracks timing (mean, median, percentiles), throughput, success rates, memory usage
 - **Pattern Analysis**: Performance breakdown by pattern_key
 - **Regression Detection**: Compare against baselines and detect performance degradation
@@ -14,6 +14,13 @@ The `comprehensive_performance_test.py` script provides extensive performance te
 - **Multiple Report Formats**: JSON, CSV, HTML, text summaries
 
 ## Usage
+
+Install the benchmark extra first. It brings the comparison libraries and
+`tqdm` for progress bars; `memory_profiler` is optional:
+
+```bash
+pip install -e ".[bench]"
+```
 
 ### Basic Usage
 

@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
 import os
+import sys
+
 # Ensure we use the local qddate, not an installed version
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-import importlib
 import datetime
-from pprint import pprint
-import pyparsing
 from timeit import timeit
 
 try:
@@ -216,8 +214,8 @@ def _run_qddate_all_filters_off():
     start = datetime.datetime.now()
     ind = DateParser()
     for text in TESTS:
-        dates.append(ind.parse(text, noprefix=True, nocharsetfilter=True, 
-                              noseparatorfilter=True, noyearformatfilter=True, 
+        dates.append(ind.parse(text, noprefix=True, nocharsetfilter=True,
+                              noseparatorfilter=True, noyearformatfilter=True,
                               nolanguagefilter=True))
     fin = datetime.datetime.now() - start
     print('_run_qddate_all_filters_off elapsed: ' + str(fin))
@@ -226,6 +224,7 @@ def _run_qddate_all_filters_off():
 
 def compare():
     """Compare against dateparser"""
+    from qddate import DateParser
     for text in TESTS:
         ind = DateParser()
         d1 = ind.parse(text)
@@ -237,66 +236,66 @@ def compare():
 
 def run():
     NUM_PASS = 5
-    
+
     print('=' * 80)
     print('Pattern Filtering Performance Benchmark')
     print('=' * 80)
     print('Running %d passes for each configuration...' % NUM_PASS)
     print()
-    
+
     # Time with all filters enabled (default)
     print('Testing: All filters enabled (default)...')
     total_qd = datetime.timedelta()
     for _ in range(NUM_PASS):
         total_qd += _run_qddate()
     qd = total_qd.total_seconds() / NUM_PASS
-    
+
     # Time without prefix filtering
     print('Testing: No prefix filter...')
     total_qd_nopref = datetime.timedelta()
     for _ in range(NUM_PASS):
         total_qd_nopref += _run_qddate_nopref()
     qd_nopref = total_qd_nopref.total_seconds() / NUM_PASS
-    
+
     # Time without character set filtering
     print('Testing: No character set filter...')
     total_qd_nocharset = datetime.timedelta()
     for _ in range(NUM_PASS):
         total_qd_nocharset += _run_qddate_nocharset()
     qd_nocharset = total_qd_nocharset.total_seconds() / NUM_PASS
-    
+
     # Time without separator filtering
     print('Testing: No separator filter...')
     total_qd_noseparator = datetime.timedelta()
     for _ in range(NUM_PASS):
         total_qd_noseparator += _run_qddate_noseparator()
     qd_noseparator = total_qd_noseparator.total_seconds() / NUM_PASS
-    
+
     # Time without year format filtering
     print('Testing: No year format filter...')
     total_qd_noyearformat = datetime.timedelta()
     for _ in range(NUM_PASS):
         total_qd_noyearformat += _run_qddate_noyearformat()
     qd_noyearformat = total_qd_noyearformat.total_seconds() / NUM_PASS
-    
+
     # Time without language filtering
     print('Testing: No language filter...')
     total_qd_nolanguage = datetime.timedelta()
     for _ in range(NUM_PASS):
         total_qd_nolanguage += _run_qddate_nolanguage()
     qd_nolanguage = total_qd_nolanguage.total_seconds() / NUM_PASS
-    
+
     # Time with all filters disabled (baseline)
     print('Testing: All filters disabled (baseline)...')
     total_qd_all_off = datetime.timedelta()
     for _ in range(NUM_PASS):
         total_qd_all_off += _run_qddate_all_filters_off()
     qd_all_off = total_qd_all_off.total_seconds() / NUM_PASS
-    
+
     # Time dateparser (for comparison)
     print('Testing: dateparser library...')
     dt = timeit("_run_dateparser()", setup="from __main__ import _run_dateparser", number=NUM_PASS)
-    
+
     # Time dateutil (for comparison)
     if DATEUTIL_AVAILABLE:
         print('Testing: dateutil library...')
@@ -304,7 +303,7 @@ def run():
     else:
         dt_dateutil = None
         print('Testing: dateutil library... (not available)')
-    
+
     # Time arrow (for comparison)
     if ARROW_AVAILABLE:
         print('Testing: arrow library...')
@@ -312,7 +311,7 @@ def run():
     else:
         dt_arrow = None
         print('Testing: arrow library... (not available)')
-    
+
     # Time pendulum (for comparison)
     if PENDULUM_AVAILABLE:
         print('Testing: pendulum library...')
@@ -320,17 +319,17 @@ def run():
     else:
         dt_pendulum = None
         print('Testing: pendulum library... (not available)')
-    
+
     print()
     print('=' * 80)
     print('Performance Comparison Results')
     print('=' * 80)
     print()
-    
+
     # Comparison with external libraries
     print('External Library Comparison (sorted by performance):')
     print('-' * 80)
-    
+
     # Build list of libraries with their times
     libraries = [('qddate (all filters)', qd)]
     if dt_dateutil is not None:
@@ -340,14 +339,14 @@ def run():
     if dt_pendulum is not None:
         libraries.append(('pendulum', dt_pendulum))
     libraries.append(('dateparser', dt))
-    
+
     # Sort by time (fastest first)
     libraries.sort(key=lambda x: x[1] if x[1] is not None else float('inf'))
-    
+
     # Find qddate position for comparison
     qddate_time = qd
     fastest_time = libraries[0][1] if libraries else qd
-    
+
     for name, time_val in libraries:
         if time_val is None:
             continue
@@ -356,39 +355,39 @@ def run():
             # This library is faster than qddate
             speedup = qddate_time / time_val
             pct_faster = ((qddate_time - time_val) / qddate_time) * 100
-            print('  %-25s: %.6f sec (%.2fX FASTER than qddate, %.1f%% faster)' % 
+            print('  %-25s: %.6f sec (%.2fX FASTER than qddate, %.1f%% faster)' %
                   (name, time_val, speedup, pct_faster))
         elif time_val > qddate_time:
             # This library is slower than qddate
             speedup = time_val / qddate_time
             pct_slower = ((time_val - qddate_time) / qddate_time) * 100
-            print('  %-25s: %.6f sec (%.2fX SLOWER than qddate, %.1f%% slower)' % 
+            print('  %-25s: %.6f sec (%.2fX SLOWER than qddate, %.1f%% slower)' %
                   (name, time_val, speedup, pct_slower))
         else:
             # Same time (unlikely but handle it)
             print('  %-25s: %.6f sec (same as qddate)' % (name, time_val))
     print()
-    
+
     # Summary explanation
     print('Performance Summary:')
     print('-' * 80)
     faster_than_qddate = [lib for lib in libraries if lib[1] is not None and lib[1] < qddate_time]
     slower_than_qddate = [lib for lib in libraries if lib[1] is not None and lib[1] > qddate_time]
-    
+
     if faster_than_qddate:
         print('  Libraries FASTER than qddate:')
         for name, time_val in faster_than_qddate:
             speedup = qddate_time / time_val
-            print('    - %s: %.2fX faster (%.6f sec vs %.6f sec)' % 
+            print('    - %s: %.2fX faster (%.6f sec vs %.6f sec)' %
                   (name, speedup, time_val, qddate_time))
-    
+
     if slower_than_qddate:
         print('  Libraries SLOWER than qddate:')
         for name, time_val in slower_than_qddate:
             speedup = time_val / qddate_time
-            print('    - %s: %.2fX slower (%.6f sec vs %.6f sec)' % 
+            print('    - %s: %.2fX slower (%.6f sec vs %.6f sec)' %
                   (name, speedup, time_val, qddate_time))
-    
+
     print('  qddate performance: %.6f seconds' % qddate_time)
     if fastest_time and fastest_time < qddate_time:
         relative_speed = qddate_time / fastest_time
@@ -396,30 +395,30 @@ def run():
     elif fastest_time == qddate_time:
         print('  qddate is the fastest library!')
     print()
-    
+
     # Individual filter impact
     print('Individual Filter Impact (vs all filters enabled):')
     print('-' * 80)
-    
+
     def print_filter_comparison(name, time_without_filter, time_with_all_filters):
         if time_without_filter > time_with_all_filters:
             improvement = ((time_without_filter - time_with_all_filters) / time_without_filter) * 100
             speedup = time_without_filter / time_with_all_filters
-            print('  %-25s: %.6f sec (%.2f%% faster with filter, %.2fX speedup)' % 
+            print('  %-25s: %.6f sec (%.2f%% faster with filter, %.2fX speedup)' %
                   (name, time_without_filter, improvement, speedup))
         else:
             overhead = ((time_with_all_filters - time_without_filter) / time_with_all_filters) * 100
             slowdown = time_with_all_filters / time_without_filter
-            print('  %-25s: %.6f sec (%.2f%% overhead, %.2fX slower)' % 
+            print('  %-25s: %.6f sec (%.2f%% overhead, %.2fX slower)' %
                   (name, time_without_filter, overhead, slowdown))
-    
+
     print_filter_comparison('No prefix filter', qd_nopref, qd)
     print_filter_comparison('No charset filter', qd_nocharset, qd)
     print_filter_comparison('No separator filter', qd_noseparator, qd)
     print_filter_comparison('No year format filter', qd_noyearformat, qd)
     print_filter_comparison('No language filter', qd_nolanguage, qd)
     print()
-    
+
     # Overall impact
     print('Overall Filter Impact:')
     print('-' * 80)
@@ -436,7 +435,7 @@ def run():
         print('  All filters disabled:    %.6f sec' % qd_all_off)
         print('  Total overhead:          %.2f%% slower (%.2fX slowdown)' % (total_overhead, total_slowdown))
     print()
-    
+
     # Summary table
     print('Summary Table:')
     print('-' * 80)
@@ -450,13 +449,13 @@ def run():
     print('  No language filter               | %10.6f | %.2fX' % (qd_nolanguage, qd_all_off / qd_nolanguage))
     print('  All filters disabled (baseline)  | %10.6f | 1.00X' % qd_all_off)
     print()
-    
+
     # Library comparison table (sorted by time)
     print('Detailed Performance Comparison Table:')
     print('-' * 80)
     print('  Rank | Library              | Time (sec) | vs qddate        | Time difference')
     print('  ' + '-' * 76)
-    
+
     # Rebuild sorted list for table
     libs_for_table = [('qddate (all filters)', qd)]
     if dt_dateutil is not None:
@@ -467,7 +466,7 @@ def run():
         libs_for_table.append(('pendulum', dt_pendulum))
     libs_for_table.append(('dateparser', dt))
     libs_for_table.sort(key=lambda x: x[1] if x[1] is not None else float('inf'))
-    
+
     for rank, (name, time_val) in enumerate(libs_for_table, 1):
         if time_val is None:
             continue
@@ -478,18 +477,18 @@ def run():
             comparison = '%.2fX slower' % (time_val / qddate_time)
         else:
             comparison = 'same speed'
-        
+
         if time_diff > 0:
             diff_str = '+%.6f sec' % time_diff
         elif time_diff < 0:
             diff_str = '%.6f sec' % time_diff
         else:
             diff_str = '0.000000 sec'
-        
+
         marker = ' <-- qddate' if name == 'qddate (all filters)' else ''
-        print('  %4d | %-20s | %10.6f | %-15s | %s%s' % 
+        print('  %4d | %-20s | %10.6f | %-15s | %s%s' %
               (rank, name, time_val, comparison, diff_str, marker))
-    
+
     print('=' * 80)
     print()
     print('Note: Lower time is better. Comparisons show speed relative to qddate.')

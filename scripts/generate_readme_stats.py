@@ -5,8 +5,11 @@ Idempotent: running the script twice on a clean README produces no diff
 beyond the delimited block itself.
 
 The script reads `qddate.patterns.ALL_PATTERNS` and
-`qddate.patterns.SUPPORTED_LANGUAGES`, builds a small markdown fragment, and
-prints it. To update the README in place, run with `--write`.
+`qddate.patterns.SUPPORTED_LANGUAGES`, builds a small markdown fragment,
+replaces every delimited block in the README with it, and prints it.
+
+Run with `--check` to change nothing and exit 1 when any block is out of
+date; CI runs it this way.
 """
 
 from __future__ import annotations
@@ -85,16 +88,21 @@ def main() -> int:
     fragment = build_fragment()
     if args.check:
         text = args.readme.read_text()
-        needs_update = BEGIN not in text or END not in text
-        if not needs_update:
-            # Compare to current contents
-            current = re.search(
-                re.escape(BEGIN) + r".*?" + re.escape(END),
-                text,
-                re.DOTALL,
-            )
-            needs_update = current.group(0) != fragment
-        return 1 if needs_update else 0
+        blocks = re.findall(
+            re.escape(BEGIN) + r".*?" + re.escape(END),
+            text,
+            re.DOTALL,
+        )
+        stale = [block for block in blocks if block != fragment]
+        if blocks and not stale:
+            return 0
+        if not blocks:
+            print(f"{args.readme} has no {BEGIN} block.", file=sys.stderr)
+        for block in stale:
+            print(f"{args.readme} has an out-of-date stats block:\n{block}", file=sys.stderr)
+        print(f"Expected:\n{fragment}", file=sys.stderr)
+        print("Run `python scripts/generate_readme_stats.py` to update it.", file=sys.stderr)
+        return 1
 
     if update_readme(args.readme, fragment):
         print(f"Updated {args.readme}")
