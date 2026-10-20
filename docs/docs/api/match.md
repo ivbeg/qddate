@@ -17,7 +17,7 @@ parser.match(text) -> dict | None
 match(
     text,
     noprefix=False,
-    noyear=True,
+    allow_no_year=True,
     nocharsetfilter=False,
     noseparatorfilter=False,
     noyearformatfilter=False,
@@ -25,14 +25,17 @@ match(
 )
 ```
 
-Arguments match [`parse()`](/api/parse), plus:
+Arguments match [`parse()`](/api/parse):
 
 | Argument | Default | Meaning |
 |----------|---------|---------|
-| `noyear` | `True` | Include patterns that omit the year (current year is filled later by `parse()`) |
+| `allow_no_year` | `True` | Include patterns that omit the year (current year is filled later by `parse()`) |
 
-Set `noyear=False` to skip day-month-only patterns and reduce false positives on
-short numeric fragments.
+Set `allow_no_year=False` to skip day-month-only patterns and reduce false
+positives on short numeric fragments. The old name `noyear=` still works as a
+keyword and emits `DeprecationWarning`. Pass the options by keyword: the
+positional order differs from `parse()`. Each `no*` flag skips one level of the
+[filter pipeline](/api/filter-pipeline).
 
 ## Return value
 
@@ -49,8 +52,16 @@ result["pattern"]["key"]   # e.g. 'dt:date:date_2'
 dict(result["values"])     # {'day': '01', 'month': '12', 'year': '2009'}
 ```
 
-Month values outside 1–12 and day values outside 1–31 are skipped; the next
-candidate pattern is tried.
+Candidates with a month outside 1–12, a day outside 1–31, an hour above 23, or a
+minute or second above 59 are skipped; the next candidate pattern is tried.
+
+## Related methods
+
+- `match_all(text, ...)` returns every matching pattern, highest priority first,
+  so you can spot ambiguous dates such as `01/02/2020` (day-first and
+  month-first).
+- `match_typed(text, ...)` returns the best match as a `DateMatch` with the
+  datetime already built. See [DateParser](/api/dateparser#datematch).
 
 ## When to use it
 

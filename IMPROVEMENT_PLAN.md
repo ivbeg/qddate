@@ -388,7 +388,8 @@ Each maps to an existing `openspec/changes/` proposal; ordered by value/effort.
 returns aware datetimes; default stays naive in 1.x.
 
 ### 8.2 2-digit-year pivot — `add-datetime-semantics` — **✅ SHIPPED (v1.0.11)**
-Opt-in `pivot_year=` (default break 68: `00–67 → 20xx`, `68–99 → 19xx`).
+Opt-in `pivot_year=` takes a 4-digit pivot year (no built-in default):
+`DateParser(pivot_year=1968)` maps `00–67 → 20xx`, `68–99 → 19xx`, so
 `05/16/99 → 1999`. The default remains "year 99 is 99 AD" (back-compat);
 flip the default in 2.0; update the test that currently locks year 99 (4.5).
 
@@ -423,7 +424,8 @@ Default `parse()` unchanged. Only English and Russian for v1; German/French
 
 - ✅ README stats drift now (134 base): `scripts/generate_readme_stats.py`
   generates the counts from `ALL_PATTERNS` and injects them into the README
-  via a delimited block. The `--check` flag fails CI on drift.
+  via a delimited block. CI runs `--check`, which fails on drift (wired into
+  CI on 2026-10-20).
 - ✅ Document the six-level filtering pipeline — `docs/docs/api/filter-pipeline.md`
   describes all 6 levels with cost-of-disabling guidance.
 - "How to add a new language" guide — after §6.1/§6.2 this becomes a short recipe
@@ -431,8 +433,8 @@ Default `parse()` unchanged. Only English and Russian for v1; German/French
   are the worked example. Existing `docs/docs/development/adding-languages.md`
   is the working draft.
 - ✅ Type hints on the public API (`parse`, `match`, `__init__`,
-  `get_patterns_for_languages`). `mypy qddate/__init__.py qddate/qdparser.py` is
-  clean. Plus `py.typed` marker so downstream type-checking picks up the hints.
+  `get_patterns_for_languages`). `mypy qddate` is clean and runs in CI (since
+  2026-10-20). Plus `py.typed` marker so downstream type-checking picks up the hints.
 - ✅ The `noyear=` flag's semantics were the opposite of what the name read
   as — renamed to `allow_no_year=` (canonical) with `noyear=` retained as a
   deprecated alias emitting a warning.

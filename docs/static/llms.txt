@@ -1,6 +1,6 @@
 # qddate
 
-Python library for parsing left-aligned date strings extracted from messy HTML as fast as possible. Runtime depends on pyparsing only. Public API: `qddate.DateParser` with `parse()` and `match()`.
+Python library for parsing left-aligned date strings extracted from messy HTML as fast as possible. Runtime depends on pyparsing only. Public API: `qddate.DateParser` (`parse()`, `match()`, `match_all()`, `match_typed()`, `parse_many()`, `parse_relative()`, `format_date()`, `start_session()` / `end_session()`), the `qddate.DateMatch` result class, and `qddate.format_date()`. Python 3.10–3.14.
 
 Site: https://ivbeg.github.io/qddate/
 Install: `pip install qddate`
@@ -22,6 +22,7 @@ Install: `pip install qddate`
 - [DateParser](https://ivbeg.github.io/qddate/api/dateparser)
 - [parse()](https://ivbeg.github.io/qddate/api/parse)
 - [match()](https://ivbeg.github.io/qddate/api/match)
+- [Filter pipeline](https://ivbeg.github.io/qddate/api/filter-pipeline)
 - [languages=](https://ivbeg.github.io/qddate/api/languages)
 
 ## Languages

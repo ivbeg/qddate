@@ -20,24 +20,30 @@ parse(
     noseparatorfilter=False,
     noyearformatfilter=False,
     nolanguagefilter=False,
+    allow_no_year=True,
 )
 ```
+
+Pass the options by keyword: `parse()` and `match()` order their positional
+parameters differently.
 
 | Argument | Default | Meaning |
 |----------|---------|---------|
 | `text` | required | Input string |
+| `allow_no_year` | `True` | Include day-month patterns without a year; the current year is filled in. `noyear=` is a deprecated alias |
 | `noprefix` | `False` | Skip prefix-based candidate filtering |
 | `nocharsetfilter` | `False` | Skip character-set filtering |
 | `noseparatorfilter` | `False` | Skip separator filtering |
 | `noyearformatfilter` | `False` | Skip 2-digit vs 4-digit year filtering |
 | `nolanguagefilter` | `False` | Skip automatic language narrowing |
 
-Leave the `no*` flags at `False` unless you are debugging a miss. See
+Leave the `no*` flags at `False` unless you are debugging a miss. Each flag
+skips one level of the [filter pipeline](/api/filter-pipeline). See also
 [troubleshooting](/getting-started/troubleshooting).
 
 ## Return value
 
-- A naive `datetime.datetime` when a supported pattern matches at index 0 and the components form a valid calendar date.
+- A `datetime.datetime` when a supported pattern matches at index 0 and the components form a valid calendar date. It is naive unless the parser was built with `tz_aware=True` and the input carries a numeric offset such as `+0300`.
 - `None` when nothing matches, the string is empty/whitespace, or `datetime.datetime(**components)` would raise `ValueError`.
 
 `parse()` never raises for ordinary bad input.
@@ -46,8 +52,10 @@ Leave the `no*` flags at `False` unless you are debugging a miss. See
 
 - Matching is **left-aligned**. Trailing text after the date is ignored.
 - Optional `HH:MM` / `HH:MM:SS` suffixes populate hour, minute, and second.
-- Patterns flagged `noyear` substitute the current year (via `match(..., noyear=True)`, which `parse()` uses).
-- Timezone abbreviations are not applied.
+- Patterns flagged `noyear` substitute the current year when `allow_no_year=True` (the default).
+- Two-digit years pass through as-is (`99` → year 99) unless the parser was built with `pivot_year=` (for example `DateParser(pivot_year=1968)` maps `99` → 1999, `20` → 2020).
+- Numeric UTC offsets are attached only with `DateParser(tz_aware=True)`. Timezone abbreviations (`UTC`, `GMT`, `MSK`) are never applied.
+- Relative phrases (`today`, `3 days ago`) return `None`; use [`parse_relative()`](/api/dateparser#relative-date-parsing).
 
 ## Examples
 
@@ -65,4 +73,6 @@ assert parser.parse("totally invalid date") is None
 ## Related
 
 - [match()](/api/match)
+- [DateParser methods](/api/dateparser#methods)
+- [Filter pipeline](/api/filter-pipeline)
 - [Basic usage](/getting-started/basic-usage)

@@ -1,6 +1,6 @@
 ---
 title: "DateParser"
-description: "Constructor options for generating and filtering the pattern catalog"
+description: "Constructor options and the methods of DateParser"
 ---
 # DateParser
 
@@ -18,7 +18,8 @@ parser = DateParser(generate=True, base_only=False)
 ## Constructor
 
 ```python
-DateParser(generate=True, patterns=ALL_PATTERNS, base_only=False, languages=None)
+DateParser(generate=True, patterns=ALL_PATTERNS, base_only=False, languages=None,
+           pivot_year=None, tz_aware=False, use_fingerprint=True)
 ```
 
 | Parameter | Default | Meaning |
@@ -27,6 +28,9 @@ DateParser(generate=True, patterns=ALL_PATTERNS, base_only=False, languages=None
 | `patterns` | `qddate.patterns.ALL_PATTERNS` | Pattern dicts to load |
 | `base_only` | `False` | Keep only base patterns; skip generated "date plus extra text" variants |
 | `languages` | `None` | Language code, list of codes, or `None` for all languages |
+| `pivot_year` | `None` | 4-digit pivot for two-digit years: with `1968`, `99` → 1999 and `20` → 2020. `None` keeps the raw two-digit year |
+| `tz_aware` | `False` | Attach a numeric UTC offset (`+0300`, `-0500`) from the input to the result. Abbreviations (`UTC`, `MSK`) are never applied |
+| `use_fingerprint` | `True` | Use the fingerprint candidate filter. `False` selects the legacy 6-level filter and emits `DeprecationWarning`; it will be removed in 2.0 |
 
 If `languages` is a non-empty string or list, the catalog is filtered with
 `qddate.patterns.get_patterns_for_languages` **before** generation. Empty list
@@ -47,6 +51,53 @@ parser = DateParser(patterns=PATTERNS_EN + INTEGER_LIKE_PATTERNS)
 The parser uses exactly those patterns. Each item is a dict with at least
 `key`, `pattern` (pyparsing grammar), `length`, and usually `format`.
 
+## Methods
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| [`parse(text, ...)`](/api/parse) | `datetime` or `None` | Best match as a datetime |
+| [`match(text, ...)`](/api/match) | `dict` or `None` | Best match as `{"values", "pattern"}` |
+| `match_all(text, ...)` | `list[dict]` | Every matching pattern, highest priority first; the first item is what `match()` returns |
+| `match_typed(text, **kwargs)` | `DateMatch` or `None` | Best match as a typed object (below) |
+| `parse_many(texts, **kwargs)` | iterator of `datetime` or `None` | One `parse()` result per input, in order |
+| `parse_relative(text, reference=None)` | `datetime` or `None` | Relative phrases (below) |
+| `format_date(dt, pattern_key)` | `str` | Formats `dt` with the pattern's `format` string |
+| `start_session(keys)` / `end_session()` | `None` | Restrict matching to the given pattern keys until the session ends |
+
+The keyword filters of `parse()` and `match()` (`allow_no_year`, `noprefix`,
+`nocharsetfilter`, ...) pass through `match_typed()` and `parse_many()`.
+
+```python
+parser.match_all("01/02/2020")       # date_1 (day first) and date_usa (month first)
+list(parser.parse_many(["01.12.2009", "junk"]))   # [datetime(2009, 12, 1), None]
+
+parser.start_session(["dt:date:date_eng1"])
+parser.parse("01.12.2009")           # None: outside the session
+parser.parse("5 August 2001")        # datetime(2001, 8, 5)
+parser.end_session()
+```
+
+The camelCase `startSession()` / `endSession()` still work and emit
+`DeprecationWarning`.
+
+## DateMatch
+
+`match_typed()` returns a `qddate.DateMatch` dataclass:
+
+```python
+m = parser.match_typed("6 Jan 2009")
+m.datetime      # datetime(2009, 1, 6, 0, 0); pivot_year / tz_aware already applied
+m.pattern_key   # "dt:date:date_eng1_short"
+m.language      # "en" (None for language-neutral numeric patterns)
+m.format        # "%d.%b.%Y"
+m.raw           # "6 Jan 2009"
+m.to_dict()     # the same fields as a plain dict
+m.format_date() # formats m.datetime with m.format
+```
+
+`qddate.format_date(dt, pattern_key)` is the module-level form of
+`DateParser.format_date()`.
+
 ## Instance reuse
 
 Keep one instance for the lifetime of the worker. Construction compiles
@@ -57,7 +108,8 @@ generated variants.
 
 `DateParser.parse_relative(text, reference=None)` resolves common English
 and Russian relative-date phrases against a reference time. Default
-`reference` is `datetime.now()`.
+`reference` is `datetime.now()`. The result keeps the reference's time of day;
+only the calendar date moves.
 
 ```python
 from datetime import datetime
@@ -92,8 +144,8 @@ Units: `day(s)` / `days`; `week(s)`; `month(s)`; `year(s)`; and Russian
 `год`/`года`/`лет`. Both digit-form (`3`) and word-form (`three`) numbers are
 accepted for English.
 
-**The default `parse()` does NOT match relative phrases.** Opt in via
-`DateParser(relative=True)` or call `parse_relative()` explicitly.
+**`parse()` does not match relative phrases.** Call `parse_relative()`
+explicitly; there is no constructor switch that adds them to `parse()`.
 
 ## Related
 

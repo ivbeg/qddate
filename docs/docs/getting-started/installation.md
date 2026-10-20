@@ -4,7 +4,7 @@ description: "Install qddate with pip, from source, or with the optional bench e
 ---
 # Installation
 
-qddate supports Python 3.8–3.12 on CPython and PyPy. The only runtime dependency
+qddate supports Python 3.10–3.14 on CPython and PyPy. The only runtime dependency
 is [pyparsing](https://pypi.org/project/pyparsing/).
 
 ### Using pip
@@ -32,8 +32,8 @@ pip install -e ".[dev,test]"
 | Extra | Enables |
 |-------|---------|
 | `test` | pytest and coverage |
-| `bench` | dateparser, python-dateutil, arrow, pendulum for comparison scripts in `benchmarks/` |
-| `dev` | ruff, tox, twine, build |
+| `bench` | dateparser, python-dateutil, arrow, pendulum, tqdm for comparison scripts in `benchmarks/` |
+| `dev` | ruff, mypy, tox, twine, build |
 
 ```bash
 pip install "qddate[test]"
@@ -54,7 +54,7 @@ print(qddate.__version__)
 print(parser.parse("2012-12-15"))
 ```
 
-If `import qddate` fails, confirm you are on Python 3.8+ and that `pyparsing>=3.1.0`
+If `import qddate` fails, confirm you are on Python 3.10+ and that `pyparsing>=3.1.0`
 is installed.
 
 ## Next steps
