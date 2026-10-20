@@ -34,6 +34,15 @@ from .patterns import (
     _infer_required_chars,
     get_patterns_for_languages,
 )
+from .patterns.base import ENG_WEEKDAYS
+from .patterns.cz import CZ_WEEKDAYS
+from .patterns.de import DE_WEEKDAYS
+from .patterns.es import ES_WEEKDAYS
+from .patterns.fr import FR_WEEKDAYS
+from .patterns.it import IT_WEEKDAYS
+from .patterns.nl import NL_WEEKDAYS
+from .patterns.pt import PT_WEEKDAYS
+from .patterns.ru import RUS_WEEKDAYS
 from .relative import parse_relative as _parse_relative
 
 
@@ -81,12 +90,82 @@ _ENGLISH_MONTHS = _lang_month_names("en")
 _GERMAN_MONTHS = _lang_month_names("de")
 _DUTCH_MONTHS = _lang_month_names("nl")
 _TURKISH_MONTHS = _lang_month_names("tr")
+_BULGARIAN_MONTHS = _lang_month_names("bg")
 
-# Pre-compiled pyparsing patterns for language detection (compiled once at module level)
-# Use Regex within pyparsing for word boundary matching (pyparsing's one_of doesn't support word boundaries)
-# Create regex patterns that match any English/German month with word boundaries
-_ENGLISH_MONTH_PATTERN = Regex(r'\b(' + '|'.join(re.escape(m) for m in _ENGLISH_MONTHS) + r')\b')
-_GERMAN_MONTH_PATTERN = Regex(r'\b(' + '|'.join(re.escape(m) for m in _GERMAN_MONTHS) + r')\b')
+# Word tokenizer shared by language detection: letters only, so "28." and
+# "Segunda-feira" split into words the same way the month/weekday sets do.
+_WORD_RE = re.compile(r"[^\W\d_]+")
+
+# Month sets that claim a language, in precedence order. Several full month
+# names are shared (German/Dutch "Juni", German/French "Mai", Russian/Bulgarian
+# "Август"; every shared name maps to the same month number, see
+# tests/test_regressions_2026_10.py). ``_detect_language`` narrows to the first
+# claiming language; when its patterns find nothing, ``_iter_matches`` tries
+# the patterns of every language.
+_CYRILLIC_DETECTION = (
+    ("uk", _UKRAINIAN_MONTHS),
+    ("ru", _RUSSIAN_MONTHS),
+    ("bg", _BULGARIAN_MONTHS),
+)
+# Romanian stays after the other Romance languages so an unrestricted parser
+# does not relabel ambiguous "mai"; Dutch is listed before German as before.
+_LATIN_DETECTION = (
+    ("fr", _FRENCH_MONTHS),
+    ("es", _SPANISH_MONTHS),
+    ("it", _ITALIAN_MONTHS),
+    ("pt", _PORTUGUESE_MONTHS),
+    ("cz", _CZECH_MONTHS),
+    ("pl", _POLISH_MONTHS),
+    ("ro", _ROMANIAN_MONTHS),
+    ("en", _ENGLISH_MONTHS),
+    ("nl", _DUTCH_MONTHS),
+    ("de", _GERMAN_MONTHS),
+    ("tr", _TURKISH_MONTHS),
+)
+
+
+def _lang_weekday_words(*names_lists) -> frozenset:
+    """Lower-cased word tokens of the given weekday names."""
+    return frozenset(
+        word
+        for names in names_lists
+        for name in names
+        for word in _WORD_RE.findall(name.lower())
+    )
+
+
+# Full weekday names of the languages that have weekday patterns. A weekday
+# breaks the tie when the month name is shared ("Montag, 18 Juni 1953" is
+# German, not Dutch).
+_WEEKDAYS_BY_LANGUAGE = {
+    "en": _lang_weekday_words(ENG_WEEKDAYS),
+    "de": _lang_weekday_words(DE_WEEKDAYS),
+    "nl": _lang_weekday_words(NL_WEEKDAYS),
+    "fr": _lang_weekday_words(FR_WEEKDAYS),
+    "es": _lang_weekday_words(ES_WEEKDAYS),
+    "it": _lang_weekday_words(IT_WEEKDAYS),
+    "pt": _lang_weekday_words(PT_WEEKDAYS),
+    "cz": _lang_weekday_words(CZ_WEEKDAYS),
+    "ru": _lang_weekday_words(RUS_WEEKDAYS),
+}
+
+
+def _resolve_month_claims(claims: list, words: frozenset) -> list:
+    """Pick the language among those whose month names occur in the text.
+
+    A single claim is returned as is. With a shared month name, a weekday
+    name of exactly one claiming language decides; otherwise every claiming
+    language is returned, so the filters do not narrow to one of them.
+    """
+    if len(claims) <= 1:
+        return claims
+    by_weekday = [
+        lang for lang in claims
+        if not words.isdisjoint(_WEEKDAYS_BY_LANGUAGE.get(lang, ()))
+    ]
+    if len(by_weekday) == 1:
+        return by_weekday
+    return claims
 
 # Pre-compiled pyparsing patterns for year format detection (compiled once at module level)
 # 4-digit year: 4 consecutive digits (Word naturally handles word boundaries)
@@ -317,6 +396,25 @@ def scan_char_sets(text):
             break
 
     return char_sets
+
+
+def _month_claims(text: str, char_sets) -> list:
+    """Languages whose month names occur in ``text`` as whole words.
+
+    ``char_sets`` is ``scan_char_sets(text)``; it selects the Cyrillic or the
+    Latin-script table. See :meth:`DateParser._language_claims`.
+    """
+    if CHAR_SET_CYRILLIC in char_sets:
+        table = _CYRILLIC_DETECTION
+    elif CHAR_SET_ACCENTED in char_sets or CHAR_SET_LATIN in char_sets:
+        table = _LATIN_DETECTION
+    else:
+        return []
+    # Whole words only: a substring check lets French "mai" claim
+    # Portuguese "maio", which then filters out the Portuguese patterns.
+    words = frozenset(_WORD_RE.findall(text.lower()))
+    claims = [lang for lang, months in table if not words.isdisjoint(months)]
+    return _resolve_month_claims(claims, words)
 
 
 class DateParser:
@@ -692,10 +790,31 @@ class DateParser:
 
         return 'unknown'
 
+    def _language_claims(self, text):
+        """Return every language whose month names occur in ``text``.
+
+        Languages come in detection precedence order. When a month name is
+        shared (German/Dutch "Juni", German/French "Mai", Russian/Bulgarian
+        "Август") and a weekday name belongs to exactly one claiming language,
+        only that language is returned.
+
+        :param text: Input string to analyze
+        :type text: str
+        :return: List of language codes (empty when no month name is found)
+        :rtype: list
+        """
+        if not text:
+            return []
+        return _month_claims(text, scan_char_sets(text))
+
     def _detect_language(self, text):
         """Detect language from text using character sets and month name detection.
 
-        Optimized version: uses simple 'in' operator instead of regex for faster matching.
+        Returns the first language of :meth:`_language_claims` (``['ru', 'bg']``
+        for Cyrillic text without a Russian or Ukrainian month name), so a
+        shared month name still narrows the filters to one language;
+        ``_iter_matches`` retries without the language filter when that
+        language finds nothing.
 
         :param text: Input string to analyze
         :type text: str
@@ -706,93 +825,15 @@ class DateParser:
             return None
 
         char_sets = scan_char_sets(text)
-        text_lower = text.lower()
-        # Whole words only: a substring check lets French "mai" claim
-        # Portuguese "maio", which then filters out the Portuguese patterns.
-        words = frozenset(re.findall(r"[^\W\d_]+", text_lower))
-        detected_languages = []
-
-        # Check for Cyrillic languages
+        claims = _month_claims(text, char_sets)
         if CHAR_SET_CYRILLIC in char_sets:
-            # Use simple 'in' operator - faster than regex for date strings
-            if not words.isdisjoint(_UKRAINIAN_MONTHS):
-                detected_languages.append('uk')
-                return detected_languages
-            if not words.isdisjoint(_RUSSIAN_MONTHS):
-                detected_languages.append('ru')
-                # Early exit: high confidence match
-                return detected_languages
-            else:
+            if not claims or claims == ['bg']:
                 # Could be Russian or Bulgarian
-                detected_languages.extend(['ru', 'bg'])
-                return detected_languages
-
-        # Check for accented languages with month name detection
-        if CHAR_SET_ACCENTED in char_sets or CHAR_SET_LATIN in char_sets:
-            # Use simple 'in' operator instead of regex - sufficient for date strings
-            # French month names
-            if not words.isdisjoint(_FRENCH_MONTHS):
-                detected_languages.append('fr')
-                return detected_languages  # Early exit: high confidence
-
-            # Spanish month names
-            if not words.isdisjoint(_SPANISH_MONTHS):
-                detected_languages.append('es')
-                return detected_languages  # Early exit: high confidence
-
-            # Italian month names
-            if not words.isdisjoint(_ITALIAN_MONTHS):
-                detected_languages.append('it')
-                return detected_languages  # Early exit: high confidence
-
-            # Portuguese month names
-            if not words.isdisjoint(_PORTUGUESE_MONTHS):
-                detected_languages.append('pt')
-                return detected_languages  # Early exit: high confidence
-
-            # Czech month names
-            if not words.isdisjoint(_CZECH_MONTHS):
-                detected_languages.append('cz')
-                return detected_languages  # Early exit: high confidence
-
-            # Polish month names (including genitive forms)
-            if not words.isdisjoint(_POLISH_MONTHS):
-                detected_languages.append('pl')
-                return detected_languages  # Early exit: high confidence
-
-            # Romanian month names. Keep this after the existing Romance-language
-            # checks so an unrestricted parser does not relabel ambiguous "mai".
-            if not words.isdisjoint(_ROMANIAN_MONTHS):
-                detected_languages.append('ro')
-                return detected_languages  # Early exit: high confidence
-
-        # Check for Latin-based languages (English, German, Dutch, Turkish)
-        # Only check if no accented languages were detected (to avoid false matches)
-        if CHAR_SET_LATIN in char_sets and not detected_languages:
-            # English month names (use pyparsing for consistency with codebase)
-            # pyparsing's one_of with scan_string naturally handles word boundaries
-            if next(_ENGLISH_MONTH_PATTERN.scan_string(text_lower, max_matches=1), None) is not None:
-                detected_languages.append('en')
-                return detected_languages  # Early exit: high confidence
-
-            # Dutch month names (check before German since they share month names like "juli")
-            if not words.isdisjoint(_DUTCH_MONTHS):
-                detected_languages.append('nl')
-                return detected_languages  # Early exit: high confidence
-
-            # German month names (use pyparsing for consistency)
-            if next(_GERMAN_MONTH_PATTERN.scan_string(text_lower, max_matches=1), None) is not None:
-                detected_languages.append('de')
-                return detected_languages  # Early exit: high confidence
-
-            # Turkish month names
-            if not words.isdisjoint(_TURKISH_MONTHS):
-                detected_languages.append('tr')
-                return detected_languages  # Early exit: high confidence
-
-        # If no specific language detected but we have character sets, return None
+                return ['ru', 'bg']
+            return claims[:1]
+        # If no specific language detected, return None
         # (let other filters handle it)
-        return detected_languages if detected_languages else None
+        return claims[:1] or None
 
     def _build_language_index(self):
         """Pre-index patterns by language for faster filtering.
@@ -1290,27 +1331,48 @@ class DateParser:
         Shared engine behind :meth:`match` and :meth:`match_all`. Components are
         sanity-checked (month/day/hour/minute/second ranges) before yielding.
         """
-        n = len(text)
+        filter_flags = {
+            "noprefix": noprefix,
+            "allow_no_year": allow_no_year,
+            "nocharsetfilter": nocharsetfilter,
+            "noseparatorfilter": noseparatorfilter,
+            "noyearformatfilter": noyearformatfilter,
+        }
+        tried: set[str] = set()
+        found = False
+        pats = self._filter_patterns(text, nolanguagefilter=nolanguagefilter, **filter_flags)
+        for item in self._match_candidates(text, pats, allow_no_year, tried):
+            found = True
+            yield item
+        if found or nolanguagefilter or len(self._language_claims(text)) < 2:
+            return
+        # The month name is shared by several languages and the language filter
+        # kept only the first one ("30. Mai 1953": French before German). It
+        # found nothing, so try the patterns of every language.
+        pats = self._filter_patterns(text, nolanguagefilter=True, **filter_flags)
+        yield from self._match_candidates(text, pats, allow_no_year, tried)
 
+    def _filter_patterns(self, text, **flags):
+        """Return the candidate patterns for ``text`` (or None) from the active filter."""
         # Route to the fingerprint-based filter when the constructor flag is set,
         # otherwise fall through to the existing 6-level pipeline. Both paths
         # share the same candidate-set semantics (level 6 prefix + score +
         # component-range validation); the fingerprint path is parity-locked
         # to be a superset-or-equal of the legacy path on every probe string.
         if self.use_fingerprint:
-            pats = self._filter_patterns_fingerprint(text, n, noprefix=noprefix, allow_no_year=allow_no_year,
-                                                     nocharsetfilter=nocharsetfilter,
-                                                     noseparatorfilter=noseparatorfilter,
-                                                     noyearformatfilter=noyearformatfilter,
-                                                     nolanguagefilter=nolanguagefilter)
-        else:
-            pats = self._filter_patterns_hierarchical(text, n, noprefix=noprefix, allow_no_year=allow_no_year,
-                                                      nocharsetfilter=nocharsetfilter,
-                                                      noseparatorfilter=noseparatorfilter,
-                                                      noyearformatfilter=noyearformatfilter,
-                                                      nolanguagefilter=nolanguagefilter)
+            return self._filter_patterns_fingerprint(text, len(text), **flags)
+        return self._filter_patterns_hierarchical(text, len(text), **flags)
+
+    def _match_candidates(self, text, pats, allow_no_year, tried):
+        """Yield ``(priority, end, result)`` for the patterns in ``pats`` that
+        match ``text`` at position 0, highest priority first.
+
+        Keys of the patterns run are added to ``tried``; patterns already in it
+        are skipped.
+        """
         if not pats:
             return
+        n = len(text)
 
         # Sort patterns by priority (try most likely patterns first)
         scored = sorted(
@@ -1326,6 +1388,9 @@ class DateParser:
             if not allow_no_year:
                 if p.get("noyear", False):
                     continue
+            if p["key"] in tried:
+                continue
+            tried.add(p["key"])
             match_data = next(p["pattern"].scan_string(text, max_matches=1), None)
             if match_data is None:
                 continue

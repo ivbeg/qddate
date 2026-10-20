@@ -366,6 +366,8 @@ _PROBE_STRINGS = [
     "Mon 5 Jan 2020",           # weekday_eng_abbrev1
     "Monday 5 january 2020",    # weekday_eng_lc
     "5 leden 2020",             # cz_base_lc (lowercase nominative form)
+    "Пятница, 5 Мая 2020 года",       # weekday_rus
+    "Воскресенье, 5 мая 2020 года",   # weekday_rus_lc1
 ]
 
 
@@ -390,8 +392,6 @@ _KNOWN_SHADOWED = frozenset({
     "dt:date:nl_rare_2",       # Same shadowing story for Dutch (dot variant)
     "dt:date:date_rus3",       # "09.01.2015" wins date_2; date_rus3 has lower priority
     "dt:date:rus_rare_2",      # Same shadowing story as date_rus3
-    "dt:date:weekday_rus",     # Cyrillic weekday + title-case Russian month: rare combo
-    "dt:date:weekday_rus_lc1", # Cyrillic weekday + lowercase Russian month: rare combo
     "dt:date:weekday_eng_iso", # weekday_eng_abbrev* family shadows for any month-name input
     "dt:date:weekday_short_eng_iso",  # Same shadowing story as weekday_eng_iso
     "dt:date:pt_short_lc_monthfirst",  # English date_eng2_short wins (lowercase month list)
