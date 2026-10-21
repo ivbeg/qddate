@@ -4,7 +4,87 @@ All notable changes to this project are tracked here.
 
 ## Unreleased
 
+**Time formats** (Q5–Q8 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
+- The 12-hour clock after a date: `AM`/`PM`, `am`/`pm`, `a.m.`/`p.m.`,
+  with or without minutes and seconds (`May 5, 2022 at 3:45 PM` → 15:45,
+  `May 5, 2022 at 3 p.m.` → 15:00, `12:00 AM` → 00:00). Before, the time was
+  lost and `parse()` gave midnight. The generated `:time_4` variants read it;
+  `match()` stores the hour as a 24-hour number and adds no `ampm` key, so
+  callers that `int()` every value keep working. An hour above 12 is not a
+  12-hour time, and a word that starts with `am`/`pm` is not a marker.
+- The time before the date, followed by `,`, `|`, `-` or a space:
+  `12:30, 5 мая 2022`, `12:30 05.05.2022`, `14:30 | 5 May 2022`,
+  `3:45 PM, May 5, 2022` (all returned `None`). The generated `:time_left`
+  variants accept every clock form below and a zone.
+- Zones after the time: `+03:00`, `Z`, `GMT`/`UTC` alone or with an offset
+  (`GMT+3`, `UTC-05:30`, `GMT+0300`) and the abbreviations in
+  `qddate.patterns.TIMEZONE_ABBREVIATIONS` (`MSK`/`МСК`/`мск`, `CET`/`CEST`,
+  `MEZ`/`MESZ`, `EET`/`EEST`, `WET`/`WEST`, `BST`, `EST`/`EDT`, `CST`/`CDT`,
+  `MST`/`MDT`, `PST`/`PDT`, `JST`, `AEST`, …). Before, only `+HHMM` after
+  `HH:MM:SS` was read: `2022-05-05T10:00:00+03:00` gave a naive 10:00 even
+  with `tz_aware=True`. The zone is kept as written in the `timezone` value;
+  the new `qddate.qdparser.parse_timezone()` turns it into a
+  `datetime.timezone` (named for an abbreviation). `HH:MM` now takes a zone
+  too. Latin abbreviations are matched in capitals only (the French `est`
+  after a time stays a word); ambiguous ones such as `IST` are not listed.
+- `14h30` and `14 h 30` (French, Portuguese) after a date: `05/05/2022 14h30`,
+  `le 5 mai 2022 à 14h30` → 14:30 (00:00 before). Minutes are required, so
+  `3 h de route` is not read as a time.
+- A word between the date and the time in more languages: `at` (en), `à`
+  (fr), `um` (de), `a las` (es), `alle` (it), `om` (nl), `às` (pt), as `в`
+  already was in Russian. Numeric dates belong to no language and accept all
+  of them (`05.05.2022 в 12:30`, `05/05/2022 at 3:45 PM`); a month-name date
+  only its own (`16 May 2009 в 14:10` still drops the time).
+- `HH:MM` after a date may follow `|` or the ISO `T`, as `HH:MM:SS` could:
+  `21 September 1994 | 11:08`, `2022-05-05T10:00` keep their time.
+
+**API** (Q14–Q17)
+- `languages=` on `match()`, `match_all()`, `parse()`, `match_typed()` (and
+  `parse_many()`): the patterns of these languages and the language-neutral
+  numeric ones are tried first, the others only when none of them matches.
+  Unlike the constructor's `languages=` it excludes nothing, so one parser
+  serves pages in every language. The candidate index for each set of
+  languages is built on first use and kept; the parser is not rebuilt.
+  `match_all()` lists the hinted languages' matches first.
+- `date_order="DMY" | "MDY" | "YMD"` in the constructor and per call. Among
+  patterns that consume the same text, those of that order win:
+  `parse("05/06/2022", date_order="MDY")` is 6 May (`date_usa`), while
+  `13/05/2022` stays 13 May. Dotted and dashed dates have no month-first
+  pattern and stay day first. `None` keeps today's preference.
+- `reference=` (the moment that counts as "now") and `prefer="past" |
+  "future"` on `parse()` and `match_typed()` for dates without a year. The
+  year comes from `reference` instead of the clock; `prefer="past"` moves a
+  date more than `NOYEAR_ROLLOVER_GRACE` (2 days) after the reference to the
+  previous year (`31.12` read on 2 January), as newsworker's own rule does.
+- `DateMatch` gains `span` (where the date ends in `raw`, in characters of the
+  original text even with tabs), `precision` (`"day"`, `"hour"` for `3 PM`,
+  `"minute"`, `"second"`), `tzinfo` (the written zone, set without
+  `tz_aware=True` too) and `has_year`. `to_dict()` includes them; the old
+  five-argument constructor still works.
+
+**Benchmark rows that change** (54,565 rows of `benchmarks/test_data.csv` and
+`benchmarks/webpage_test_data.csv`, compared with `master` for `match()`,
+`parse()` with and without `tz_aware`, `match_all()` with and without
+`allow_no_year`, the legacy filter and `DateParser(languages=["en", "ru"])`)
+- 48 rows, all because `HH:MM` may now follow `|`: 42 rows of
+  `test_data.csv` such as `21 September 1994 | 11:08`
+  (`dt:date:date_eng1:t_right` → `dt:date:date_eng1:time_1`) and 6 rows of
+  `webpage_test_data.csv` such as `17-12-2025 | 13:40`
+  (`dt:date:date_iso8601:t_right` → `dt:date:date_iso8601:time_1`). They now
+  keep their time instead of midnight. No other row changes.
+- newsworker's test suite (457 tests) and 232-page corpus (F1 and
+  `date_accuracy` 1.0) give the same results against this branch.
+
 **Performance**
+- A default parser has 1,656 generated patterns instead of 1,104 (the
+  `:time_4` and `:time_left` variants). The fingerprint walk that selects
+  candidates now keeps its result per text fingerprint (length, character
+  sets, separators, detected language, year format), so the larger catalog
+  costs little: on an Apple M-series machine the 54,565 benchmark rows take
+  7.5 s instead of 8.3 s on `master`; text without a date 0.32 ms per call
+  instead of 0.43 ms, and the `tests/test_performance_smoke.py` dates
+  0.27 ms instead of 0.25 ms. A `:time_4` variant needs an AM/PM marker in
+  the text, so the pre-grammar checks skip it on other text.
 - `match()` / `match_all()` / `parse()` parse each candidate grammar at the
   start of the text only. They used `scan_string`, which tried every later
   position of a text that does not start with a date, and then discarded the
@@ -120,10 +200,23 @@ All notable changes to this project are tracked here.
   when a declared length limit rejects a rendered date. Every pattern
   passes it now except `date_5`/`date_6`, whose grammar also accepts
   space-separated digit groups.
-- `tests/test_match_prefilter.py` renders every generated grammar (104,880
-  texts) and checks that each text it matches passes its pre-grammar checks,
-  compares `match_all()` with the checks switched off, and asserts that text
-  without a date runs no grammar.
+- `tests/test_match_prefilter.py` renders every generated grammar (347,476
+  distinct texts with the 1.1.0 time variants) and checks that each text it
+  matches passes its pre-grammar checks, compares `match_all()` with the
+  checks switched off, and asserts that text without a date runs no grammar.
+- The renderer in `tests/test_pattern_lengths.py` knows the new grammar
+  elements: a `Combine` (a zone such as `GMT+03:00`) renders as one token in
+  its shortest and longest form, a character class (`[,|T]`) as its
+  characters, a lookahead (no letter after `PM`) as nothing. A sequence whose
+  parts combine to more than 512 renderings keeps every rendering of each
+  part at least once, plus the shortest and longest texts, instead of the
+  full product (a long date times a 12-hour time times a zone).
+- `tests/test_pattern_lengths.py` also checks the declared lengths of the
+  generated time variants (`:time_1`, `:time_2`, `:time_4`, `:time_left`)
+  against their renderings; `:time_1` and `:time_2` limits grew to fit the
+  zone, `14 h 30` and the word before the time.
+- `tests/test_time_formats.py` (Q5–Q8) and `tests/test_call_options.py`
+  (Q14–Q17) cover the new forms and options.
 - `tests/test_performance_smoke.py` (`QDDATE_PERF=1`) also bounds the mean
   `match()` latency on text without a date (5 ms; under 1 ms locally).
 
@@ -152,6 +245,12 @@ All notable changes to this project are tracked here.
   Sphinx `tox -e docs` environment are removed.
 
 **Specs and docs**
+- `openspec/specs/date-parsing` specifies the 12-hour clock, the time before
+  the date, `14h30`, the words before the time, zones, `date_order=`,
+  `reference=`/`prefer=` and the new `DateMatch` fields;
+  `openspec/specs/language-support` the per-call `languages=` hint. The API
+  pages (`docs/docs/api/dateparser.md`, `parse.md`, `match.md`,
+  `languages.md`, `filter-pipeline.md`) document them.
 - The canonical OpenSpec specs match the code: `parse_relative()` keeps the
   reference's time of day and has no `relative=True` switch; `allow_no_year=`
   replaces `noyear=`; time-of-day validation, `pivot_year`, `tz_aware`,

@@ -2,7 +2,12 @@
 __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
-from .base import BASE_TIME_PATTERNS, INTEGER_LIKE_PATTERNS, PATTERNS_EN  # noqa: F401
+from .base import (  # noqa: F401
+    BASE_TIME_PATTERNS,
+    INTEGER_LIKE_PATTERNS,
+    PATTERNS_EN,
+    TIMEZONE_ABBREVIATIONS,
+)
 from .bg import PATTERNS_BG
 from .cz import PATTERNS_CZ
 from .de import PATTERNS_DE
@@ -312,10 +317,23 @@ SUPPORTED_LANGUAGES = [
 
 # Words a language writes between a date and its time of day, by language code.
 # ``DateParser`` accepts one of them before the time in the ``:time_N`` variants
-# it generates from that language's patterns ("4 Сентября 2020 в 04:06").
+# it generates from that language's patterns ("4 Сентября 2020 в 04:06",
+# "May 5, 2022 at 3:45 PM", "le 5 mai 2022 à 14h30").
 TIME_PREFIXES_BY_LANGUAGE = {
+    "de": ("um",),
+    "en": ("at",),
+    "es": ("a las",),
+    "fr": ("à",),
+    "it": ("alle",),
+    "nl": ("om",),
+    "pt": ("às",),
     "ru": tuple(RUS_TIME_PREFIXES),
 }
+
+# A numeric date belongs to no language ("05.05.2022 в 12:30",
+# "05/05/2022 at 3:45 PM"); its time variants accept the words of every language.
+ALL_TIME_PREFIXES = tuple(sorted({
+    word for words in TIME_PREFIXES_BY_LANGUAGE.values() for word in words}))
 
 # Mapping of language codes to their pattern lists
 PATTERNS_BY_LANGUAGE = {

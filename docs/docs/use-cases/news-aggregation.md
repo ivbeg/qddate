@@ -31,9 +31,20 @@ deterministic.
 
 ## Time of day is optional
 
-Many bylines are date-only. When a time is present (`HH:MM` or `HH:MM:SS`,
-optionally in brackets), it is parsed into the `datetime`. Timezone
-abbreviations are trailing text and are not converted.
+Many bylines are date-only. When a time is present (`HH:MM`, `HH:MM:SS`,
+`14h30`, `3:45 PM`, before or after the date), it is parsed into the
+`datetime`. `match_typed()` tells the two apart: `precision` is `"day"` for a
+date-only byline, and `tzinfo` carries a zone written after the time
+(`12:30 МСК`, `10:00 BST`, `+03:00`).
+
+One parser can serve every site: pass the page language as a hint and the
+site's day/month order per call.
+
+```python
+parser = qddate.DateParser()
+m = parser.match_typed(text, languages=page_lang, date_order="MDY",
+                       reference=fetched_at, prefer="past")
+```
 
 ## Related
 

@@ -62,11 +62,11 @@ and the module `qddate.patterns`.
 ### Requirement: Constructor configuration parameters
 
 `DateParser.__init__` SHALL accept the parameters `generate`, `patterns`,
-`base_only`, `languages`, `pivot_year`, `tz_aware`, and `use_fingerprint`,
-preserving their documented meaning across releases. `pivot_year` and `tz_aware`
-are specified in `date-parsing` ("Two-digit year pivot", "Timezone-aware
-parsing"); `use_fingerprint` in "Fingerprint-based candidate selection is the
-default".
+`base_only`, `languages`, `pivot_year`, `tz_aware`, `use_fingerprint` and
+`date_order`, preserving their documented meaning across releases. `pivot_year`,
+`tz_aware` and `date_order` are specified in `date-parsing` ("Two-digit year
+pivot", "Timezone-aware parsing", "Ambiguous numeric date order");
+`use_fingerprint` in "Fingerprint-based candidate selection is the default".
 
 #### Scenario: Default construction
 - **WHEN** `DateParser()` is constructed with no arguments

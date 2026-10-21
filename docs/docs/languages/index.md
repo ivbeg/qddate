@@ -32,7 +32,7 @@ language.
 
 ## How many patterns?
 
-The catalog is **base patterns × generated variants** (134 base patterns in the current tree). Each base date pattern can expand with `HH:MM`, `HH:MM:SS`, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
+The catalog is **base patterns × generated variants** (134 base patterns in the current tree). Each base date pattern can expand with a time after it (`HH:MM` or `14h30`, `HH:MM:SS`, `[HH:MM]`, the 12-hour clock), a time before it, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
 
 Regenerate the per-language tables after pattern changes:
 

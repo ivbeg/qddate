@@ -50,10 +50,17 @@ any trailing text after the matched date, so that scraped strings like
 
 ### Requirement: Optional time-of-day suffix
 
-The parser SHALL accept an optional time-of-day suffix in `HH:MM` or `HH:MM:SS` form
-after a date and SHALL populate the hour, minute, and (when present) second fields of
-the returned `datetime`. After a Russian date the suffix MAY be preceded by the
-word `в` ("at"); the word SHALL NOT be accepted after a date in another language.
+The parser SHALL accept an optional time-of-day suffix in `HH:MM`, `HH:MM:SS`
+or `HHhMM` (`14h30`, `14 h 30`) form after a date, separated from it by a space,
+`,`, `|` or the ISO `T`, and SHALL populate the hour, minute, and (when
+present) second fields of the returned `datetime`. The `HHhMM` form SHALL
+require the minutes.
+
+The suffix MAY be preceded by the word the date's language writes before a
+time: `в` (ru), `at` (en), `à` (fr), `um` (de), `a las` (es), `alle` (it),
+`om` (nl), `às` (pt). A word SHALL NOT be accepted after a month-name date of
+another language. A language-neutral numeric date SHALL accept the word of
+every language.
 
 #### Scenario: Date with minutes
 - **WHEN** `parse("16 May 2009 14:10")` is called
@@ -70,6 +77,75 @@ word `в` ("at"); the word SHALL NOT be accepted after a date in another languag
 #### Scenario: Russian time after "в"
 - **WHEN** `parse("4 Сентября 2020 в 04:06:33")` is called
 - **THEN** the result SHALL equal `datetime.datetime(2020, 9, 4, 4, 6, 33)`
+
+#### Scenario: Word of another language
+- **WHEN** `parse("16 May 2009 в 14:10")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2009, 5, 16)`
+
+#### Scenario: Numeric date accepts every language's word
+- **WHEN** `parse("05.05.2022 в 12:30")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5, 12, 30)`
+
+#### Scenario: French time with "h"
+- **WHEN** `parse("le 5 mai 2022 à 14h30")` or `parse("05/05/2022 14h30")` is
+  called
+- **THEN** the result SHALL have hour `14` and minute `30`
+
+#### Scenario: Pipe before minutes
+- **WHEN** `parse("21 September 1994 | 11:08")` is called
+- **THEN** the result SHALL equal `datetime.datetime(1994, 9, 21, 11, 8)`
+
+---
+
+### Requirement: Twelve-hour clock
+
+The parser SHALL accept a 12-hour time after a date: an hour of one or two
+digits, optional minutes and seconds, and a marker `AM`, `PM`, `am`, `pm`,
+`a.m.`, `p.m.`, `A.M.` or `P.M.`, optionally preceded by the date language's
+word before a time. `12 AM` SHALL be hour 0 and `12 PM` hour 12. An hour
+above 12 SHALL NOT be read as a 12-hour time, and `AM`/`PM` followed by a
+letter SHALL NOT be a marker. `match()` SHALL report the hour as a 24-hour
+number and SHALL NOT add a marker value.
+
+#### Scenario: Afternoon time with "at"
+- **WHEN** `parse("May 5, 2022 at 3:45 PM")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5, 15, 45)`
+
+#### Scenario: Midnight
+- **WHEN** `parse("May 5, 2022 12:00 AM")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5, 0, 0)`
+
+#### Scenario: Hour only
+- **WHEN** `parse("May 5, 2022 at 3 p.m.")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5, 15, 0)`
+
+#### Scenario: Values stay numeric
+- **WHEN** `match("May 5, 2022 at 3:45 PM")` is called
+- **THEN** its `values` SHALL contain `hour` `"15"` and no `ampm` key
+
+---
+
+### Requirement: Time before the date
+
+The parser SHALL accept a time of day before a date, in any form of the
+time-of-day and twelve-hour requirements and with an optional zone, followed
+by `,`, `|`, `-` or a space.
+
+#### Scenario: Russian date after the time
+- **WHEN** `parse("12:30, 5 мая 2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5, 12, 30)`
+
+#### Scenario: Numeric date after the time
+- **WHEN** `parse("12:30 05.05.2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5, 12, 30)`
+
+#### Scenario: Pipe separator
+- **WHEN** `parse("14:30 | 5 May 2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5, 14, 30)`
+
+#### Scenario: A time alone is not a date
+- **WHEN** `match("12:30 -15 комментариев")` is called
+- **THEN** the result SHALL be `None`
 
 ---
 
@@ -153,7 +229,12 @@ than raise.
 
 A pattern marked with the `noyear` flag SHALL substitute the current year for the
 missing year component when `parse()` or `match()` is invoked with
-`allow_no_year=True` (the default). With `allow_no_year=False`, `noyear` patterns
+`allow_no_year=True` (the default). `parse()` and `match_typed()` SHALL take
+the year from `reference=` when given. With `prefer="past"` a date more than
+`NOYEAR_ROLLOVER_GRACE` (two days) after the reference (default: now) SHALL
+move to the previous year; with `prefer="future"` a date more than that
+before it SHALL move to the next year; a day that does not exist in that year
+SHALL give `None`. Other `prefer` values SHALL raise `ValueError`. With `allow_no_year=False`, `noyear` patterns
 SHALL NOT match. Only a pattern marked `noyear` SHALL match a date without a year.
 The keyword is specified in `packaging-and-api` ("Public parsing methods accept
 `allow_no_year=`"), which also keeps `noyear=` as a deprecated alias.
@@ -167,6 +248,15 @@ The keyword is specified in `packaging-and-api` ("Public parsing methods accept
 - **GIVEN** the system clock is set to year `2026`
 - **WHEN** `parse("4 Сентября в 04:06:33")` is called
 - **THEN** the result SHALL equal `datetime.datetime(2026, 9, 4, 4, 6, 33)`
+
+#### Scenario: Year from the reference
+- **WHEN** `parse("05.12", reference=datetime.datetime(2020, 3, 1))` is called
+- **THEN** the result SHALL equal `datetime.datetime(2020, 12, 5)`
+
+#### Scenario: Last December read in January
+- **WHEN** `parse("31.12", reference=datetime.datetime(2026, 1, 2), prefer="past")`
+  is called
+- **THEN** the result SHALL equal `datetime.datetime(2025, 12, 31)`
 
 #### Scenario: No-year patterns disabled
 - **WHEN** `parse("4 Сентября в 04:06:33", allow_no_year=False)` or
@@ -407,10 +497,15 @@ its dimension, so the candidate set can only widen, as on the legacy path.
 
 `match_typed()` SHALL return a `DateMatch` exposing the constructed
 `datetime`, the matched pattern's key (`pattern_key`), its language
-(`language`, `None` for language-neutral patterns), its `format` string and the
-raw input (`raw`), or `None` when nothing matches. `DateMatch.to_dict()` SHALL
-return a plain dict of those fields. The dict returned by `match()` SHALL
-remain unchanged.
+(`language`, `None` for language-neutral patterns), its `format` string, the
+raw input (`raw`), the `span` `(0, end)` of the date in `raw` (in characters of
+the original text), its `precision` (`"day"` without a time, `"hour"` for a
+12-hour time without minutes, `"minute"`, `"second"`), the written zone
+(`tzinfo`, whether or not the parser is `tz_aware`, `None` without a zone) and
+`has_year` (`False` for a `noyear` pattern), or `None` when nothing matches.
+`DateMatch.to_dict()` SHALL return a plain dict of those fields. The new fields
+SHALL have defaults, so `DateMatch` built with the first five fields keeps
+working. The dict returned by `match()` SHALL remain unchanged.
 
 #### Scenario: Typed result for a supported date
 - **WHEN** `match_typed("01.12.2009")` is called
@@ -421,6 +516,40 @@ remain unchanged.
 #### Scenario: Legacy dict shape preserved
 - **WHEN** `match("01.12.2009")` is called
 - **THEN** the result SHALL remain a dict with `"values"` and `"pattern"` keys
+
+#### Scenario: Span, precision and zone
+- **WHEN** `match_typed("5 мая 2022 в 12:30 МСК Новости")` is called on
+  `DateParser()`
+- **THEN** `.span` SHALL be `(0, 22)`, `.precision` SHALL be `"minute"`,
+  `.tzinfo` SHALL have the offset `+03:00`, `.has_year` SHALL be `True`
+- **AND** `.datetime` SHALL be naive
+
+---
+
+### Requirement: Ambiguous numeric date order
+
+`DateParser(date_order=...)` and the `date_order=` keyword of `match()`,
+`match_all()`, `parse()` and `match_typed()` SHALL accept `"DMY"`, `"MDY"`,
+`"YMD"` (any case) or `None`, and SHALL raise `ValueError` otherwise. Among
+candidates that consume the same text, the numeric patterns of that order
+(day first: `date_1`, `date_2`, `date_4`, `date_4_point`, `date_5`, `date_8`,
+`date_iso8601(_short)`, `weekday_(short_)eng_iso`; month first: `date_usa`,
+`date_usa_1`; year first: `date_3`, `date_6`, `date_9`, `date_10`) SHALL win;
+a longer match SHALL still win over a shorter one. `None` per call SHALL use
+the constructor's value; `None` there SHALL keep the built-in preference.
+
+#### Scenario: Month first
+- **WHEN** `parse("05/06/2022", date_order="MDY")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 6)`
+
+#### Scenario: Unambiguous date ignores the order
+- **WHEN** `parse("13/05/2022", date_order="MDY")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 13)`
+
+#### Scenario: Constructor default
+- **GIVEN** `DateParser(date_order="MDY")`
+- **WHEN** `match("05/06/2022")` is called
+- **THEN** the pattern key SHALL be `dt:date:date_usa`
 
 ### Requirement: Ambiguity reporting
 
@@ -451,11 +580,22 @@ arguments through to `parse()` and reusing the indexes built at construction.
 
 ### Requirement: Timezone-aware parsing
 
-`DateParser(tz_aware=True)` SHALL attach a numeric UTC offset captured from the
-input (`+HHMM` / `-HHMM`) to the returned datetime as a fixed-offset `tzinfo`.
-Without `tz_aware=True`, or when the input carries no numeric offset, the
-result SHALL be a naive datetime. Timezone abbreviations (`UTC`, `GMT`, `MSK`)
-SHALL NOT be applied.
+The parser SHALL read a zone written after a time of day: a numeric offset
+(`+HHMM`, `-HHMM`, `+HH:MM`, the legacy three digits `+HMM`), `Z`, `GMT` or
+`UTC` alone or followed by an offset of one or two hour digits, `HH:MM` or
+`HHMM` (`GMT+3`, `UTC-05:30`), or an abbreviation from
+`qddate.patterns.TIMEZONE_ABBREVIATIONS` (`MSK`/`МСК`, `CET`/`CEST`,
+`EET`/`EEST`, `BST`, `EST`/`EDT`, `PST`/`PDT`, …). Latin abbreviations SHALL
+be matched in capitals only, and a zone SHALL NOT be followed by a letter. A
+bare offset SHALL have at least three digits or the `HH:MM` form. `match()`
+SHALL report the zone as written in its `timezone` value, and
+`qddate.qdparser.parse_timezone()` SHALL convert such a value to a
+fixed-offset `datetime.timezone` (named for an abbreviation), or `None` for an
+offset of 24 hours or more.
+
+`DateParser(tz_aware=True)` SHALL attach the zone to the returned datetime.
+Without `tz_aware=True`, or when the input carries no zone, the result SHALL
+be a naive datetime.
 
 #### Scenario: Offset present, tz handling enabled
 - **GIVEN** `DateParser(tz_aware=True)`
@@ -469,6 +609,21 @@ SHALL NOT be applied.
 
 #### Scenario: tz handling disabled (default)
 - **WHEN** `DateParser().parse("01.12.2009 14:53:12 +0000")` is called
+- **THEN** the result SHALL be naive
+
+#### Scenario: ISO offset with a colon
+- **GIVEN** `DateParser(tz_aware=True)`
+- **WHEN** `parse("2022-05-05T10:00:00+03:00")` is called
+- **THEN** the result SHALL equal 10:00 at UTC offset `+03:00`
+
+#### Scenario: Abbreviation after HH:MM
+- **GIVEN** `DateParser(tz_aware=True)`
+- **WHEN** `parse("5 мая 2022 г., 12:30 МСК")` is called
+- **THEN** the result SHALL equal 12:30 at UTC offset `+03:00`
+
+#### Scenario: Word that is not a zone
+- **GIVEN** `DateParser(tz_aware=True)`
+- **WHEN** `parse("5 May 2022 10:00 est la date")` is called
 - **THEN** the result SHALL be naive
 
 ### Requirement: Two-digit year pivot
