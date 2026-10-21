@@ -48,6 +48,9 @@ def _variants(expr):
     every optional part absent and present)."""
     if isinstance(expr, pp.White):
         return [(" ",)]
+    if isinstance(expr, (pp.LineStart, pp.StringStart, pp.Empty)):
+        # Match without consuming text (``:t_right`` variants start with one).
+        return [()]
     if isinstance(expr, pp.Word):
         char = "1" if "1" in expr.initChars else sorted(expr.initChars)[0]
         shortest = max(expr.minLen, 1)
