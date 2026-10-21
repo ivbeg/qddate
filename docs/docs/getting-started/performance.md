@@ -14,6 +14,8 @@ beyond a cheap candidate filter.
 - **Length indexing.** Only patterns whose min/max length covers the input are considered.
 - **Prefix heuristics.** `matchPrefix()` drops obviously incompatible catalogs in microseconds.
 - **Charset, separator, year-format, and language filters** shrink the candidate set before pyparsing runs.
+- **Grammar checks.** A candidate is skipped when the text cannot start its match or lacks the month or weekday name it needs, so text without a date rarely runs a grammar ([details](../api/filter-pipeline.md#before-the-grammar-runs)).
+- **Anchored parsing.** Each grammar is parsed at the start of the text only, not scanned across it.
 - **Packrat parsing** is enabled on import for pyparsing's parse cache.
 - **No runtime files.** Constants live in Python modules; nothing is loaded from disk besides the package itself.
 

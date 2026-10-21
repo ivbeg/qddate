@@ -11,15 +11,35 @@ import re
 import time
 import warnings
 from dataclasses import dataclass
-from typing import Any, Iterator, Optional, Union
+from typing import Any, Iterator, NamedTuple, Optional, Union
 from typing import Optional as TOptional
 
-from pyparsing import Literal, Regex, Word, lineStart, nums, one_of
+from pyparsing import (
+    And,
+    CaselessLiteral,
+    Empty,
+    Forward,
+    LineStart,
+    Literal,
+    Located,
+    MatchFirst,
+    OneOrMore,
+    Or,
+    ParseBaseException,
+    ParserElement,
+    Regex,
+    StringStart,
+    TokenConverter,
+    Word,
+    ZeroOrMore,
+    lineStart,
+    nums,
+    one_of,
+)
 from pyparsing import Optional as PpOptional
 
 # Enable packrat parsing for better performance
 try:
-    from pyparsing import ParserElement
     ParserElement.enable_packrat()
 except Exception:
     # Packrat is an optimization; if it is unavailable or fails, fall back to
@@ -333,6 +353,123 @@ def _values_in_range(d):
     return True
 
 
+# Digits, separators and spaces: what the numeric parts of a date are made of.
+# A grammar element that matches nowhere in this string needs a letter.
+_NON_LETTER_PROBE = "0123456789 .,/-:+'‘’()[]|"
+
+
+class _GrammarNeeds(NamedTuple):
+    """What a text must contain for a grammar to match it at position 0.
+
+    ``words`` holds one set of regexes per required element that needs a
+    letter (a month or weekday name list); from each set, one regex must be
+    found in the text. ``first`` is the set of characters such a match can
+    start with when the text does not start with whitespace, or ``None`` when
+    it is not known.
+    """
+    words: frozenset
+    first: TOptional[frozenset]
+
+
+_NO_NEEDS = _GrammarNeeds(frozenset(), None)
+
+
+def _grammar_needs(expr: ParserElement, cache: dict[int, tuple[Any, _GrammarNeeds]]) -> _GrammarNeeds:
+    """Return the :class:`_GrammarNeeds` of the pyparsing grammar ``expr``.
+
+    Both are necessary conditions: a text that lacks one cannot match, so
+    ``_match_candidates`` skips the grammar without running it. Elements this
+    function does not know contribute nothing, which only weakens the check.
+
+    ``cache`` maps ``id(element)`` to ``(element, needs)``, so a base grammar
+    shared by its generated variants is analysed once.
+    """
+    entry = cache.get(id(expr))
+    if entry is not None and entry[0] is expr:
+        return entry[1]
+    # Placeholder for a grammar that refers to itself through a ``Forward``.
+    cache[id(expr)] = (expr, _NO_NEEDS)
+    needs = _NO_NEEDS
+    if isinstance(expr, Regex):
+        # ``one_of`` compiles a month or weekday list to one regex, which is
+        # what the element matches with, so searching with it is exact.
+        if expr.re.search(_NON_LETTER_PROBE) is None:
+            needs = _GrammarNeeds(frozenset({frozenset({expr.re})}), None)
+    elif isinstance(expr, Word):
+        needs = _GrammarNeeds(frozenset(), frozenset(expr.initChars))
+    elif isinstance(expr, Literal) and not isinstance(expr, CaselessLiteral):
+        if expr.match:
+            needs = _GrammarNeeds(frozenset(), frozenset(expr.match[0]))
+    elif isinstance(expr, (LineStart, StringStart, Empty)):
+        # Match without consuming a character.
+        needs = _GrammarNeeds(frozenset(), frozenset())
+    elif isinstance(expr, And):
+        parts = [_grammar_needs(part, cache) for part in expr.exprs]
+        # Every part is required, so are their words. The text starts with
+        # the first part that cannot match empty, or with an empty-matching
+        # part before it.
+        starts: set = set()
+        start_known = False
+        for part, part_needs in zip(expr.exprs, parts):
+            if part_needs.first is None:
+                break
+            starts |= part_needs.first
+            if not part.mayReturnEmpty:
+                start_known = True
+                break
+        needs = _GrammarNeeds(
+            frozenset().union(*(p.words for p in parts)),
+            frozenset(starts) if start_known else None)
+    elif isinstance(expr, (MatchFirst, Or)):
+        alternatives = [_grammar_needs(alt, cache) for alt in expr.exprs]
+        # Any alternative may match. Each one that needs words finds one of
+        # its regexes, so one regex of all of them must be found, provided
+        # every alternative needs words.
+        words: frozenset = frozenset()
+        if alternatives and all(alt.words for alt in alternatives):
+            words = frozenset({frozenset(
+                rx for alt in alternatives for regexes in alt.words for rx in regexes)})
+        firsts = [alt.first for alt in alternatives if alt.first is not None]
+        needs = _GrammarNeeds(
+            words,
+            frozenset().union(*firsts)
+            if alternatives and len(firsts) == len(alternatives) else None)
+    elif isinstance(expr, (PpOptional, ZeroOrMore)):
+        # Not required, but when present the match starts with it.
+        if expr.expr is not None:
+            needs = _GrammarNeeds(frozenset(), _grammar_needs(expr.expr, cache).first)
+    elif isinstance(expr, (TokenConverter, OneOrMore, Located, Forward)):
+        # Wrappers that require their element (``Suppress``, ``Combine``, …).
+        if expr.expr is not None:
+            needs = _grammar_needs(expr.expr, cache)
+    cache[id(expr)] = (expr, needs)
+    return needs
+
+
+def _may_match(grammar: ParserElement, text: str,
+               cache: dict[int, tuple[Any, _GrammarNeeds]], found: dict) -> bool:
+    """Return False when ``grammar`` cannot match ``text`` at position 0.
+
+    ``text`` is the text with tabs expanded, as pyparsing reads it. ``cache``
+    is the ``_grammar_needs`` cache; ``found`` caches, for this text, whether
+    a set of regexes is found in it.
+    """
+    needs = _grammar_needs(grammar, cache)
+    # An element after the first one skips whitespace before it, so a text
+    # starting with whitespace may start a match with a different character.
+    first_char = text[:1]
+    if (needs.first is not None and first_char not in needs.first
+            and not first_char.isspace() and not grammar.mayReturnEmpty):
+        return False
+    for regexes in needs.words:
+        hit = found.get(regexes)
+        if hit is None:
+            hit = found[regexes] = any(rx.search(text) for rx in regexes)
+        if not hit:
+            return False
+    return True
+
+
 def _pattern_language(pattern):
     """Return a pattern's language, resolving generated variants via ``basekey``.
 
@@ -533,6 +670,11 @@ class DateParser:
             self.__generate(base_only)
         # Generation order; breaks priority ties in ``_match_candidates``.
         self._pattern_rank = {p["key"]: i for i, p in enumerate(self.patterns)}
+        # Filled on first use by ``_match_candidates``, keyed by the grammar's
+        # ``id``: what each grammar needs from a text (see ``_grammar_needs``)
+        # and the grammar wrapped to report where its match starts and ends.
+        self._needs_cache: dict[int, tuple[Any, _GrammarNeeds]] = {}
+        self._anchored_grammars: dict[int, tuple[Any, Located]] = {}
         self._build_length_index()
         self._build_separator_index()
         self._build_year_format_index()
@@ -683,7 +825,7 @@ class DateParser:
         if not base_only:
             for pat in base:
                 # Right: the date followed by any text. The trailing text is
-                # left unconsumed (scan_string accepts a prefix match), so the
+                # left unconsumed (parse_string accepts a prefix match), so the
                 # match end marks where the date stops and match() can compare
                 # it with the other candidates'.
                 data = {**pat}
@@ -1418,7 +1560,8 @@ class DateParser:
                       nolanguagefilter=False):
         """Yield ``(priority, end, result)`` for every candidate pattern matching
         ``text`` at position 0, highest priority first. ``end`` is where the
-        match stops, not counting trailing whitespace.
+        match stops, not counting trailing whitespace, in ``text`` with tabs
+        expanded (pyparsing matches against ``text.expandtabs()``).
 
         Shared engine behind :meth:`match` and :meth:`match_all`. Components are
         sanity-checked (month/day/hour/minute/second ranges) before yielding.
@@ -1455,6 +1598,16 @@ class DateParser:
             return self._filter_patterns_fingerprint(text, len(text), **flags)
         return self._filter_patterns_hierarchical(text, len(text), **flags)
 
+    def _anchored(self, grammar):
+        """Return ``grammar`` wrapped in ``Located``, which reports where the
+        match starts and ends (``locn_start``/``locn_end``) and the grammar's
+        own results as ``value``."""
+        entry = self._anchored_grammars.get(id(grammar))
+        if entry is None or entry[0] is not grammar:
+            entry = (grammar, Located(grammar))
+            self._anchored_grammars[id(grammar)] = entry
+        return entry[1]
+
     def _match_candidates(self, text, pats, allow_no_year, tried):
         """Yield ``(priority, end, result)`` for the patterns in ``pats`` that
         match ``text`` at position 0, highest priority first.
@@ -1465,6 +1618,21 @@ class DateParser:
         if not pats:
             return
         n = len(text)
+        # ``parse_string`` expands tabs before matching; check what a grammar
+        # needs against the same string.
+        expanded = text.expandtabs()
+        found = {}
+
+        # Cheap checks before ranking: the length bounds, then the character
+        # the date starts with and the month or weekday names it contains.
+        # Most text that is not a date ("Page 2 of 10") fails them before any
+        # grammar runs. Only patterns that cannot match are dropped.
+        pats = [
+            p for p in pats
+            if p["length"]["min"] <= n <= p["length"]["max"]
+            and (allow_no_year or not p.get("noyear", False))
+            and _may_match(p["pattern"], expanded, self._needs_cache, found)
+        ]
 
         # Sort patterns by priority (try most likely patterns first). Ties
         # keep the generation order: the two filters return candidates in
@@ -1475,28 +1643,35 @@ class DateParser:
             key=lambda item: (-item[0], rank.get(item[1]["key"], len(rank))))
 
         for _score, p in scored:
-            # Cache dictionary lookups
-            length_min = p["length"]["min"]
-            length_max = p["length"]["max"]
-            if n < length_min or n > length_max:
-                continue
-            if not allow_no_year:
-                if p.get("noyear", False):
-                    continue
             if p["key"] in tried:
                 continue
             tried.add(p["key"])
-            match_data = next(p["pattern"].scan_string(text, max_matches=1), None)
-            if match_data is None:
+            grammar = p["pattern"]
+            # ``scan_string`` skipped the grammar's whitespace characters
+            # before a match, so a text starting with one never matched at 0.
+            # ``Located`` does not skip them for a grammar that starts with
+            # ``LineStart`` (the ``:t_right`` variants); keep that rule.
+            if expanded[:1] in grammar.whiteChars:
                 continue
-            r, start, end = match_data
-            if start != 0:
+            # Parse at position 0 only. ``scan_string`` also tried every later
+            # position of a text that does not start with a date, only for the
+            # match to be discarded.
+            try:
+                located = self._anchored(grammar).parse_string(text)
+            except ParseBaseException:
                 continue
+            # Leading whitespace is skipped before the match; the date must
+            # start the text.
+            if located.locn_start != 0:
+                continue
+            r, end = located.value, located.locn_end
             if not _values_in_range(r.as_dict()):
                 continue
             # An optional element that matches nothing still skips the
             # whitespace before it; that whitespace is not part of the date.
-            while end > 0 and text[end - 1].isspace():
+            # ``end`` counts in the expanded text: indexing ``text`` with it
+            # raised IndexError for "5\tMay 2022".
+            while end > 0 and expanded[end - 1].isspace():
                 end -= 1
             yield _score, end, {"values": r, "pattern": p}
 
@@ -1549,8 +1724,8 @@ class DateParser:
         # Patterns are not anchored at the end, so without this a partial
         # match with a length bonus beat a complete one. Candidates come in
         # priority order: keep the first of each length and stop once one
-        # covers the whole text.
-        n = len(text.rstrip())
+        # covers the whole text. ``end`` counts in the tab-expanded text.
+        n = len(text.expandtabs().rstrip())
         best = None
         for _score, end, result in self._iter_matches(
                 text, noprefix=noprefix, allow_no_year=allow_no_year,

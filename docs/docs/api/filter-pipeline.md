@@ -8,7 +8,9 @@ description: "How DateParser narrows 1,000+ generated patterns to the active val
 Every parse first narrows the pattern catalog to a short list of candidates,
 then runs pyparsing only on those. The narrowing is described as six filter
 levels, from cheapest to most selective, so the bulk of the catalog is dropped
-before the slow pyparsing `scan_string` step ever runs.
+before the slow pyparsing step ever runs. A last check before each grammar
+(see [Before the grammar runs](#before-the-grammar-runs)) drops the
+candidates the text cannot match.
 
 | # | Filter | Default state | Disable flag | What it does |
 |---|---|---|---|---|
@@ -47,6 +49,29 @@ Without filtering, every parse would run 1,000+ scans.
 
 The filters reduce the average parse to **1–5 pyparsing scans**, which is what
 makes `qddate` fast by design.
+
+## Before the grammar runs
+
+The filters look at the text as a whole (its length, scripts, separators).
+Text that is not a date but looks like one to them, such as `Comments (12)`
+or `Price: 1 200 руб.`, can still keep hundreds of candidates. So each
+candidate is checked against two facts read from its grammar once:
+
+- the characters a match can start with (a digit for `01.12.2009`), and
+- the month or weekday names it requires, at least one of which must occur
+  in the text.
+
+A candidate that fails either check cannot match and is skipped without
+running pyparsing. Such text now usually runs no grammar at all. The checks
+change no result; `tests/test_match_prefilter.py` renders every grammar and
+compares results with the checks switched off.
+
+The grammar itself is then parsed at position 0 only. Releases up to
+`1.0.17` scanned it from every position of the text and discarded a match
+that did not start at position 0.
+
+Compared with `1.0.17`, these cut `match()` on text without a date from
+5–50 ms to under 1 ms, and on dates by about 4×.
 
 ## Language detection
 

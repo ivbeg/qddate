@@ -4,7 +4,30 @@ All notable changes to this project are tracked here.
 
 ## Unreleased
 
+**Performance**
+- `match()` / `match_all()` / `parse()` parse each candidate grammar at the
+  start of the text only. They used `scan_string`, which tried every later
+  position of a text that does not start with a date, and then discarded the
+  match because it did not start at position 0.
+- Before running a grammar, the parser checks two facts read from it once:
+  the characters its match can start with, and the month or weekday names it
+  requires. A candidate the text cannot satisfy is skipped. Text without a
+  date (`Comments (12)`, `Price: 1 200 руб.`) used to run up to 745 grammars
+  and now usually runs none. The checks only skip grammars that cannot
+  match.
+- Measured on an Apple M-series machine against `1.0.17`: `match()` on text
+  without a date drops from 5–50 ms to 0.1–0.7 ms, on dates by about 4×. On
+  `benchmarks/test_data.csv` and `benchmarks/webpage_test_data.csv` (54,565
+  rows) a full comparison takes 3.5 s instead of 52 s per shard. No row
+  changes its `match()`, `parse()` or `match_all()` result, with any filter
+  flag, on the legacy filter, with `languages=` or in a session.
+  newsworker's 232-page extraction corpus runs in 1.3 s instead of 21.2 s.
+
 **Fixes**
+- `match()` and `parse()` no longer raise `IndexError` on a text with a tab
+  after the date's first character (`5\tMay 2022`, `01.12.2009\t10:20`).
+  pyparsing matches the text with tabs expanded, and the match end was used
+  as an index into the original text.
 - Disabling a filter on the default (fingerprint) parser widens the
   candidate set again, as it does on the legacy path. Since `1.0.14`,
   `nocharsetfilter=True` made every parse return `None`, and
@@ -97,6 +120,12 @@ All notable changes to this project are tracked here.
   when a declared length limit rejects a rendered date. Every pattern
   passes it now except `date_5`/`date_6`, whose grammar also accepts
   space-separated digit groups.
+- `tests/test_match_prefilter.py` renders every generated grammar (104,880
+  texts) and checks that each text it matches passes its pre-grammar checks,
+  compares `match_all()` with the checks switched off, and asserts that text
+  without a date runs no grammar.
+- `tests/test_performance_smoke.py` (`QDDATE_PERF=1`) also bounds the mean
+  `match()` latency on text without a date (5 ms; under 1 ms locally).
 
 **Benchmarks**
 - `benchmarks/generate_test_data.py` uses a fixed seed and no longer emits
