@@ -15,11 +15,11 @@ contract of automatic language detection used internally for pattern filtering.
 ### Requirement: Supported languages
 
 The library SHALL support exactly the following language codes: `bg`, `cz`, `de`,
-`en`, `es`, `fr`, `it`, `nl`, `pl`, `pt`, `ro`, `ru`, `tr`, `uk`.
+`en`, `es`, `fr`, `it`, `nl`, `pl`, `pt`, `ro`, `ru`, `sk`, `tr`, `uk`.
 
 #### Scenario: Querying supported languages
 - **WHEN** the list of supported languages is read
-- **THEN** it SHALL contain all fourteen codes listed above
+- **THEN** it SHALL contain all fifteen codes listed above
 
 ---
 
@@ -136,6 +136,31 @@ The candidate index for a set of languages SHALL be built once per parser
 - **WHEN** `parse("05/13/2022", languages="ru")` is called
 - **THEN** the result SHALL equal `datetime.datetime(2022, 5, 13)` (read by
   the English `date_usa`)
+
+---
+
+### Requirement: Day with a dot in Czech, Slovak and Polish
+
+Czech, Slovak and Polish month-name dates SHALL accept a dot after the day
+(`5. května 2022`, `5. mája 2022`, `5. maja 2022`) as well as no dot. Slovak
+SHALL read the nominative and genitive month names (`máj`, `mája`), capitalised
+or lower-case, with a four-digit year. Slovak month names shared with another
+language (`august`, `september`, `november`, `december`, `marca`) SHALL NOT
+claim Slovak in language detection.
+
+#### Scenario: Czech day with a dot
+- **WHEN** `parse("5. května 2022")` or `parse("1. ledna 2020")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5)` or
+  `datetime.datetime(2020, 1, 1)`
+
+#### Scenario: Slovak genitive
+- **WHEN** `match_typed("5. mája 2022")` is called
+- **THEN** its `datetime` SHALL equal `datetime.datetime(2022, 5, 5)` and its
+  `language` SHALL be `"sk"`
+
+#### Scenario: Polish day with a dot
+- **WHEN** `parse("5. maja 2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5)`
 
 ---
 

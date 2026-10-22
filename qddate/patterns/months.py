@@ -212,6 +212,25 @@ MONTHS_BY_LANGUAGE: Mapping[str, LanguageMonths] = {
         genitive_lc=("ledna", "února", "března", "dubna", "května", "června",
                       "července", "srpna", "září", "října", "listopadu", "prosince"),
     ),
+    "sk": LanguageMonths(
+        code="sk",
+        full=("Január", "Február", "Marec", "Apríl", "Máj", "Jún",
+              "Júl", "August", "September", "Október", "November", "December"),
+        full_lc=("január", "február", "marec", "apríl", "máj", "jún",
+                 "júl", "august", "september", "október", "november", "december"),
+        # Like Czech, no abbreviations: dates use the genitive after the day.
+        abbrev=(),
+        abbrev_lc=(),
+        genitive=("Januára", "Februára", "Marca", "Apríla", "Mája", "Júna",
+                  "Júla", "Augusta", "Septembra", "Októbra", "Novembra", "Decembra"),
+        genitive_lc=("januára", "februára", "marca", "apríla", "mája", "júna",
+                      "júla", "augusta", "septembra", "októbra", "novembra", "decembra"),
+        # Shared with English/German/Dutch ("august", "september", …) and
+        # the Polish genitive ("marca"); all map to the same month.
+        detect_excludes=("August", "august", "September", "september",
+                         "November", "november", "December", "december",
+                         "Marca", "marca"),
+    ),
     "ro": LanguageMonths(
         code="ro",
         full=("Ianuarie", "Februarie", "Martie", "Aprilie", "Mai", "Iunie",

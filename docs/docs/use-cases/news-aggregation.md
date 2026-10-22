@@ -12,7 +12,7 @@ lets a crawler attach a timestamp to each reconstructed item.
 
 - The candidate is a **publication date**, not a relative phrase.
 - It appears at the **start** of the extracted string.
-- Language coverage is the 14 supported codes, not every locale on earth.
+- Language coverage is the 15 supported codes, not every locale on earth.
 
 Relative labels ("2 hours ago") need a different tool. See
 [when to use](/getting-started/when-to-use).

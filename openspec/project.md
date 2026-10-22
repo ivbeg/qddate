@@ -48,7 +48,7 @@ These out-of-scope items are revisited as proposed changes under `openspec/chang
 - About 140 base patterns → about 1,100 generated patterns (time and
   trailing-text variants). Exact counts live in the README stats block, which
   `scripts/generate_readme_stats.py` generates and CI checks.
-- 14 languages: bg, cz, de, en, es, fr, it, nl, pl, pt, ro, ru, tr, uk.
+- 15 languages: bg, cz, de, en, es, fr, it, nl, pl, pt, ro, ru, sk, tr, uk.
 - See `openspec/specs/` for the authoritative behavioral specification.
 
 ## Specification pointers

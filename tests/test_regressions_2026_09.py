@@ -378,6 +378,10 @@ _PROBE_STRINGS = [
     "Sept. 5, 2022",                  # date_eng5
     "5th Sept 2022",                  # date_eng6
     "5-May-2022",                     # date_eng4
+    "5. Máj 2022",                    # sk_base
+    "5. máj 2022",                    # sk_base_lc
+    "5. Mája 2022",                   # sk_gen
+    "5. mája 2022",                   # sk_gen_lc
     "5 May",                          # date_eng_noyear_dm
 ]
 

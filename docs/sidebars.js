@@ -67,6 +67,7 @@ const sidebars = {
         'languages/pt',
         'languages/ro',
         'languages/ru',
+        'languages/sk',
         'languages/tr',
         'languages/uk',
       ],

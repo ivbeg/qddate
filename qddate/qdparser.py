@@ -110,6 +110,7 @@ _PORTUGUESE_MONTHS = _lang_month_names("pt")
 _ROMANIAN_MONTHS = _lang_month_names("ro")
 _UKRAINIAN_MONTHS = _lang_month_names("uk")
 _CZECH_MONTHS = _lang_month_names("cz")
+_SLOVAK_MONTHS = _lang_month_names("sk")
 _POLISH_MONTHS = _lang_month_names("pl")
 _ENGLISH_MONTHS = _lang_month_names("en")
 _GERMAN_MONTHS = _lang_month_names("de")
@@ -141,6 +142,7 @@ _LATIN_DETECTION: tuple[tuple[str, frozenset[str]], ...] = (
     ("pt", _PORTUGUESE_MONTHS),
     ("cz", _CZECH_MONTHS),
     ("pl", _POLISH_MONTHS),
+    ("sk", _SLOVAK_MONTHS),
     ("ro", _ROMANIAN_MONTHS),
     ("en", _ENGLISH_MONTHS),
     ("nl", _DUTCH_MONTHS),
@@ -217,6 +219,7 @@ LANGUAGE_CHAR_SETS = {
     'pt': {CHAR_SET_DIGITS, CHAR_SET_ACCENTED},
     'ro': {CHAR_SET_DIGITS, CHAR_SET_LATIN},
     'uk': {CHAR_SET_DIGITS, CHAR_SET_CYRILLIC},
+    'sk': {CHAR_SET_DIGITS, CHAR_SET_ACCENTED},
     'de': {CHAR_SET_DIGITS, CHAR_SET_LATIN},  # may have umlauts but treated as latin
     'tr': {CHAR_SET_DIGITS, CHAR_SET_LATIN},
     'en': {CHAR_SET_DIGITS, CHAR_SET_LATIN},
@@ -1384,7 +1387,7 @@ class DateParser:
                             for token in [
                                 "eng", "rus", "fr", "de", "es", "it", "pt", "bg",
                                 "cz", "pl", "tr", "nl", "ro", "weekday", "rare",
-                                "uk",
+                                "uk", "sk",
                             ]
                         ):
                             if 'space' in separators or 'mixed' in separators:

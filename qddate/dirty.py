@@ -62,7 +62,7 @@ def _build_buckets():
     # alpha: all language-tagged patterns. English + the historical core.
     alpha_english_full = _u("en", "pt", "es", "it", "fr", "ro", "uk",
                             "de", "nl")  # anything that resolves to "alpha English" view
-    alpha_non_english = _u("ru", "bg", "cz", "pl", "tr")  # Cyrillic / mixed-script
+    alpha_non_english = _u("ru", "bg", "cz", "pl", "tr", "sk")  # Cyrillic / mixed-script
     all_alpha = alpha_english_full | alpha_non_english
 
     # Digit-separator: patterns whose separator is slash/dot/dash/none/mixed.
@@ -76,7 +76,7 @@ def _build_buckets():
     # patterns that can't actually match, so over-inclusion is safe.
     default_digit = _u("slash", "dot", "dash", "none", "mixed",
                        "en", "pt", "es", "it", "fr", "ro", "uk",
-                       "de", "nl", "ru", "bg", "cz", "pl", "tr")
+                       "de", "nl", "ru", "bg", "cz", "pl", "tr", "sk")
 
     # Aliases the old `matchPrefix()` used (named groups for clarity).
     return {

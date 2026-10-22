@@ -18,8 +18,8 @@ Full documentation is published at [ivbeg.github.io/qddate](https://ivbeg.github
 ## Features
 
 <!-- BEGIN qddate-stats -->
-- 1,716 generated date patterns (from 143 base patterns)
-- 14 supported languages
+- 1,764 generated date patterns (from 147 base patterns)
+- 15 supported languages
 <!-- END qddate-stats -->
 - Multi-language parsing (English, Romanian, Ukrainian, Russian, Spanish, and more)
 - Handles left-aligned dates with trailing text: `12.03.1999 some text here`
@@ -128,6 +128,7 @@ pip install -e ".[bench]"   # adds dateparser, python-dateutil, arrow, pendulum
 - Portuguese
 - Romanian
 - Russian
+- Slovak
 - Spanish
 - Turkish
 - Ukrainian
@@ -137,6 +138,6 @@ pip install -e ".[bench]"   # adds dateparser, python-dateutil, arrow, pendulum
 The original parser dates back to 2008 and evolved from regular expressions into pyparsing over time. Thanks to the [ScrapingHub](https://github.com/scrapinghub/dateparser) team for the inspiration to clean up the code, documentation, and build tooling, and for motivating the public release.
 
 <!-- BEGIN qddate-stats -->
-- 1,716 generated date patterns (from 143 base patterns)
-- 14 supported languages
+- 1,764 generated date patterns (from 147 base patterns)
+- 15 supported languages
 <!-- END qddate-stats -->

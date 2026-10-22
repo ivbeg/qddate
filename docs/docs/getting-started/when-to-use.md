@@ -35,7 +35,7 @@ others when you want broader natural-language coverage or calendar math.
 |---------|------------|--------------|----------|
 | Primary goal | Robust extensions to `datetime` | Universal coverage | High-throughput HTML dates |
 | Approach | Lexer + heuristics | Locale translation + heuristics | Pattern matching + pre-filtering |
-| Language support | English + custom `parserinfo` | ~200 locales | 14 languages, manual patterns |
+| Language support | English + custom `parserinfo` | ~200 locales | 15 languages, manual patterns |
 | Relative dates | No (math via `relativedelta`) | Yes | No |
 | Dependencies | Light | Heavy | Light (`pyparsing`) |
 | Best for | Standard apps, calendars | User input, chatbots | Web scraping, bulk corpora |

@@ -1,6 +1,6 @@
 ---
 title: "Languages and patterns"
-description: "Fourteen languages, base patterns, and generated time variants"
+description: "Fifteen languages, base patterns, and generated time variants"
 ---
 # Languages and patterns
 
@@ -19,12 +19,13 @@ pattern table and tests — not by loading CLDR at runtime.
 | `it` | Italian | Month names, weekdays |
 | `nl` | Dutch | Full and short months, weekdays |
 | `pt` | Portuguese | Articles |
-| `pl` | Polish | Nominative and genitive |
-| `cz` | Czech | Nominative and genitive |
+| `pl` | Polish | Nominative and genitive, optional dot after the day |
+| `cz` | Czech | Nominative and genitive, day with a dot (`5. května 2022`) |
 | `bg` | Bulgarian | Cyrillic month names |
 | `tr` | Turkish | Month names, optional suffixes |
 | `ro` | Romanian | Full and CLDR-abbreviated months |
 | `uk` | Ukrainian | Nominative, genitive, abbreviated |
+| `sk` | Slovak | Nominative and genitive, day with a dot (`5. mája 2022`) |
 
 Language-neutral numeric patterns (ISO-like `YYYY-MM-DD`, `dd.mm.yyyy`, compact
 digits) live with the English table but are available regardless of month-name
@@ -32,7 +33,7 @@ language.
 
 ## How many patterns?
 
-The catalog is **base patterns × generated variants** (143 base patterns in the current tree). Each base date pattern can expand with a time after it (`HH:MM` or `14h30`, `HH:MM:SS`, `[HH:MM]`, the 12-hour clock), a time before it, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
+The catalog is **base patterns × generated variants** (147 base patterns in the current tree). Each base date pattern can expand with a time after it (`HH:MM` or `14h30`, `HH:MM:SS`, `[HH:MM]`, the 12-hour clock), a time before it, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
 
 Regenerate the per-language tables after pattern changes:
 

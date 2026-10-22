@@ -25,6 +25,15 @@ All notable changes to this project are tracked here.
   patterns read only forms no older pattern reads, so `Sept 5, 2022`
   (`fr_short_monthfirst`), `5th Dec 2022` and `May 5th, 2022` keep their
   pattern.
+- A dot after the day in Czech (`5. května 2022`, `1. ledna 2020`, the
+  standard spelling) and Polish (`5. maja 2022`); both returned `None`, while
+  `5 května 2022` already parsed. German already read `5. Mai 2022`.
+- Slovak (`sk`), the fifteenth language: `5. mája 2022`, `1. januára 2020`,
+  `12. septembra 2022`, nominative and genitive, capitalised or lower-case,
+  with or without the dot (`dt:date:sk_base`, `sk_base_lc`, `sk_gen`,
+  `sk_gen_lc`). Month names shared with English, German, Dutch or the Polish
+  genitive (`august`, `september`, `marca`) do not claim Slovak, so
+  `5 September 2022` stays English.
 
 **Time formats** (Q5–Q8 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
 - The 12-hour clock after a date: `AM`/`PM`, `am`/`pm`, `a.m.`/`p.m.`,

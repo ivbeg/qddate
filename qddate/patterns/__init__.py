@@ -20,13 +20,15 @@ from .pl import PATTERNS_PL
 from .pt import PATTERNS_PT
 from .ro import PATTERNS_RO
 from .ru import PATTERNS_RU, RUS_TIME_PREFIXES
+from .sk import PATTERNS_SK
 from .tr import PATTERNS_TR
 from .uk import PATTERNS_UK
 
 ALL_PATTERNS = (PATTERNS_EN + INTEGER_LIKE_PATTERNS + PATTERNS_BG +
                 PATTERNS_CZ + PATTERNS_DE + PATTERNS_ES + PATTERNS_FR +
                 PATTERNS_IT + PATTERNS_NL + PATTERNS_PL + PATTERNS_PT +
-                PATTERNS_RO + PATTERNS_RU + PATTERNS_TR + PATTERNS_UK)
+                PATTERNS_RO + PATTERNS_RU + PATTERNS_TR + PATTERNS_UK +
+                PATTERNS_SK)
 
 
 # Authoritative per-pattern metadata: basekey -> (language, separator).
@@ -209,6 +211,11 @@ _PATTERN_METADATA = {
     # Turkish (tr.py)
     'dt:date:tr_base': ('tr', 'space'),
     'dt:date:tr_base_lc': ('tr', 'space'),
+    # Slovak (sk.py)
+    'dt:date:sk_base': ('sk', 'space'),
+    'dt:date:sk_base_lc': ('sk', 'space'),
+    'dt:date:sk_gen': ('sk', 'space'),
+    'dt:date:sk_gen_lc': ('sk', 'space'),
 }
 
 
@@ -279,6 +286,7 @@ LANGUAGE_CHAR_SETS = {
     "tr": frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}),
     "ro": frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}),
     "uk": frozenset({CHAR_SET_DIGITS, CHAR_SET_CYRILLIC}),
+    "sk": frozenset({CHAR_SET_DIGITS, CHAR_SET_ACCENTED}),
 }
 
 
@@ -317,6 +325,7 @@ SUPPORTED_LANGUAGES = [
     "pt",
     "ro",
     "ru",
+    "sk",
     "tr",
     "uk",
 ]
@@ -355,6 +364,7 @@ PATTERNS_BY_LANGUAGE = {
     "pt": PATTERNS_PT,
     "ro": PATTERNS_RO,
     "ru": PATTERNS_RU,
+    "sk": PATTERNS_SK,
     "tr": PATTERNS_TR,
     "uk": PATTERNS_UK,
 }

@@ -41,6 +41,9 @@ def _legacy_infer_language(basekey):
         return "tr"
     elif "_nl" in basekey or "nl_" in basekey:
         return "nl"
+    elif "_sk" in basekey or "sk_" in basekey:
+        # Added with Slovak (2026-10); not part of the pre-refactor code.
+        return "sk"
     elif "_eng" in basekey or "eng" in basekey or "date_usa" in basekey:
         return "en"
     return None
@@ -65,7 +68,7 @@ def _legacy_infer_separator(basekey):
     if any(x in basekey for x in ["date_5", "date_6", "date_7"]):
         return "none"
     if any(x in basekey for x in ["eng", "rus", "fr", "de", "es", "it", "pt", "ro",
-                                  "bg", "cz", "pl", "tr", "nl", "ro", "uk", "weekday"]):
+                                  "bg", "cz", "pl", "tr", "nl", "ro", "uk", "sk", "weekday"]):
         return "space"
     return "mixed"
 
@@ -188,7 +191,7 @@ def test_infer_char_sets_matches_legacy_output():
         script = {"ru": "cyrillic", "bg": "cyrillic", "fr": "accented", "cz": "accented",
                   "pl": "accented", "es": "accented", "it": "accented", "pt": "accented",
                   "de": "latin", "tr": "latin", "en": "latin", "nl": "latin",
-                  "ro": "latin", "uk": "cyrillic"}.get(lang)
+                  "ro": "latin", "uk": "cyrillic", "sk": "accented"}.get(lang)
         return expected_map.get(script, expected_map["latin"])
 
     mismatches = []

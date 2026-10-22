@@ -27,6 +27,7 @@ from qddate.patterns import (
     PATTERNS_PL,
     PATTERNS_PT,
     PATTERNS_RU,
+    PATTERNS_SK,
     PATTERNS_TR,
     base,
     bg,
@@ -39,6 +40,7 @@ from qddate.patterns import (
     pl,
     pt,
     ru,
+    sk,
     tr,
 )
 
@@ -70,6 +72,7 @@ LANGUAGE_NAMES = {
     'cz': 'Czech',
     'pl': 'Polish',
     'ro': 'Romanian',
+    'sk': 'Slovak',
     'tr': 'Turkish',
     'uk': 'Ukrainian',
 }
@@ -88,6 +91,7 @@ PATTERN_COLLECTIONS = {
     'pt': PATTERNS_PT,
     'ro': PATTERNS_RO,
     'ru': PATTERNS_RU,
+    'sk': PATTERNS_SK,
     'tr': PATTERNS_TR,
     'uk': PATTERNS_UK,
 }
@@ -106,6 +110,7 @@ LANG_MONTHS = {
     'bg': {'full': bg.BG_MONTHS, 'lc': bg.BG_MONTHS_LC},
     'cz': {'full': cz.CZ_MONTHS, 'lc': cz.CZ_MONTHS_LC, 'gen': cz.CZ_MONTHS_GEN, 'gen_lc': cz.CZ_MONTHS_GEN_LC},
     'pl': {'full': pl.PL_MONTHS, 'lc': pl.PL_MONTHS_LC, 'gen': pl.PL_MONTHS_GEN, 'gen_lc': pl.PL_MONTHS_GEN_LC},
+    'sk': {'full': sk.SK_MONTHS, 'lc': sk.SK_MONTHS_LC, 'gen': sk.SK_MONTHS_GEN, 'gen_lc': sk.SK_MONTHS_GEN_LC},
     'tr': {'full': tr.TR_MONTHS, 'lc': tr.TR_MONTHS_LC},
 }
 

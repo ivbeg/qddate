@@ -11,7 +11,7 @@ ISO-like patterns still participate for the languages you select.
 
 | Value | Effect |
 |-------|--------|
-| `None` (default) | All 14 languages |
+| `None` (default) | All 15 languages |
 | `[]` | Same as all languages (backward compatible) |
 | `"ru"` | Russian month-name patterns plus numeric patterns associated with that filter |
 | `["en", "de"]` | Union of those catalogs |
@@ -26,7 +26,7 @@ DateParser(languages="invalid")  # ValueError
 
 ## Supported codes
 
-`bg`, `cz`, `de`, `en`, `es`, `fr`, `it`, `nl`, `pl`, `pt`, `ro`, `ru`, `tr`, `uk`.
+`bg`, `cz`, `de`, `en`, `es`, `fr`, `it`, `nl`, `pl`, `pt`, `ro`, `ru`, `sk`, `tr`, `uk`.
 
 The live list is `qddate.patterns.SUPPORTED_LANGUAGES`. See the
 [language overview](/languages/).
