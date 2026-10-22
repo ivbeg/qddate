@@ -53,6 +53,23 @@ Romanian `mai` and `august` overlap other languages; unrestricted parsing may
 leave those tokens ambiguous, while `languages="ro"` selects Romanian metadata
 deterministically.
 
+## Per-call hint
+
+`match()`, `match_all()`, `parse()` and `match_typed()` also take
+`languages=`. There it is a preference, not a filter: the patterns of those
+languages and the language-neutral ones run first, and the others only when
+none of them matches. A scraper can keep one parser and pass each page's
+language:
+
+```python
+parser = qddate.DateParser()
+parser.match("18 Juni 1953", languages="de")  # de_base; nl_base without the hint
+parser.parse("5 мая 2022", languages="en")    # still parses: the hint is soft
+```
+
+The candidate index for each set of hinted languages is built on first use
+and kept; the parser is not rebuilt.
+
 ## Related
 
 - [DateParser](/api/dateparser)

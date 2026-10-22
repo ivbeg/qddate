@@ -16,6 +16,8 @@ optional part is tried both absent and present. A rendering counts only when
 the grammar consumes all of it and ``DateParser`` can build a datetime from the
 result (so a Russian date without its optional year does not set the minimum).
 """
+import re
+
 import pyparsing as pp
 import pytest
 
@@ -38,18 +40,41 @@ _EXEMPT = frozenset({
 _KNOWN_NARROW = frozenset()
 
 _MAX_VARIANTS = 4096
+# Up to this many renderings a sequence renders every combination of its parts.
+# Beyond it (dates followed by a 12-hour time and a zone multiply to thousands)
+# the combinations are reduced; see ``_variants``.
+_FULL_PRODUCT = 512
+
+# A lookahead such as "(?![^\W\d_])" (no letter after a zone or AM/PM marker)
+# renders as nothing.
+_LOOKAROUND = re.compile(r"\(\?<?[=!][^)]*\)")
 
 # Tokens written without a space before them.
 _ATTACHED = frozenset({",", ".", ":", ")", "]", "/", "-", " ", "st", "nd", "rd", "th"})
 
 
+def _extremes(variants):
+    """The shortest and the longest of ``variants`` (by rendered length)."""
+    def length(v):
+        return len("".join(v))
+    return list(dict.fromkeys([min(variants, key=length), max(variants, key=length)]))
+
+
 def _variants(expr):
     """Return the token tuples ``expr`` can produce (shortest/longest leaves,
-    every optional part absent and present)."""
+    every optional part absent and present).
+
+    A sequence whose parts combine to more than ``_FULL_PRODUCT`` renderings
+    (a long date followed by a time and a zone in the generated variants)
+    keeps every rendering of each part at least once, and joins the shortest
+    and the longest rendering of the start with every rendering of the next
+    part, so the shortest and the longest texts remain.
+    """
     if isinstance(expr, pp.White):
         return [(" ",)]
-    if isinstance(expr, (pp.LineStart, pp.StringStart, pp.Empty)):
-        # Match without consuming text (``:t_right`` variants start with one).
+    if isinstance(expr, (pp.PositionToken, pp.StringStart, pp.Empty)):
+        # Match without consuming text (``:t_right`` variants start with
+        # ``LineStart``; a zone or AM/PM marker may check the next character).
         return [()]
     if isinstance(expr, pp.Word):
         char = "1" if "1" in expr.initChars else sorted(expr.initChars)[0]
@@ -57,14 +82,19 @@ def _variants(expr):
         longest = expr.maxLen if expr.maxLen < 100 else shortest
         return list(dict.fromkeys([(char * shortest,), (char * longest,)]))
     if isinstance(expr, pp.Regex):
-        # Month and weekday lists compile to plain alternations.
-        if expr.pattern == "[.,]":
-            options = [".", ","]
+        # Month and weekday lists compile to plain alternations, lists of
+        # single characters to a class ("[,|T]").
+        if re.fullmatch(r"\[[^\]]+\]", expr.pattern):
+            options = list(expr.pattern[1:-1].replace("\\", ""))
         else:
-            options = [o.replace("\\", "") for o in expr.pattern.split("|")]
+            options = [_LOOKAROUND.sub("", o).replace("\\", "") for o in expr.pattern.split("|")]
         return list(dict.fromkeys([(min(options, key=len),), (max(options, key=len),)]))
     if isinstance(expr, (pp.Literal, pp.CaselessLiteral)):
         return [(expr.match,)]
+    if isinstance(expr, pp.Combine):
+        # One token without spaces ("+03:00", "GMT+3"): its shortest and
+        # longest forms, like a ``Word``.
+        return _extremes([("".join(v),) for v in _variants(expr.expr)])
     if isinstance(expr, pp.Opt):
         return [()] + _variants(expr.expr)
     if isinstance(expr, (pp.MatchFirst, pp.Or)):
@@ -72,7 +102,13 @@ def _variants(expr):
     if isinstance(expr, pp.And):
         out = [()]
         for part in expr.exprs:
-            out = list(dict.fromkeys(a + b for a in out for b in _variants(part)))
+            tails = _variants(part)
+            if len(out) * len(tails) > _FULL_PRODUCT:
+                pairs = [(a, tails[i % len(tails)]) for i, a in enumerate(out)]
+                pairs += [(a, b) for a in _extremes(out) for b in tails]
+            else:
+                pairs = [(a, b) for a in out for b in tails]
+            out = list(dict.fromkeys(a + b for a, b in pairs))
             assert len(out) <= _MAX_VARIANTS
         return out
     if isinstance(expr, pp.ParseElementEnhance):
@@ -144,3 +180,30 @@ def test_declared_lengths_cover_grammar(grammar_lengths):
 def test_exempt_and_known_keys_exist():
     keys = {p["key"] for p in ALL_PATTERNS}
     assert sorted((_EXEMPT | _KNOWN_NARROW) - keys) == []
+
+
+def test_generated_time_variants_cover_grammar():
+    """The same check for the variants ``DateParser`` generates with a time
+    of day (``:time_1`` … ``:time_4``, ``:time_left``): their bounds add the
+    time, the zone ("GMT+03:00"), the 12-hour marker ("p.m.") and the word
+    before the time ("à", "a las") to the date's bounds. ``:t_right`` variants
+    are left out: their maximum allows 90 characters of any text, and so is
+    ``:time_3``, whose minimum counts the brackets of "[11:23]": without them
+    ``:time_1`` reads the same text, and lowering the minimum only changes
+    which of the two equal matches the exact-length bonus in
+    ``_calculate_pattern_priority`` reports.
+    """
+    parser = DateParser()
+    too_narrow = {}
+    for p in parser.patterns:
+        if (p["key"] == p["basekey"] or p["key"].endswith((":t_right", ":time_3"))
+                or p["basekey"] in _EXEMPT):
+            continue
+        lengths = _usable_lengths(parser, p)
+        assert lengths, p["key"]
+        if min(lengths) < p["length"]["min"] or max(lengths) > p["length"]["max"]:
+            too_narrow[p["key"]] = (p["length"]["min"], p["length"]["max"],
+                                    min(lengths), max(lengths))
+    assert too_narrow == {}, (
+        "Declared (min, max) narrower than the grammar's (shortest, longest): "
+        f"{too_narrow}")

@@ -86,17 +86,17 @@ def test_every_rendered_date_passes_its_grammar_checks(parser):
     for pattern in parser.patterns:
         grammar = pattern["pattern"]
         located = qdparser.Located(grammar)
-        for tokens in _variants(grammar):
-            for tight_dots in (False, True):
-                text = _render(tokens, tight_dots)
-                try:
-                    result = located.parse_string(text)
-                except qdparser.ParseBaseException:
-                    continue
-                if result.locn_start != 0:
-                    continue
-                if not qdparser._may_match(grammar, text, cache, {}):
-                    skipped.append((pattern["key"], text))
+        texts = {_render(tokens, tight_dots)
+                 for tokens in _variants(grammar) for tight_dots in (False, True)}
+        for text in sorted(texts):
+            try:
+                result = located.parse_string(text)
+            except qdparser.ParseBaseException:
+                continue
+            if result.locn_start != 0:
+                continue
+            if not qdparser._may_match(grammar, text, cache, {}):
+                skipped.append((pattern["key"], text))
     assert skipped == []
 
 

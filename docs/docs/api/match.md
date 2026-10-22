@@ -22,6 +22,9 @@ match(
     noseparatorfilter=False,
     noyearformatfilter=False,
     nolanguagefilter=False,
+    *,
+    languages=None,
+    date_order=None,
 )
 ```
 
@@ -41,7 +44,7 @@ positional order differs from `parse()`. Each `no*` flag skips one level of the
 
 On success, a dict with two keys:
 
-- `values` — pyparsing `ParseResults`; items are `int()`-able (`day`, `month`, `year`, and optionally time fields)
+- `values` — pyparsing `ParseResults`; items are `int()`-able (`day`, `month`, `year`, and optionally `hour`, `minute`, `second`), except the optional `timezone`, the zone as written (`+03:00`, `Z`, `GMT+3`, `МСК`; `qddate.qdparser.parse_timezone()` converts it). A 12-hour time is stored as a 24-hour `hour` (`3:45 PM` → `15`)
 - `pattern` — the matched pattern metadata dict, including `key`, `name`, `format`, `length`, and related flags
 
 On failure, `None`.
@@ -63,7 +66,10 @@ between matches of the same length.
 
 - `match_all(text, ...)` returns every matching pattern, ranked the way
   `match()` picks (longest match first, then priority), so you can spot ambiguous dates such as `01/02/2020` (day-first and
-  month-first).
+  month-first). With `languages=`, the matches of those languages come first.
+
+`languages=` and `date_order=` work as described in
+[DateParser](/api/dateparser#per-call-options).
 - `match_typed(text, ...)` returns the best match as a `DateMatch` with the
   datetime already built. See [DateParser](/api/dateparser#datematch).
 

@@ -26,7 +26,10 @@ candidates the text cannot match.
 Since `1.0.14` the default (`use_fingerprint=True`) is the **fingerprint
 filter**: every pattern has a precomputed fingerprint (length range, character
 sets, separator, language, year format), and levels 1–5 run as one walk over
-that index. Level 6, the prefix filter, runs afterwards on the result.
+that index. Level 6, the prefix filter, runs afterwards on the result. The
+walk depends only on the text's fingerprint (length, character sets,
+separators, detected language, year format), so its result is kept per
+fingerprint: the text nodes of a page share a few of them.
 
 The **legacy filter** (`DateParser(use_fingerprint=False)`) runs the six levels
 one after another over separate indexes. It is deprecated, emits
@@ -38,13 +41,16 @@ more candidates than the legacy one, but `match()`, `match_all()` and
 `tests/test_fingerprint_parity.py` checks this under every flag combination.
 
 During a session (`start_session(keys)`), only the session's patterns are
-candidates.
+candidates. With a per-call `languages=` hint, the first pass walks an index
+of the hinted languages' patterns and the language-neutral ones (built once
+per set of languages); the second pass, run only when the first finds nothing,
+walks the rest.
 
 ## Why filter at all
 
-A default `DateParser` carries about 1,100 generated patterns (about 140 base
-patterns, each with time-of-day and trailing-text variants; the README lists
-the exact counts) and a single pyparsing scan costs around a millisecond.
+A default `DateParser` carries about 1,650 generated patterns (about 140 base
+patterns, each with six time-of-day forms and trailing-text variants; the
+README lists the exact counts) and a single pyparsing scan costs around a millisecond.
 Without filtering, every parse would run 1,000+ scans.
 
 The filters reduce the average parse to **1–5 pyparsing scans**, which is what

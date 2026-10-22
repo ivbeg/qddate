@@ -50,9 +50,12 @@ from .dirty import matchPrefix
 from .patterns import (
     _PATTERN_METADATA,
     ALL_PATTERNS,
+    ALL_TIME_PREFIXES,
     BASE_TIME_PATTERNS,
     MONTHS_BY_LANGUAGE,
+    SUPPORTED_LANGUAGES,
     TIME_PREFIXES_BY_LANGUAGE,
+    TIMEZONE_ABBREVIATIONS,
     _infer_required_chars,
     get_patterns_for_languages,
 )
@@ -248,6 +251,10 @@ _PRIORITY_DASH_BOOST = frozenset({
 })
 
 
+# ``DateMatch.datetime`` hides the module name inside the class body.
+_TzInfo = datetime.tzinfo
+
+
 @dataclass
 class DateMatch:
     """Typed result of a successful date match.
@@ -258,6 +265,18 @@ class DateMatch:
     The ``format_date()`` method is the natural inverse of parsing: it formats
     ``self.datetime`` back into the locale-aware string the parser originally
     matched, so the result round-trips through :meth:`DateParser.parse`.
+
+    Fields:
+
+    - ``span``: ``(start, end)`` of the date in ``raw``; ``start`` is always 0
+      (a date must start the text) and ``raw[end:]`` is the text after it.
+    - ``precision``: the finest unit the text states: ``"day"`` (no time),
+      ``"hour"`` ("3 PM"), ``"minute"`` or ``"second"``.
+    - ``tzinfo``: the timezone written in the text (``+03:00``, ``MSK``),
+      or None. Set whether or not the parser has ``tz_aware=True``; only with
+      it is ``datetime`` aware.
+    - ``has_year``: False when the year was not in the text and was taken from
+      the reference (patterns with the ``noyear`` flag).
     """
 
     datetime: datetime.datetime
@@ -265,6 +284,10 @@ class DateMatch:
     language: TOptional[str]
     format: str
     raw: str
+    span: tuple[int, int] = (0, 0)
+    precision: str = "day"
+    tzinfo: TOptional[_TzInfo] = None
+    has_year: bool = True
 
     def to_dict(self) -> dict:
         return {
@@ -273,6 +296,10 @@ class DateMatch:
             "language": self.language,
             "format": self.format,
             "raw": self.raw,
+            "span": self.span,
+            "precision": self.precision,
+            "tzinfo": self.tzinfo,
+            "has_year": self.has_year,
         }
 
     def format_date(self) -> str:
@@ -351,6 +378,164 @@ def _values_in_range(d):
     if second_val is not None and int(second_val) > 59:
         return False
     return True
+
+
+def parse_timezone(text: TOptional[str]) -> TOptional[datetime.timezone]:
+    """Return the fixed-offset timezone written as ``text``, or None.
+
+    ``text`` is the ``timezone`` value of a match: a numeric offset
+    (``+0300``, ``+03:00``, ``-0500``, the legacy three digits ``+300``),
+    ``Z``, ``GMT``/``UTC`` alone or with an offset (``GMT+3``, ``UTC-05:30``)
+    or an abbreviation from ``qddate.patterns.TIMEZONE_ABBREVIATIONS``
+    (``MSK``, ``МСК``, ``CEST``, ``PDT``). An abbreviation's timezone carries
+    its name. Offsets of 24 hours or more, or with minutes above 59, give None.
+    """
+    if not text:
+        return None
+    text = str(text)
+    if text == "Z":
+        return datetime.timezone.utc
+    offset = text
+    after_utc = text[:3] in ("GMT", "UTC")
+    if after_utc:
+        offset = text[3:]
+        if not offset:
+            return datetime.timezone.utc
+    else:
+        minutes = TIMEZONE_ABBREVIATIONS.get(text)
+        if minutes is not None:
+            return datetime.timezone(datetime.timedelta(minutes=minutes), text)
+    if offset[:1] not in ("+", "-") or len(offset) < 2:
+        return None
+    sign = -1 if offset[0] == "-" else 1
+    digits = offset[1:]
+    if ":" in digits:
+        hours_text, minutes_text = digits.split(":", 1)
+    elif after_utc and len(digits) <= 2:
+        # "GMT+3": hours only.
+        hours_text, minutes_text = digits, "0"
+    else:
+        digits = digits.zfill(4)
+        hours_text, minutes_text = digits[:-2], digits[-2:]
+    if not (hours_text.isdigit() and minutes_text.isdigit()):
+        return None
+    hours, minutes = int(hours_text), int(minutes_text)
+    if hours > 23 or minutes > 59:
+        return None
+    return datetime.timezone(sign * datetime.timedelta(hours=hours, minutes=minutes))
+
+
+def _precision(values) -> str:
+    """The finest unit a match states: ``"second"``, ``"minute"``, ``"hour"``
+    (a 12-hour time without minutes, "3 PM") or ``"day"``."""
+    for unit in ("second", "minute", "hour"):
+        if unit in values:
+            return unit
+    return "day"
+
+
+def _original_index(text: str, end: int) -> int:
+    """Map ``end``, an index into ``text.expandtabs()``, back to ``text``."""
+    if "\t" not in text:
+        return end
+    pos = column = 0
+    for i, char in enumerate(text):
+        if pos >= end:
+            return i
+        if char == "\t":
+            step = 8 - column % 8
+        else:
+            step = 1
+        pos += step
+        column = 0 if char in "\r\n" else column + step
+    return len(text)
+
+
+# Numeric patterns by the order they read day, month and year in. With
+# ``date_order=`` the patterns of that order win when several read the same
+# text ("05/06/2022": ``date_1`` day first, ``date_usa`` month first).
+# Dotted and dashed dates have no month-first pattern, so "MDY" leaves them
+# day first; four-digit-year-first dates ("2022-05-06") are not ambiguous.
+_DATE_ORDER_BASEKEYS = {
+    "DMY": frozenset({
+        "dt:date:date_1", "dt:date:date_2", "dt:date:date_4", "dt:date:date_4_point",
+        "dt:date:date_5", "dt:date:date_8", "dt:date:date_iso8601",
+        "dt:date:date_iso8601_short", "dt:date:weekday_eng_iso",
+        "dt:date:weekday_short_eng_iso",
+    }),
+    "MDY": frozenset({"dt:date:date_usa", "dt:date:date_usa_1"}),
+    "YMD": frozenset({
+        "dt:date:date_3", "dt:date:date_6", "dt:date:date_9", "dt:date:date_10",
+    }),
+}
+# Larger than any priority difference, so the order decides between patterns
+# that consume the same text; a longer match still wins.
+_DATE_ORDER_BONUS = 1000
+
+#: A date without a year is moved to the previous year (``prefer="past"``) only
+#: when it lies more than this after the reference, and to the next year
+#: (``prefer="future"``) only when it lies more than this before it; the slack
+#: absorbs timezone differences between the page and the reference.
+NOYEAR_ROLLOVER_GRACE = datetime.timedelta(days=2)
+
+_PREFER_VALUES = (None, "past", "future")
+
+
+def _check_prefer(prefer: TOptional[str]) -> None:
+    """Validate ``prefer=``: None, "past" or "future"."""
+    if prefer not in _PREFER_VALUES:
+        raise ValueError(f"prefer must be 'past', 'future' or None; got {prefer!r}")
+
+
+def _roll_year(dt: datetime.datetime, reference: datetime.datetime,
+               prefer: str) -> TOptional[datetime.datetime]:
+    """Move ``dt``, a date without a written year, to the year ``prefer``
+    asks for relative to ``reference``; None when the day does not exist in
+    that year (29 February). Compares wall-clock times."""
+    ref = reference.replace(tzinfo=None)
+    year = dt.year
+    if prefer == "past" and dt > ref + NOYEAR_ROLLOVER_GRACE:
+        year -= 1
+    elif prefer == "future" and dt < ref - NOYEAR_ROLLOVER_GRACE:
+        year += 1
+    if year == dt.year:
+        return dt
+    try:
+        return dt.replace(year=year)
+    except ValueError:
+        return None
+
+
+def _check_date_order(date_order: TOptional[str]) -> TOptional[str]:
+    """Validate ``date_order=``: None or "DMY"/"MDY"/"YMD" (any case)."""
+    if date_order is None:
+        return None
+    if isinstance(date_order, str) and date_order.upper() in _DATE_ORDER_BASEKEYS:
+        return date_order.upper()
+    raise ValueError(
+        f"date_order must be 'DMY', 'MDY', 'YMD' or None; got {date_order!r}")
+
+
+def _check_languages(languages: Union[str, list[str], tuple[str, ...], set[str], frozenset[str], None]
+                     ) -> TOptional[frozenset]:
+    """Validate a ``languages=`` hint; None or empty means no hint."""
+    if languages is None:
+        return None
+    if isinstance(languages, str):
+        languages = [languages]
+    elif not isinstance(languages, (list, tuple, set, frozenset)):
+        raise TypeError("languages must be a string, list of strings, or None")
+    codes = frozenset(languages)
+    invalid = sorted(codes - set(SUPPORTED_LANGUAGES))
+    if invalid:
+        raise ValueError(
+            f"Unsupported language(s): {invalid}. "
+            f"Supported languages: {SUPPORTED_LANGUAGES}")
+    return codes or None
+
+
+# Entries kept in ``DateParser._walk_cache`` before it is emptied.
+_WALK_CACHE_SIZE = 4096
 
 
 # Digits, separators and spaces: what the numeric parts of a date are made of.
@@ -582,7 +767,7 @@ class DateParser:
     def __init__(self, generate: bool = True, patterns: list[dict] = ALL_PATTERNS,
                  base_only: bool = False, languages: Union[str, list[str], None] = None,
                  pivot_year: int | None = None, tz_aware: bool = False,
-                 use_fingerprint: bool = True) -> None:
+                 use_fingerprint: bool = True, date_order: str | None = None) -> None:
         """Inits class DataParser
         :param generate: Boolean value, if true, than automatically generate all patterns from base list
         :param patterns: list of patterns to be used. Default ALL_PATTERNS. See qddate.patterns for more info
@@ -601,8 +786,9 @@ class DateParser:
                           (only ``00`` maps to 2000), so ``pivot_year=True`` is not a way to switch the
                           pivot on.
         :type pivot_year: int|None
-        :param tz_aware: If True, a parsed ``+HHMM`` timezone offset is attached to the returned datetime
-                         (making it timezone-aware). Default False keeps returning naive datetimes.
+        :param tz_aware: If True, a timezone written after the time (``+0300``, ``+03:00``, ``Z``,
+                         ``GMT+3``, ``MSK``; see :func:`parse_timezone`) is attached to the returned
+                         datetime (making it timezone-aware). Default False keeps returning naive datetimes.
         :type tz_aware: bool
         :param use_fingerprint: When True (the default since ``1.0.14``), route
                                 ``match()`` / ``match_all()`` / ``parse()`` through the
@@ -622,7 +808,14 @@ class DateParser:
                                     emits a ``DeprecationWarning``. Omit the parameter (or pass
                                     ``True``) to silence the warning.
         :type use_fingerprint: bool
+        :param date_order: How to read a numeric date that several patterns read differently
+                           (``05/06/2022``): ``"DMY"`` (day first), ``"MDY"`` (month first) or
+                           ``"YMD"``. The patterns of that order win over the others that consume
+                           the same text. None (default) keeps the built-in preference (day first).
+                           Can be overridden per call.
+        :type date_order: str|None
         :raises TypeError: if ``pivot_year`` is a bool or not an integer.
+        :raises ValueError: if ``date_order`` is not one of the values above.
         """
         # ``bool`` is an ``int`` subclass, so ``pivot_year=True`` would silently
         # mean pivot year 1. Reject it along with non-integers.
@@ -643,6 +836,7 @@ class DateParser:
                 DeprecationWarning,
                 stacklevel=2,
             )
+        self._date_order = _check_date_order(date_order)
         # Filter patterns by language if languages parameter is provided
         if languages is not None:
             patterns = get_patterns_for_languages(languages)
@@ -675,6 +869,13 @@ class DateParser:
         # and the grammar wrapped to report where its match starts and ends.
         self._needs_cache: dict[int, tuple[Any, _GrammarNeeds]] = {}
         self._anchored_grammars: dict[int, tuple[Any, Located]] = {}
+        # Fingerprint indexes over the patterns of a ``languages=`` hint (and
+        # the language-neutral ones), built on first use per set of languages.
+        self._language_indexes: dict[frozenset, dict] = {}
+        self._language_indexes_source: Union[list[dict], None] = None
+        # Results of the fingerprint walk by text fingerprint; see
+        # ``_filter_patterns_fingerprint``.
+        self._walk_cache: dict[tuple, tuple[dict, tuple]] = {}
         self._build_length_index()
         self._build_separator_index()
         self._build_year_format_index()
@@ -747,8 +948,11 @@ class DateParser:
 
             # A word the pattern's language writes before the time ("в" in
             # "4 Сентября 2020 в 04:06") is accepted in the time variants; it
-            # widens their maximum length by the word and its space.
-            prefixes = TIME_PREFIXES_BY_LANGUAGE.get(pat.get("language"))
+            # widens their maximum length by the word and its space. A numeric
+            # date has no language and accepts the words of every language.
+            language = pat.get("language")
+            prefixes = (TIME_PREFIXES_BY_LANGUAGE.get(language) if language is not None
+                        else ALL_TIME_PREFIXES)
             if prefixes:
                 time_prefix = PpOptional(one_of(list(prefixes))).suppress()
                 prefix_len = max(len(word) for word in prefixes) + 1
@@ -756,62 +960,61 @@ class DateParser:
                 time_prefix = None
                 prefix_len = 0
 
-            data = {**pat}
-            data["basekey"] = data["key"]
-            data["key"] += ":time_1"
-            data["right"] = True
-            data["pattern"] = (_append(data["pattern"] + PpOptional(Literal(",")).suppress(),
-                                       time_prefix) +
-                               BASE_TIME_PATTERNS["pat:time:minutes"])
-            data["time_format"] = "%H:%M"
-            data["length"] = {
-                "min": data["length"]["min"] + 5,
-                "max": data["length"]["max"] + 8 + prefix_len,
-            }
-            # Preserve character set metadata
-            if "required_chars" in pat:
-                data["required_chars"] = pat["required_chars"]
-            base.append(data)
+            def time_variant(suffix, grammar, min_add, max_add, time_format, pat=pat):
+                """Return a copy of ``pat`` matching ``grammar``, whose length
+                bounds exceed the date's by ``min_add`` and ``max_add``."""
+                data = {**pat}
+                data["basekey"] = data["key"]
+                data["key"] += suffix
+                data["right"] = True
+                data["pattern"] = grammar
+                data["time_format"] = time_format
+                data["length"] = {
+                    "min": data["length"]["min"] + min_add,
+                    "max": data["length"]["max"] + max_add,
+                }
+                # Preserve character set metadata
+                if "required_chars" in pat:
+                    data["required_chars"] = pat["required_chars"]
+                return data
 
-            data = {**pat}
-            data["basekey"] = data["key"]
-            data["right"] = True
-            data["key"] += ":time_2"
-            data["pattern"] = (_append(data["pattern"] +
-                                       PpOptional(one_of([",", "|", "T"])).suppress(),
-                                       time_prefix) +
-                               BASE_TIME_PATTERNS["pat:time:full"])
-            data["time_format"] = "%H:%M:%S"
-            data["length"] = {
-                "min": data["length"]["min"] + 9,
-                # HH:MM:SS adds 9 chars; the optional " +HHMM" / " -HHMM" offset
-                # adds up to 6 more (sign, four digits and one separating space).
-                # Without them, offset-carrying timestamps never fit this
-                # variant and silently fell back to HH:MM (seconds dropped).
-                "max": data["length"]["max"] + 15 + prefix_len,
-            }
-            # Preserve character set metadata
-            if "required_chars" in pat:
-                data["required_chars"] = pat["required_chars"]
-            base.append(data)
-
-            data = {**pat}
-            data["basekey"] = data["key"]
-            data["right"] = True
-            data["key"] += ":time_3"
-            data["pattern"] = (_append(data["pattern"], time_prefix) +
-                               PpOptional(Literal("[")).suppress() +
-                               BASE_TIME_PATTERNS["pat:time:minutes"] +
-                               PpOptional(Literal("]")).suppress())
-            data["time_format"] = "%H:%M"
-            data["length"] = {
-                "min": data["length"]["min"] + 7,
-                "max": data["length"]["max"] + 10 + prefix_len,
-            }
-            # Preserve character set metadata
-            if "required_chars" in pat:
-                data["required_chars"] = pat["required_chars"]
-            base.append(data)
+            # Lengths after the date: a separator with its spaces (" | ") is up
+            # to 3 characters, an optional zone up to 10 (" GMT+03:00").
+            # HH:MM or HHhMM ("14h30", "14 h 30" is 7 characters), separated
+            # by ",", "|" or the ISO "T".
+            base.append(time_variant(
+                ":time_1",
+                _append(pat["pattern"] + PpOptional(one_of([",", "|", "T"])).suppress(),
+                        time_prefix) + BASE_TIME_PATTERNS["pat:time:clock"],
+                5, 3 + 7 + 10 + prefix_len, "%H:%M"))
+            # HH:MM:SS adds 9 chars (eight and one separating space); the
+            # optional zone adds up to 10 more. Without room for it,
+            # offset-carrying timestamps never fit this variant and silently
+            # fell back to HH:MM (seconds dropped).
+            base.append(time_variant(
+                ":time_2",
+                _append(pat["pattern"] + PpOptional(one_of([",", "|", "T"])).suppress(),
+                        time_prefix) + BASE_TIME_PATTERNS["pat:time:full"],
+                9, 3 + 8 + 10 + prefix_len, "%H:%M:%S"))
+            base.append(time_variant(
+                ":time_3",
+                _append(pat["pattern"], time_prefix) +
+                PpOptional(Literal("[")).suppress() +
+                BASE_TIME_PATTERNS["pat:time:minutes"] +
+                PpOptional(Literal("]")).suppress(),
+                7, 10 + prefix_len, "%H:%M"))
+            # 12-hour clock: "3 PM", " 12:45:00 p.m." is up to 13 characters.
+            base.append(time_variant(
+                ":time_4",
+                _append(pat["pattern"] + PpOptional(one_of([",", "|"])).suppress(),
+                        time_prefix) + BASE_TIME_PATTERNS["pat:time:clock_ampm"],
+                4, 3 + 13 + 10 + prefix_len, "%I:%M %p"))
+            # The time before the date: "12:30, 5 мая 2022", "14:30 | 5 May 2022".
+            base.append(time_variant(
+                ":time_left",
+                BASE_TIME_PATTERNS["pat:time:any"] +
+                PpOptional(one_of([",", "|", "-"])).suppress() + pat["pattern"],
+                4, 13 + 10 + 3, "%H:%M"))
 
             data = {**pat}
             data["pattern"] = data["pattern"]
@@ -1059,7 +1262,8 @@ class DateParser:
 
     def _filter_patterns_hierarchical(self, text, n, noprefix=False, allow_no_year=True,
                                        nocharsetfilter=False, noseparatorfilter=False,
-                                       noyearformatfilter=False, nolanguagefilter=False):
+                                       noyearformatfilter=False, nolanguagefilter=False,
+                                       allowlist=None):
         """Apply multiple filters in optimal order for maximum efficiency.
 
         Filters are applied in order from cheapest/most selective to more expensive:
@@ -1087,9 +1291,14 @@ class DateParser:
         :type noyearformatfilter: bool
         :param nolanguagefilter: If True, skip language filtering
         :type nolanguagefilter: bool
+        :param allowlist: Languages detection may not narrow below; defaults to
+                          the constructor's ``languages=``
+        :type allowlist: set|None
         :return: Filtered list of patterns, or None if no patterns remain
         :rtype: list|None
         """
+        if allowlist is None:
+            allowlist = self._language_allowlist
         # Level 1: Length filter (cheapest, most selective)
         if self.cachedpats is not None:
             pats = self.cachedpats
@@ -1197,9 +1406,9 @@ class DateParser:
             # patterns dropped regression: Dutch is filtered out by the allow-list,
             # leaving detection with no high-confidence single language, so we skip
             # the narrowing instead of discarding valid candidates.)
-            if self._language_allowlist is not None and detected_languages:
+            if allowlist is not None and detected_languages:
                 detected_languages = [
-                    lang for lang in detected_languages if lang in self._language_allowlist
+                    lang for lang in detected_languages if lang in allowlist
                 ]
             # Only filter if we detected exactly one language (high confidence)
             # Multiple languages or None means we're not confident, so don't filter
@@ -1261,7 +1470,8 @@ class DateParser:
 
     def _filter_patterns_fingerprint(self, text, n, noprefix=False, allow_no_year=True,
                                      nocharsetfilter=False, noseparatorfilter=False,
-                                     noyearformatfilter=False, nolanguagefilter=False):
+                                     noyearformatfilter=False, nolanguagefilter=False,
+                                     languages=None):
         """Single-walk fingerprint-based candidate selection.
 
         Mirrors ``_filter_patterns_hierarchical`` (length → charset → separator →
@@ -1305,6 +1515,10 @@ class DateParser:
         :type noyearformatfilter: bool
         :param nolanguagefilter: If True, skip the language filter.
         :type nolanguagefilter: bool
+        :param languages: Only patterns of these languages and the
+                          language-neutral ones are candidates (a ``languages=``
+                          hint), walked through an index cached per set.
+        :type languages: frozenset|None
         :return: Filtered list of patterns, or None if no patterns remain.
         :rtype: list|None
         """
@@ -1324,6 +1538,7 @@ class DateParser:
         # the charset filter under ``noprefix`` and both filters for texts of
         # five characters or fewer; mirror that, so a short pattern in another
         # script ("5 мая") stays a candidate for "05.12" as it does there.
+        allowlist = self._language_allowlist if languages is None else languages
         check_chars = n > 5 and not noprefix and not nocharsetfilter
         check_separator = not noseparatorfilter
         text_char_sets = scan_char_sets(text) if check_chars else frozenset()
@@ -1332,13 +1547,13 @@ class DateParser:
             detected_languages: list[str] = []
         else:
             detected_languages = self._detect_language(text)
-            if self._language_allowlist is not None and detected_languages:
+            if allowlist is not None and detected_languages:
                 # Intersection with the caller's allow-list (German "Juli"
                 # regression fix): when the caller forced a specific
                 # language, detection must not narrow below it.
                 detected_languages = [
                     lang for lang in detected_languages
-                    if lang in self._language_allowlist
+                    if lang in allowlist
                 ]
 
         detected_language = (
@@ -1415,7 +1630,7 @@ class DateParser:
                 return True
             if fp_lang == detected_language:
                 return True
-            if self._language_allowlist is not None and fp_lang in self._language_allowlist:
+            if allowlist is not None and fp_lang in allowlist:
                 return True
             return False
 
@@ -1449,24 +1664,37 @@ class DateParser:
         # is skipped at the bucket level when detected is ``"space"`` —
         # but a pattern whose basekey is ``date_1``/``date_8``/``date_3``
         # gets a free pass via ``_space_compat_basekey``.
-        pats: list[dict] = []
-        for fp, bucket in self._session_fingerprint_index().items():
-            if fp.length_min > n or fp.length_max < n:
-                continue
-            if check_chars and not _chars_match(fp.chars):
-                continue
-            if not _lang_match(fp.language):
-                continue
-            if not _year_match(fp.year_format):
-                continue
-            if not check_separator:
-                pats.extend(bucket)
-                continue
-            for p in bucket:
-                if _sep_match(fp.separator, fp.language):
-                    pats.append(p)
-                elif _space_compat_basekey(p.get("basekey", p.get("key", ""))):
-                    pats.append(p)
+        #
+        # The walk depends only on what the text's fingerprint says, so its
+        # result is kept per fingerprint: text nodes of a page mostly share
+        # a few, and the walk grows with the number of generated variants.
+        index = self._candidate_index(languages)
+        cache_key = (id(index), n, frozenset(text_char_sets), detected_separators,
+                     check_separator, detected_language, year_format,
+                     text_has_letters, None if allowlist is None else frozenset(allowlist))
+        cached = self._walk_cache.get(cache_key)
+        if cached is not None and cached[0] is index:
+            pats = list(cached[1])
+        else:
+            pats = []
+            for fp, bucket in index.items():
+                if fp.length_min > n or fp.length_max < n:
+                    continue
+                if check_chars and not _chars_match(fp.chars):
+                    continue
+                if not _lang_match(fp.language):
+                    continue
+                if not _year_match(fp.year_format):
+                    continue
+                if not check_separator or _sep_match(fp.separator, fp.language):
+                    pats.extend(bucket)
+                    continue
+                for p in bucket:
+                    if _space_compat_basekey(p.get("basekey", p.get("key", ""))):
+                        pats.append(p)
+            if len(self._walk_cache) >= _WALK_CACHE_SIZE:
+                self._walk_cache.clear()
+            self._walk_cache[cache_key] = (index, tuple(pats))
 
         if not pats:
             return None
@@ -1486,7 +1714,7 @@ class DateParser:
 
         return pats if pats else None
 
-    def _calculate_pattern_priority(self, pattern, text):
+    def _calculate_pattern_priority(self, pattern, text, date_order=None):
         """Calculate priority score for pattern based on text characteristics.
 
         Higher scores indicate patterns more likely to match. Patterns are sorted
@@ -1496,6 +1724,10 @@ class DateParser:
         :type pattern: dict
         :param text: Input text to match
         :type text: str
+        :param date_order: Validated ``date_order`` ("DMY", "MDY", "YMD" or
+                           None); the numeric patterns of that order get a
+                           bonus larger than any other difference
+        :type date_order: str|None
         :return: Integer priority score (higher = more likely)
         :rtype: int
         """
@@ -1553,11 +1785,14 @@ class DateParser:
         if "rare" in basekey:
             score -= 10
 
+        if date_order is not None and basekey in _DATE_ORDER_BASEKEYS[date_order]:
+            score += _DATE_ORDER_BONUS
+
         return score
 
     def _iter_matches(self, text, noprefix=False, allow_no_year=True, nocharsetfilter=False,
                       noseparatorfilter=False, noyearformatfilter=False,
-                      nolanguagefilter=False):
+                      nolanguagefilter=False, languages=None, date_order=None, tried=None):
         """Yield ``(priority, end, result)`` for every candidate pattern matching
         ``text`` at position 0, highest priority first. ``end`` is where the
         match stops, not counting trailing whitespace, in ``text`` with tabs
@@ -1565,6 +1800,10 @@ class DateParser:
 
         Shared engine behind :meth:`match` and :meth:`match_all`. Components are
         sanity-checked (month/day/hour/minute/second ranges) before yielding.
+        ``languages`` (a validated hint) restricts the candidates to those
+        languages and the language-neutral patterns; ``date_order`` (validated)
+        is passed to :meth:`_calculate_pattern_priority`. Keys of the patterns
+        run are added to ``tried``, and patterns already in it are skipped.
         """
         filter_flags = {
             "noprefix": noprefix,
@@ -1573,10 +1812,12 @@ class DateParser:
             "noseparatorfilter": noseparatorfilter,
             "noyearformatfilter": noyearformatfilter,
         }
-        tried: set[str] = set()
+        if tried is None:
+            tried = set()
         found = False
-        pats = self._filter_patterns(text, nolanguagefilter=nolanguagefilter, **filter_flags)
-        for item in self._match_candidates(text, pats, allow_no_year, tried):
+        pats = self._filter_patterns(text, languages=languages,
+                                     nolanguagefilter=nolanguagefilter, **filter_flags)
+        for item in self._match_candidates(text, pats, allow_no_year, tried, date_order):
             found = True
             yield item
         if found or nolanguagefilter or len(self._language_claims(text)) < 2:
@@ -1584,19 +1825,72 @@ class DateParser:
         # The month name is shared by several languages and the language filter
         # kept only the first one ("30. Mai 1953": French before German). It
         # found nothing, so try the patterns of every language.
-        pats = self._filter_patterns(text, nolanguagefilter=True, **filter_flags)
-        yield from self._match_candidates(text, pats, allow_no_year, tried)
+        pats = self._filter_patterns(text, languages=languages, nolanguagefilter=True,
+                                     **filter_flags)
+        yield from self._match_candidates(text, pats, allow_no_year, tried, date_order)
 
-    def _filter_patterns(self, text, **flags):
-        """Return the candidate patterns for ``text`` (or None) from the active filter."""
+    def _iter_passes(self, text, languages=None, date_order=None, first_only=False, **flags):
+        """Yield ``(pass, priority, end, result)`` from :meth:`_iter_matches`.
+
+        Without ``languages`` there is one pass, 0, over all candidates. With
+        a ``languages=`` hint, pass 0 covers the patterns of those languages
+        and the language-neutral ones, and pass 1 the remaining patterns;
+        with ``first_only`` pass 1 runs only when pass 0 yields nothing.
+        ``date_order`` None means the parser's own ``date_order``.
+        """
+        hint = _check_languages(languages)
+        order = self._date_order if date_order is None else _check_date_order(date_order)
+        tried: set[str] = set()
+        found = False
+        for number, allowed in enumerate([hint, None] if hint else [None]):
+            if found and first_only:
+                return
+            for priority, end, result in self._iter_matches(
+                    text, languages=allowed, date_order=order, tried=tried, **flags):
+                found = True
+                yield number, priority, end, result
+
+    def _filter_patterns(self, text, languages=None, **flags):
+        """Return the candidate patterns for ``text`` (or None) from the active filter.
+
+        With ``languages`` (a validated ``languages=`` hint) only the patterns
+        of those languages and the language-neutral ones are returned.
+        """
         # Route to the fingerprint-based filter when the constructor flag is set,
         # otherwise fall through to the existing 6-level pipeline. Both paths
         # share the same candidate-set semantics (level 6 prefix + score +
         # component-range validation); the fingerprint path is parity-locked
         # to be a superset-or-equal of the legacy path on every probe string.
         if self.use_fingerprint:
-            return self._filter_patterns_fingerprint(text, len(text), **flags)
-        return self._filter_patterns_hierarchical(text, len(text), **flags)
+            return self._filter_patterns_fingerprint(text, len(text), languages=languages, **flags)
+        pats = self._filter_patterns_hierarchical(text, len(text), allowlist=languages, **flags)
+        if pats and languages is not None:
+            pats = [p for p in pats if _pattern_language(p) in languages
+                    or _pattern_language(p) is None]
+        return pats or None
+
+    def _candidate_index(self, languages=None):
+        """Return the fingerprint index the fingerprint filter walks.
+
+        The session's index during a session (see
+        :meth:`_session_fingerprint_index`), otherwise the full index. With
+        ``languages`` it is restricted to the patterns of those languages and
+        the language-neutral ones; the restricted index is built once per set
+        of languages and kept.
+        """
+        if languages is None:
+            return self._session_fingerprint_index()
+        source = self.patterns if self.cachedpats is None else self.cachedpats
+        if self._language_indexes_source is not source:
+            # A new session (or its end): the cached indexes are stale.
+            self._language_indexes = {}
+            self._language_indexes_source = source
+        index = self._language_indexes.get(languages)
+        if index is None:
+            index = self._language_indexes[languages] = _index_by_fingerprint([
+                p for p in source
+                if _pattern_language(p) is None or _pattern_language(p) in languages])
+        return index
 
     def _anchored(self, grammar):
         """Return ``grammar`` wrapped in ``Located``, which reports where the
@@ -1608,7 +1902,7 @@ class DateParser:
             self._anchored_grammars[id(grammar)] = entry
         return entry[1]
 
-    def _match_candidates(self, text, pats, allow_no_year, tried):
+    def _match_candidates(self, text, pats, allow_no_year, tried, date_order=None):
         """Yield ``(priority, end, result)`` for the patterns in ``pats`` that
         match ``text`` at position 0, highest priority first.
 
@@ -1639,7 +1933,7 @@ class DateParser:
         # different orders, and both must pick the same pattern.
         rank = self._pattern_rank
         scored = sorted(
-            ((self._calculate_pattern_priority(p, text), p) for p in pats),
+            ((self._calculate_pattern_priority(p, text, date_order), p) for p in pats),
             key=lambda item: (-item[0], rank.get(item[1]["key"], len(rank))))
 
         for _score, p in scored:
@@ -1677,7 +1971,9 @@ class DateParser:
 
     def match(self, text: str, noprefix: bool = False, allow_no_year: bool = True, nocharsetfilter: bool = False,
              noseparatorfilter: bool = False, noyearformatfilter: bool = False,
-             nolanguagefilter: bool = False, *, noyear: TOptional[bool] = None) -> Union[dict, None]:  # noqa: E501
+             nolanguagefilter: bool = False, *, noyear: TOptional[bool] = None,
+             languages: Union[str, list[str], None] = None,
+             date_order: TOptional[str] = None) -> Union[dict, None]:  # noqa: E501
         """Matches date/datetime string against date patterns and returns pattern and parsed date if matched.
         It's not indeded for common usage, since if successful it returns date as array of numbers and pattern
         that matched this date
@@ -1708,6 +2004,18 @@ class DateParser:
         :param nolanguagefilter:
             If set True than doesn't use language based pattern filtering
         :type nolanguagefilter: bool
+        :param languages:
+            Language code or list of codes to try first (the page language,
+            say). The patterns of these languages and the language-neutral
+            numeric ones are tried first; only when none of them matches are
+            the other patterns of the parser tried. Unlike the constructor's
+            ``languages=``, the hint never excludes a pattern. Unknown codes
+            raise ``ValueError``.
+        :type languages: str|list|None
+        :param date_order:
+            ``"DMY"``, ``"MDY"`` or ``"YMD"`` for this call; None (default) uses
+            the parser's ``date_order``. See :class:`DateParser`.
+        :type date_order: str|None
 
 
         :return: Returns dicts with `values` as array of representing parsed date and 'pattern'
@@ -1719,29 +2027,44 @@ class DateParser:
                 DeprecationWarning, stacklevel=2,
             )
             allow_no_year = noyear
+        found = self._match_end(
+            text, noprefix=noprefix, allow_no_year=allow_no_year,
+            nocharsetfilter=nocharsetfilter, noseparatorfilter=noseparatorfilter,
+            noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter,
+            languages=languages, date_order=date_order)
+        return found[1] if found else None
+
+    def _match_end(self, text, **flags):
+        """Return ``(end, result)`` of the best match for ``text``, or None.
+
+        ``result`` is what :meth:`match` returns; ``end`` is where the date
+        stops in ``text.expandtabs()``, not counting trailing whitespace.
+        ``flags`` are the keyword arguments of :meth:`match` except ``noyear``.
+        """
         # The match consuming the most input wins (a date with its time over
         # the bare date, HH:MM:SS over HH:MM); priority only breaks ties.
         # Patterns are not anchored at the end, so without this a partial
         # match with a length bonus beat a complete one. Candidates come in
         # priority order: keep the first of each length and stop once one
         # covers the whole text. ``end`` counts in the tab-expanded text.
+        # With a ``languages=`` hint, a match from the first pass (the hinted
+        # languages) wins over any from the second.
         n = len(text.expandtabs().rstrip())
         best = None
-        for _score, end, result in self._iter_matches(
-                text, noprefix=noprefix, allow_no_year=allow_no_year,
-                nocharsetfilter=nocharsetfilter, noseparatorfilter=noseparatorfilter,
-                noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter):
+        for _number, _score, end, result in self._iter_passes(text, first_only=True, **flags):
             if best is None or end > best[0]:
                 best = (end, result)
                 if end >= n:
                     break
-        return best[1] if best else None
+        return best
 
     def match_all(self, text: str, noprefix: bool = False, allow_no_year: bool = True,
                   nocharsetfilter: bool = False, noseparatorfilter: bool = False,
                   noyearformatfilter: bool = False,
                   nolanguagefilter: bool = False, *,
-                  noyear: TOptional[bool] = None) -> list[dict]:
+                  noyear: TOptional[bool] = None,
+                  languages: Union[str, list[str], None] = None,
+                  date_order: TOptional[str] = None) -> list[dict]:
         """Return every distinct match for ``text``, best first.
 
         Unlike :meth:`match` (which returns a single winner), this surfaces
@@ -1749,10 +2072,13 @@ class DateParser:
         callers often need to know that instead of silently getting one
         interpretation. Results are deduplicated by base pattern, keeping the
         longest-consuming variant of each, and ordered the way :meth:`match`
-        picks: most input consumed first, then priority.
+        picks: most input consumed first, then priority. With a ``languages=``
+        hint, the matches of the hinted languages (and the language-neutral
+        patterns) come before all others.
 
-        Accepts the same filter flags as :meth:`match`. ``noyear=`` is the
-        deprecated alias for ``allow_no_year=``.
+        Accepts the same filter flags as :meth:`match`, and ``languages=`` and
+        ``date_order=``. ``noyear=`` is the deprecated alias for
+        ``allow_no_year=``.
 
         :return: list of match dicts (same shape as :meth:`match` results),
                  empty when nothing matches
@@ -1764,23 +2090,28 @@ class DateParser:
                 DeprecationWarning, stacklevel=2,
             )
             allow_no_year = noyear
-        # basekey -> (end, position in priority order, result)
-        best: dict[str, tuple[int, int, dict]] = {}
-        for order, (_score, end, result) in enumerate(self._iter_matches(
+        # basekey -> (pass, end, position in priority order, result)
+        best: dict[str, tuple[int, int, int, dict]] = {}
+        for order, (number, _score, end, result) in enumerate(self._iter_passes(
                 text, noprefix=noprefix, allow_no_year=allow_no_year,
                 nocharsetfilter=nocharsetfilter, noseparatorfilter=noseparatorfilter,
-                noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter)):
+                noyearformatfilter=noyearformatfilter, nolanguagefilter=nolanguagefilter,
+                languages=languages, date_order=date_order)):
             p = result["pattern"]
             basekey = p.get("basekey", p.get("key", ""))
-            if basekey not in best or end > best[basekey][0]:
-                best[basekey] = (end, order, result)
-        ranked = sorted(best.values(), key=lambda item: (-item[0], item[1]))
-        return [result for _end, _order, result in ranked]
+            if basekey not in best or end > best[basekey][1]:
+                best[basekey] = (number, end, order, result)
+        ranked = sorted(best.values(), key=lambda item: (item[0], -item[1], item[2]))
+        return [result for _number, _end, _order, result in ranked]
 
     def parse(self, text: str, noprefix: bool = False, nocharsetfilter: bool = False,
               noseparatorfilter: bool = False, noyearformatfilter: bool = False,
               nolanguagefilter: bool = False, allow_no_year: bool = True,
-              *, noyear: TOptional[bool] = None) -> Union[datetime.datetime, None]:
+              *, noyear: TOptional[bool] = None,
+              languages: Union[str, list[str], None] = None,
+              date_order: TOptional[str] = None,
+              reference: TOptional[datetime.datetime] = None,
+              prefer: TOptional[str] = None) -> Union[datetime.datetime, None]:
         """Parse date and time from given date string.
 
         :param text:
@@ -1802,12 +2133,30 @@ class DateParser:
             If set True than doesn't use language based pattern filtering
         :type nolanguagefilter: bool
         :param allow_no_year:
-            If True (default) patterns without a year are allowed and the current
-            year is substituted (e.g. "05.12"); if False such patterns are skipped.
+            If True (default) patterns without a year are allowed and the year
+            of ``reference`` (the current year by default) is substituted
+            (e.g. "05.12"); if False such patterns are skipped.
         :type allow_no_year: bool
         :param noyear:
             **Deprecated.** Use ``allow_no_year=`` instead.
         :type noyear: bool
+        :param languages:
+            Languages to try first; see :meth:`match`.
+        :type languages: str|list|None
+        :param date_order:
+            ``"DMY"``, ``"MDY"`` or ``"YMD"`` for this call; see :meth:`match`.
+        :type date_order: str|None
+        :param reference:
+            The moment that counts as "now" for a date without a year: its
+            year is used. Default: the current time.
+        :type reference: datetime.datetime|None
+        :param prefer:
+            For a date without a year: ``"past"`` moves it to the previous year
+            when it would lie more than :data:`NOYEAR_ROLLOVER_GRACE` after
+            ``reference`` ("31.12" read on 2 January), ``"future"`` to the next
+            year when it would lie more than that before it. None (default)
+            keeps the year of ``reference``.
+        :type prefer: str|None
 
 
         :return: Returns :class:`datetime <datetime.datetime>` representing parsed date if successful, else returns None
@@ -1818,31 +2167,36 @@ class DateParser:
                 DeprecationWarning, stacklevel=2,
             )
             allow_no_year = noyear
+        _check_prefer(prefer)
         res = self.match(text, noprefix=noprefix, allow_no_year=allow_no_year,
                          nocharsetfilter=nocharsetfilter,
                          noseparatorfilter=noseparatorfilter,
                          noyearformatfilter=noyearformatfilter,
-                         nolanguagefilter=nolanguagefilter)
+                         nolanguagefilter=nolanguagefilter,
+                         languages=languages, date_order=date_order)
         if res:
-            return self._build_datetime(res)
+            return self._build_datetime(res, reference=reference, prefer=prefer)
         return None
 
-    def _build_datetime(self, res):
+    def _build_datetime(self, res, reference=None, prefer=None):
         """Convert a ``match()`` result into a :class:`datetime.datetime`.
 
         Applies the parser's ``pivot_year`` (2-digit years) and ``tz_aware``
-        (parsed ``+HHMM`` offset) options. Returns None for out-of-range values
-        or unexpected result keys instead of raising.
+        (the parsed timezone, see :func:`parse_timezone`) options, and for a
+        date without a year the year of ``reference`` and the ``prefer``
+        policy (see :meth:`parse`). Returns None for out-of-range values or
+        unexpected result keys instead of raising.
         """
         r = res["values"]
         p = res["pattern"]
         d = {"month": 0, "day": 0, "year": 0}
-        if p.get("noyear", False):
-            d["year"] = self._get_cached_year()
+        no_year = p.get("noyear", False)
+        if no_year:
+            d["year"] = reference.year if reference is not None else self._get_cached_year()
         tz_offset = None
         for k, v in r.items():
             if k == "timezone":
-                # "+HHMM" offset captured by pat:time:full; not a datetime kwarg.
+                # Zone written after the time; not a datetime kwarg.
                 tz_offset = v
                 continue
             d[k] = int(v)
@@ -1855,36 +2209,54 @@ class DateParser:
         except (ValueError, TypeError):
             # Invalid date values (e.g., year 0) or unexpected keys - return None
             return None
+        if no_year and prefer is not None:
+            dt = _roll_year(dt, reference or datetime.datetime.now(), prefer)
+            if dt is None:
+                return None
         if tz_offset is not None and self._tz_aware:
-            tz_txt = str(tz_offset)
-            sign = -1 if tz_txt.startswith("-") else 1
-            tz_txt = tz_txt.lstrip("+-").zfill(4)
-            hours, minutes = int(tz_txt[:2]), int(tz_txt[2:])
-            if hours <= 23 and minutes <= 59:
-                dt = dt.replace(tzinfo=datetime.timezone(
-                    sign * datetime.timedelta(hours=hours, minutes=minutes)))
+            tz = parse_timezone(tz_offset)
+            if tz is not None:
+                dt = dt.replace(tzinfo=tz)
         return dt
 
-    def match_typed(self, text: str, **kwargs: Any) -> Union[DateMatch, None]:
+    def match_typed(self, text: str, *, reference: TOptional[datetime.datetime] = None,
+                    prefer: TOptional[str] = None, **kwargs: Any) -> Union[DateMatch, None]:
         """Like :meth:`match`, but returns a typed :class:`DateMatch` (or None).
 
-        The datetime is already constructed (honoring ``pivot_year``/``tz_aware``),
-        and the result carries ``pattern_key``, ``language``, ``format`` and the
-        original ``raw`` text. Accepts the same filter flags as :meth:`match`.
+        The datetime is already constructed (honoring ``pivot_year``/``tz_aware``
+        and ``reference``/``prefer`` as in :meth:`parse`), and the result
+        carries ``pattern_key``, ``language``, ``format``, the original ``raw``
+        text, the ``span`` of the date in it, its ``precision``, the written
+        ``tzinfo`` and ``has_year``. Accepts the same keyword arguments as
+        :meth:`match` (filter flags, ``languages=``, ``date_order=``).
         """
-        res = self.match(text, **kwargs)
-        if res is None:
+        _check_prefer(prefer)
+        noyear = kwargs.pop("noyear", None)
+        if noyear is not None:
+            warnings.warn(
+                "noyear= is deprecated; use allow_no_year= instead.",
+                DeprecationWarning, stacklevel=2,
+            )
+            kwargs["allow_no_year"] = noyear
+        found = self._match_end(text, **kwargs)
+        if found is None:
             return None
-        dt = self._build_datetime(res)
+        end, res = found
+        dt = self._build_datetime(res, reference=reference, prefer=prefer)
         if dt is None:
             return None
         p = res["pattern"]
+        values = res["values"]
         return DateMatch(
             datetime=dt,
             pattern_key=p["key"],
             language=_pattern_language(p),
             format=p.get("format", ""),
             raw=text,
+            span=(0, _original_index(text, end)),
+            precision=_precision(values),
+            tzinfo=parse_timezone(values.get("timezone")),
+            has_year=not p.get("noyear", False),
         )
 
     def parse_many(self, texts: list[str], **kwargs: Any) -> Iterator[Union[datetime.datetime, None]]:

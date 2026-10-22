@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-                6
+import re
+
 from pyparsing import (
+    CaselessLiteral,
     Combine,
     Literal,
     Optional,
+    ParseException,
+    Regex,
     White,
     Word,
     nums,
@@ -88,16 +93,98 @@ BASE_DATE_PATTERNS = {
     Literal("‘").suppress() + Word(nums, exact=2).set_results_name("year"),
 }
 
+# Zone abbreviations accepted after a clock time, with their offset in minutes
+# east of UTC. Only unambiguous, widely printed names are listed; "IST" (India,
+# Israel or Ireland) is left out. Latin names are matched in capitals only, so
+# the French verb "est" after a time is not read as US Eastern time.
+TIMEZONE_ABBREVIATIONS = {
+    "UTC": 0, "GMT": 0, "WET": 0, "WEST": 60, "BST": 60,
+    "CET": 60, "CEST": 120, "MEZ": 60, "MESZ": 120,
+    "EET": 120, "EEST": 180, "MSK": 180, "МСК": 180, "Мск": 180, "мск": 180,
+    "EST": -300, "EDT": -240, "CST": -360, "CDT": -300,
+    "MST": -420, "MDT": -360, "PST": -480, "PDT": -420,
+    "AKST": -540, "AKDT": -480, "HST": -600,
+    "HKT": 480, "SGT": 480, "AWST": 480, "JST": 540, "KST": 540,
+    "ACST": 570, "ACDT": 630, "AEST": 600, "AEDT": 660, "NZST": 720, "NZDT": 780,
+}
+
+# Not followed by a letter: "10:00 Zürich" has no zone, "3:45 PMx" no AM/PM.
+_NO_LETTER_AFTER = r"(?![^\W\d_])"
+
+
+def _letter_bounded(words):
+    """Regex matching one of ``words`` (longest first) not followed by a letter."""
+    return Regex("|".join(re.escape(word) + _NO_LETTER_AFTER
+                          for word in sorted(words, key=len, reverse=True)))
+
+
+_TZ_SIGN = one_of("+ -")
+# The text is kept as written ("+0300", "+03:00", "Z", "GMT+3", "МСК") in the
+# ``timezone`` result; ``qddate.qdparser.parse_timezone`` turns it into an
+# offset. A bare offset needs four digits, "HH:MM" or the legacy three digits
+# ("+300"), so a number after the time ("12:30 -15") is not an offset; after
+# GMT/UTC one or two digits are hours ("GMT+3").
+PAT_TIMEZONE = Combine(
+    (_TZ_SIGN + Word(nums, exact=2) + Literal(":") + Word(nums, exact=2)) |
+    (_TZ_SIGN + Word(nums, min=3, max=4)) |
+    (_letter_bounded(["GMT", "UTC"]) + Optional(
+        _TZ_SIGN + (Word(nums, exact=4) |
+                    Word(nums, min=1, max=2) + Optional(Literal(":") + Word(nums, exact=2))))) |
+    _letter_bounded(["Z"]) |
+    _letter_bounded(TIMEZONE_ABBREVIATIONS)
+).set_results_name("timezone")
+
+
+def _to_24_hour(text, loc, tokens):
+    """Parse action of the 12-hour clock: turn ``hour`` into a 24-hour value
+    and drop the ``ampm`` marker, so ``values`` hold only numbers and the
+    optional ``timezone``, as before. "12:00 AM" is 00:00, "12:30 PM" 12:30."""
+    hour = int(tokens["hour"])
+    if hour > 12:
+        raise ParseException(text, loc, "12-hour clock hour above 12")
+    pm = tokens["ampm"].lower().startswith("p")
+    tokens["hour"] = "%02d" % (hour % 12 + (12 if pm else 0))
+    del tokens["ampm"]
+
+
+_CLOCK_SECONDS = (Word(nums, exact=2).set_results_name("hour") + Literal(":").suppress() +
+                  Word(nums, exact=2).set_results_name("minute") + Literal(":").suppress() +
+                  Word(nums, exact=2).set_results_name("second"))
+
 BASE_TIME_PATTERNS = {
     "pat:time:minutes":
     Word(nums, exact=2).set_results_name("hour") + Literal(":").suppress() +
     Word(nums, exact=2).set_results_name("minute"),
     "pat:time:full":
-    Word(nums, exact=2).set_results_name("hour") + Literal(":").suppress() +
-    Word(nums, exact=2).set_results_name("minute") + Literal(":").suppress() +
-    Word(nums, exact=2).set_results_name("second") + Optional(
-        Combine(one_of("+ -") + Word(nums, min=3, max=4)).set_results_name("timezone")),
+    _CLOCK_SECONDS + Optional(PAT_TIMEZONE),
+    # "14h30", "14 h 30" (French, Portuguese).
+    "pat:time:h":
+    Word(nums, min=1, max=2).set_results_name("hour") + CaselessLiteral("h").suppress() +
+    Word(nums, exact=2).set_results_name("minute"),
+    # "3 PM", "3:45 pm", "11:05:09 a.m.".
+    "pat:time:ampm":
+    (Word(nums, min=1, max=2).set_results_name("hour") +
+     Optional(Literal(":").suppress() + Word(nums, exact=2).set_results_name("minute") +
+              Optional(Literal(":").suppress() + Word(nums, exact=2).set_results_name("second"))) +
+     Regex(r"a\.m\.|p\.m\.|A\.M\.|P\.M\.|" +
+           "|".join(m + _NO_LETTER_AFTER for m in ("am", "pm", "AM", "PM"))
+           ).set_results_name("ampm")
+     ).set_parse_action(_to_24_hour),
+    "pat:time:timezone":
+    PAT_TIMEZONE,
 }
+# Clock forms of the generated variants (``DateParser.__generate``): HH:MM or
+# HHhMM after the date (``:time_1``), the 12-hour clock (``:time_4``), and any
+# form before the date (``:time_left``). Each takes an optional zone.
+BASE_TIME_PATTERNS["pat:time:clock"] = (
+    (BASE_TIME_PATTERNS["pat:time:minutes"] | BASE_TIME_PATTERNS["pat:time:h"]) +
+    Optional(PAT_TIMEZONE))
+BASE_TIME_PATTERNS["pat:time:clock_ampm"] = (
+    BASE_TIME_PATTERNS["pat:time:ampm"] + Optional(PAT_TIMEZONE))
+BASE_TIME_PATTERNS["pat:time:any"] = (
+    (BASE_TIME_PATTERNS["pat:time:ampm"] | _CLOCK_SECONDS |
+     BASE_TIME_PATTERNS["pat:time:minutes"] | BASE_TIME_PATTERNS["pat:time:h"]) +
+    Optional(PAT_TIMEZONE))
 
 # English month data is sourced from the canonical `MONTHS_BY_LANGUAGE` table
 # (`qddate.patterns.months`). The names are re-exported here as back-compat

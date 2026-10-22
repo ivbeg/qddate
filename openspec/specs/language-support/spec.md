@@ -114,6 +114,31 @@ optimization. Detection SHALL NOT change the result of a parse:
 
 ---
 
+### Requirement: Per-call language preference
+
+`match()`, `match_all()`, `parse()`, `match_typed()` and `parse_many()` SHALL
+accept `languages=` (a code, a list, tuple or set of codes, or `None`). The
+parser SHALL first try the patterns of those languages and the
+language-neutral ones, with detection unable to narrow below the hinted
+languages, and SHALL try its other patterns only when none of them matches.
+`match_all()` SHALL list the matches of the first pass before the others. The
+hint SHALL NOT exclude any pattern. Unsupported codes SHALL raise `ValueError`.
+The candidate index for a set of languages SHALL be built once per parser
+(and per session) and reused; the patterns SHALL NOT be regenerated.
+
+#### Scenario: Hint picks the language of a shared month
+- **GIVEN** `DateParser()`
+- **WHEN** `match("18 Juni 1953", languages="de")` is called
+- **THEN** the pattern key SHALL be `dt:date:de_base`
+
+#### Scenario: Hint is a preference
+- **GIVEN** `DateParser()`
+- **WHEN** `parse("05/13/2022", languages="ru")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 13)` (read by
+  the English `date_usa`)
+
+---
+
 ### Requirement: Romanian month-name dates
 
 The library SHALL parse Romanian day-month-year dates using all twelve full month

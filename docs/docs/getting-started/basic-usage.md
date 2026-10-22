@@ -62,16 +62,24 @@ parser.parse("")                           # None
 parser.parse("1")                          # None
 ```
 
-## Time suffixes
+## Time of day
 
-Optional `HH:MM` or `HH:MM:SS` after the date populates hour, minute, and second:
+A time after the date populates hour, minute, and second: `HH:MM`,
+`HH:MM:SS`, `14h30`, or the 12-hour clock (`3:45 PM`, `3 p.m.`). A time can
+also come first (`12:30, 5 мая 2022`). A word between the date and the time is
+accepted in the date's language (`at`, `à`, `um`, `a las`, `alle`, `om`, `às`,
+`в`):
 
 ```python
-parser.parse("23 Jul 2015, 09:00 BST")
-# datetime.datetime(2015, 7, 23, 9, 0)
+parser.parse("May 5, 2022 at 3:45 PM")    # datetime(2022, 5, 5, 15, 45)
+parser.parse("le 5 mai 2022 à 14h30")     # datetime(2022, 5, 5, 14, 30)
+parser.parse("12:30 05.05.2022")          # datetime(2022, 5, 5, 12, 30)
+parser.parse("23 Jul 2015, 09:00 BST")    # datetime(2015, 7, 23, 9, 0)
 ```
 
-Timezone labels such as `BST` are not interpreted; they are trailing text.
+A zone after the time (`+03:00`, `Z`, `GMT+3`, `BST`, `МСК`) is read but only
+attached with `DateParser(tz_aware=True)`; `match_typed()` reports it as
+`tzinfo` either way.
 
 ## Filter debug flags
 
