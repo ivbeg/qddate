@@ -17,6 +17,14 @@ All notable changes to this project are tracked here.
   letter may follow it (`5 Marketing tips`), no digit may follow the day
   (`May 2022`), and a two- or four-digit number after the date is taken for a
   year, not ignored (`May 5, 22` gives `None`).
+- English abbreviations and dashes: `Sept. 5, 2022`, `Dec. 25, 2022`,
+  `Sep 5th 2022`, `5th Sept 2022`, `5th Dec. 2022` (new
+  `dt:date:date_eng5` / `date_eng6`) and `5-May-2022`, `05-Sep-2022`,
+  `5-September-2022` (new `dt:date:date_eng4`; `25-Dec-20` stays
+  `date_eng4_short`). All returned `None`. `Sept` is September. The new
+  patterns read only forms no older pattern reads, so `Sept 5, 2022`
+  (`fr_short_monthfirst`), `5th Dec 2022` and `May 5th, 2022` keep their
+  pattern.
 
 **Time formats** (Q5–Q8 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
 - The 12-hour clock after a date: `AM`/`PM`, `am`/`pm`, `a.m.`/`p.m.`,

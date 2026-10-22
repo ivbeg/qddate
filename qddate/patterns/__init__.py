@@ -92,6 +92,10 @@ _PATTERN_METADATA = {
     'dt:date:weekday_eng_wshort_us': ('en', 'space'),
     'dt:date:weekday_eng_abbrev_wshort_us': ('en', 'space'),
     'dt:date:date_eng_abbrev_postfix': ('en', 'space'),
+    'dt:date:date_eng5': ('en', 'space'),
+    'dt:date:date_eng6': ('en', 'space'),
+    # "5-May-2022": dashes, like date_eng4_short.
+    'dt:date:date_eng4': ('en', 'dash'),
     'dt:date:date_eng_noyear_md': ('en', 'space'),
     'dt:date:date_eng_noyear_dm': ('en', 'space'),
     # Bulgarian (bg.py)

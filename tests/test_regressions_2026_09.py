@@ -375,6 +375,9 @@ _PROBE_STRINGS = [
     "Воскресенье, 5 мая 2020 года",   # weekday_rus_lc1
     "4 Сентября в 04:06:33",          # date_rus_noyear
     "May 5",                          # date_eng_noyear_md
+    "Sept. 5, 2022",                  # date_eng5
+    "5th Sept 2022",                  # date_eng6
+    "5-May-2022",                     # date_eng4
     "5 May",                          # date_eng_noyear_dm
 ]
 

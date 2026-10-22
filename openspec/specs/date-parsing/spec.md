@@ -97,6 +97,29 @@ every language.
 
 ---
 
+### Requirement: English abbreviations and dashed dates
+
+The parser SHALL read an abbreviated English month followed by a dot
+(`Sept. 5, 2022`, `Dec. 25, 2022`), an abbreviated month before an ordinal
+day (`Sep 5th 2022`), an ordinal day before `Sept` or an abbreviated month
+with a dot (`5th Sept 2022`, `5th Dec. 2022`), and day, month and four-digit
+year between dashes (`5-May-2022`, `05-Sep-2022`). `Sept` SHALL be read as
+September. Forms that parsed before SHALL keep their pattern.
+
+#### Scenario: AP-style abbreviation
+- **WHEN** `parse("Sept. 5, 2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 9, 5)`
+
+#### Scenario: Ordinal day after an abbreviation
+- **WHEN** `parse("Sep 5th 2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 9, 5)`
+
+#### Scenario: Dashes and a four-digit year
+- **WHEN** `parse("5-May-2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5)`
+
+---
+
 ### Requirement: Twelve-hour clock
 
 The parser SHALL accept a 12-hour time after a date: an hour of one or two

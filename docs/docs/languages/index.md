@@ -11,7 +11,7 @@ pattern table and tests — not by loading CLDR at runtime.
 
 | Code | Language | Notes |
 |------|----------|-------|
-| `en` | English | Numeric cores, US `mm/dd`, weekdays, abbreviated months, dates without a year (`May 5`, `5 May`) |
+| `en` | English | Numeric cores, US `mm/dd`, weekdays, abbreviated months, dates without a year (`May 5`, `5 May`), `Sept. 5, 2022`, `Sep 5th 2022`, `5-May-2022` |
 | `de` | German | Full, short, weekday, month-first |
 | `ru` | Russian | Nominative/genitive months, optional `г.` / `года` |
 | `es` | Spanish | Articles (`de`), comma-year (`03 de Julio, 2026`) |
@@ -32,7 +32,7 @@ language.
 
 ## How many patterns?
 
-The catalog is **base patterns × generated variants** (140 base patterns in the current tree). Each base date pattern can expand with a time after it (`HH:MM` or `14h30`, `HH:MM:SS`, `[HH:MM]`, the 12-hour clock), a time before it, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
+The catalog is **base patterns × generated variants** (143 base patterns in the current tree). Each base date pattern can expand with a time after it (`HH:MM` or `14h30`, `HH:MM:SS`, `[HH:MM]`, the 12-hour clock), a time before it, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
 
 Regenerate the per-language tables after pattern changes:
 

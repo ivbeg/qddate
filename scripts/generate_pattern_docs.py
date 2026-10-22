@@ -224,6 +224,20 @@ def generate_examples(pattern, lang_code):
         examples = ['03/15/2024', '12/3/2023', '7/28/2025']
     elif '%m/%d/%y' in fmt or fmt == '%m/%d/%y':
         examples = ['03/15/24', '12/3/23', '7/28/25']
+    elif fmt in ('%d-%b-%Y', '%b. %d, %Y', '%d %b. %Y'):
+        # English abbreviated month: dashes, or a dot after it
+        if months_to_use:
+            month1, month2, month3 = (m[:3].capitalize() for m in
+                                      (months_to_use[2], months_to_use[11], months_to_use[6]))
+            if fmt == '%d-%b-%Y':
+                examples = [f'{day1}-{month1}-{year_full1}', f'{day2}-{month2}-{year_full2}',
+                            f'{day3}-{month3}-{year_full3}']
+            elif fmt == '%b. %d, %Y':
+                examples = [f'{month1}. {day1}, {year_full1}', f'Sep {day2}rd {year_full2}',
+                            f'Sept. {day3}, {year_full3}']
+            else:
+                examples = [f'{day1}th {month1}. {year_full1}', f'{day2}rd Sept {year_full2}',
+                            f'{day3}th {month3}. {year_full3}']
     elif '%d-%b-%y' in fmt or fmt == '%d-%b-%y':
         if months_to_use:
             month1 = months_to_use[2][:3] if len(months_to_use) > 2 else months_to_use[0][:3]
