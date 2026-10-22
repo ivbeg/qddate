@@ -120,6 +120,33 @@ September. Forms that parsed before SHALL keep their pattern.
 
 ---
 
+### Requirement: Chinese, Japanese and Korean numeric dates
+
+The parser SHALL read a year, month and day written as numbers followed by
+their units: `年`, `月`, `日` or `号` (Chinese, Japanese) and `년`, `월`, `일`
+(Korean), with ASCII or full-width digits. A weekday may follow the day, in
+brackets or written out (`(木)`, `（木曜日）`, `星期四`, `(목)`, `목요일`), then
+a time written with units (`14時30分`, `14时30分`, `14시 30분`) or after a
+morning or afternoon marker (`午前`, `午後`, `上午`, `下午`, `오전`, `오후`); an
+hour above 12 after a marker SHALL NOT be read as a time. A month and day
+without a year (`5月5日`, `5월 5일`) SHALL be a `noyear` pattern. The patterns
+SHALL belong to no language.
+
+#### Scenario: Chinese or Japanese date
+- **WHEN** `parse("2022年5月5日")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5)`
+
+#### Scenario: Korean date
+- **WHEN** `parse("2022년 5월 5일")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5)`
+
+#### Scenario: Time after the date
+- **WHEN** `parse("2022年5月5日 14:30")` or `parse("2022年5月5日午後2時30分")`
+  is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5, 14, 30)`
+
+---
+
 ### Requirement: Twelve-hour clock
 
 The parser SHALL accept a 12-hour time after a date: an hour of one or two

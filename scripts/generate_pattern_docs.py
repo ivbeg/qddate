@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from qddate.patterns import (
     INTEGER_LIKE_PATTERNS,
     PATTERNS_BG,
+    PATTERNS_CJK,
     PATTERNS_CZ,
     PATTERNS_DE,
     PATTERNS_EN,
@@ -79,7 +80,7 @@ LANGUAGE_NAMES = {
 
 # Pattern collections by language
 PATTERN_COLLECTIONS = {
-    'en': PATTERNS_EN + INTEGER_LIKE_PATTERNS,
+    'en': PATTERNS_EN + INTEGER_LIKE_PATTERNS + PATTERNS_CJK,
     'bg': PATTERNS_BG,
     'cz': PATTERNS_CZ,
     'de': PATTERNS_DE,
@@ -197,10 +198,18 @@ def generate_examples(pattern, lang_code):
             # Day and month name
             examples = [f'{day1} {months_to_use[2]}', f'{day2} {months_to_use[11]}',
                         f'{day3} {months_to_use[6]}']
+        elif fmt == '%m月%d日':
+            examples = ['3月15日', '12月3日 10:30', '7月28日(月)']
+        elif fmt == '%m월 %d일':
+            examples = ['3월 15일', '12월 3일 오후 2:30', '7월 28일 (월)']
         elif fmt == '%b %d' and months_to_use:
             # Month name and day
             examples = [f'{months_to_use[2]} {day1}', f'{months_to_use[11]} {day2}',
                         f'{months_to_use[6]} {day3}']
+    elif fmt == '%Y年%m月%d日':
+        examples = ['2024年3月15日', '2023年12月3日 14:30', '2025年7月28日(月) 午後2時']
+    elif fmt == '%Y년 %m월 %d일':
+        examples = ['2024년 3월 15일', '2023년 12월 3일 14:30', '2025년 7월 28일 (월) 오후 2:30']
     elif '%d%m%Y' in fmt or fmt == '%d%m%Y':
         # Compact numeric format
         examples = ['15032024', '03122023', '28072025']

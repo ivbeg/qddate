@@ -7,7 +7,7 @@ description: "Base date patterns for English (en)"
 
 # English (`en`)
 
-**Base patterns:** 47. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
+**Base patterns:** 51. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
@@ -58,5 +58,9 @@ description: "Base date patterns for English (en)"
 | `dt:date:date_eng_noyear_dm` | English day and month without year | `%d %b` | 5 | 14 |  | Yes | 1 | `15 March`, `3 December`, `28 July` |
 | `dt:date:date_5` | Datetime string as ddmmyyyy | `%d%m%Y` | 8 | 8 |  |  |  | `15032024`, `03122023`, `28072025` |
 | `dt:date:date_6` | Datetime string as yyyymmdd | `%Y%m%d` | 8 | 8 |  |  |  | `20240315`, `20231203`, `20250728` |
+| `dt:date:date_cjk` | Chinese or Japanese date with year, month and day units | `%Y年%m月%d日` | 8 | 44 |  |  |  | `2024年3月15日`, `2023年12月3日 14:30`, `2025年7月28日(月) 午後2時` |
+| `dt:date:date_cjk_ko` | Korean date with year, month and day units | `%Y년 %m월 %d일` | 8 | 44 |  |  |  | `2024년 3월 15일`, `2023년 12월 3일 14:30`, `2025년 7월 28일 (월) 오후 2:30` |
+| `dt:date:date_cjk_noyear` | Chinese or Japanese date with month and day units, without year | `%m月%d日` | 4 | 38 |  | Yes |  | `3月15日`, `12月3日 10:30`, `7月28日(月)` |
+| `dt:date:date_cjk_ko_noyear` | Korean date with month and day units, without year | `%m월 %d일` | 4 | 38 |  | Yes |  | `3월 15일`, `12월 3일 오후 2:30`, `7월 28일 (월)` |
 
 See also: [languages=](/api/languages), [adding languages](/development/adding-languages).

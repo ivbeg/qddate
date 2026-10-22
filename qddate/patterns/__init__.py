@@ -9,6 +9,7 @@ from .base import (  # noqa: F401
     TIMEZONE_ABBREVIATIONS,
 )
 from .bg import PATTERNS_BG
+from .cjk import PATTERNS_CJK
 from .cz import PATTERNS_CZ
 from .de import PATTERNS_DE
 from .es import PATTERNS_ES
@@ -28,7 +29,7 @@ ALL_PATTERNS = (PATTERNS_EN + INTEGER_LIKE_PATTERNS + PATTERNS_BG +
                 PATTERNS_CZ + PATTERNS_DE + PATTERNS_ES + PATTERNS_FR +
                 PATTERNS_IT + PATTERNS_NL + PATTERNS_PL + PATTERNS_PT +
                 PATTERNS_RO + PATTERNS_RU + PATTERNS_TR + PATTERNS_UK +
-                PATTERNS_SK)
+                PATTERNS_SK + PATTERNS_CJK)
 
 
 # Authoritative per-pattern metadata: basekey -> (language, separator).
@@ -61,6 +62,11 @@ _PATTERN_METADATA = {
     'dt:date:date_4_point': (None, 'dot'),
     'dt:date:date_5': (None, 'none'),
     'dt:date:date_6': (None, 'none'),
+    # Chinese, Japanese and Korean (cjk.py): numbers with units, no separator.
+    'dt:date:date_cjk': (None, 'mixed'),
+    'dt:date:date_cjk_ko': (None, 'mixed'),
+    'dt:date:date_cjk_noyear': (None, 'mixed'),
+    'dt:date:date_cjk_ko_noyear': (None, 'mixed'),
     # English (base.py) — numeric and month-name patterns
     'dt:date:date_usa_1': ('en', 'slash'),
     'dt:date:date_usa': ('en', 'slash'),
@@ -255,6 +261,8 @@ _NUMERIC_PATTERN_KEYS = frozenset({
     "dt:date:date_9", "dt:date:date_10", "dt:date:noyear_1",
     "dt:date:date_4_point", "dt:date:date_5", "dt:date:date_6",
     "dt:date:date_usa_1", "dt:date:date_usa",
+    "dt:date:date_cjk", "dt:date:date_cjk_ko", "dt:date:date_cjk_noyear",
+    "dt:date:date_cjk_ko_noyear",
 })
 
 
@@ -350,9 +358,11 @@ TIME_PREFIXES_BY_LANGUAGE = {
 ALL_TIME_PREFIXES = tuple(sorted({
     word for words in TIME_PREFIXES_BY_LANGUAGE.values() for word in words}))
 
-# Mapping of language codes to their pattern lists
+# Mapping of language codes to their pattern lists. The language-neutral
+# numeric patterns, Chinese, Japanese and Korean ones included, are filed
+# under English.
 PATTERNS_BY_LANGUAGE = {
-    "en": PATTERNS_EN + INTEGER_LIKE_PATTERNS,
+    "en": PATTERNS_EN + INTEGER_LIKE_PATTERNS + PATTERNS_CJK,
     "bg": PATTERNS_BG,
     "cz": PATTERNS_CZ,
     "de": PATTERNS_DE,

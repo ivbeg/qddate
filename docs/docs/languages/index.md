@@ -28,12 +28,13 @@ pattern table and tests — not by loading CLDR at runtime.
 | `sk` | Slovak | Nominative and genitive, day with a dot (`5. mája 2022`) |
 
 Language-neutral numeric patterns (ISO-like `YYYY-MM-DD`, `dd.mm.yyyy`, compact
-digits) live with the English table but are available regardless of month-name
-language.
+digits, and the Chinese, Japanese and Korean `2022年5月5日` / `2022년 5월 5일`)
+live with the English table but are available regardless of month-name
+language. Their `DateMatch.language` is `None`.
 
 ## How many patterns?
 
-The catalog is **base patterns × generated variants** (147 base patterns in the current tree). Each base date pattern can expand with a time after it (`HH:MM` or `14h30`, `HH:MM:SS`, `[HH:MM]`, the 12-hour clock), a time before it, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
+The catalog is **base patterns × generated variants** (151 base patterns in the current tree). Each base date pattern can expand with a time after it (`HH:MM` or `14h30`, `HH:MM:SS`, `[HH:MM]`, the 12-hour clock), a time before it, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
 
 Regenerate the per-language tables after pattern changes:
 

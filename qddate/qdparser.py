@@ -550,8 +550,8 @@ class _GrammarNeeds(NamedTuple):
     """What a text must contain for a grammar to match it at position 0.
 
     ``words`` holds one set of regexes per required element that needs a
-    letter (a month or weekday name list); from each set, one regex must be
-    found in the text. ``first`` is the set of characters such a match can
+    letter (a month or weekday name list, a literal such as "年"); from each
+    set, one regex must be found in the text. ``first`` is the set of characters such a match can
     start with when the text does not start with whitespace, or ``None`` when
     it is not known.
     """
@@ -587,7 +587,12 @@ def _grammar_needs(expr: ParserElement, cache: dict[int, tuple[Any, _GrammarNeed
         needs = _GrammarNeeds(frozenset(), frozenset(expr.initChars))
     elif isinstance(expr, Literal) and not isinstance(expr, CaselessLiteral):
         if expr.match:
-            needs = _GrammarNeeds(frozenset(), frozenset(expr.match[0]))
+            # A literal with a character that is not a digit, separator or
+            # space ("年", "de") must occur in the text as written.
+            literal: frozenset = frozenset()
+            if any(char not in _NON_LETTER_PROBE for char in expr.match):
+                literal = frozenset({frozenset({re.compile(re.escape(expr.match))})})
+            needs = _GrammarNeeds(literal, frozenset(expr.match[0]))
     elif isinstance(expr, (LineStart, StringStart, Empty)):
         # Match without consuming a character.
         needs = _GrammarNeeds(frozenset(), frozenset())
@@ -610,12 +615,16 @@ def _grammar_needs(expr: ParserElement, cache: dict[int, tuple[Any, _GrammarNeed
             frozenset(starts) if start_known else None)
     elif isinstance(expr, (MatchFirst, Or)):
         alternatives = [_grammar_needs(alt, cache) for alt in expr.exprs]
-        # Any alternative may match. Each one that needs words finds one of
-        # its regexes, so one regex of all of them must be found, provided
-        # every alternative needs words.
+        # Any alternative may match. A set of regexes every alternative
+        # requires (the month list of "May 5th, 2022" and "5th May 2022") is
+        # required. Besides, each one that needs words finds one of its
+        # regexes, so one regex of all of them must be found, provided every
+        # alternative needs words.
         words: frozenset = frozenset()
+        if alternatives:
+            words = frozenset.intersection(*(alt.words for alt in alternatives))
         if alternatives and all(alt.words for alt in alternatives):
-            words = frozenset({frozenset(
+            words |= frozenset({frozenset(
                 rx for alt in alternatives for regexes in alt.words for rx in regexes)})
         firsts = [alt.first for alt in alternatives if alt.first is not None]
         needs = _GrammarNeeds(
@@ -1387,7 +1396,7 @@ class DateParser:
                             for token in [
                                 "eng", "rus", "fr", "de", "es", "it", "pt", "bg",
                                 "cz", "pl", "tr", "nl", "ro", "weekday", "rare",
-                                "uk", "sk",
+                                "uk", "sk", "cjk",
                             ]
                         ):
                             if 'space' in separators or 'mixed' in separators:

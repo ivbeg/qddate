@@ -160,6 +160,9 @@ _LEGACY_CHARSET = {
         "dt:date:date_9", "dt:date:date_10", "dt:date:noyear_1",
         "dt:date:date_4_point", "dt:date:date_5", "dt:date:date_6",
         "dt:date:date_usa_1", "dt:date:date_usa",
+        # Added with the Chinese, Japanese and Korean patterns (2026-10).
+        "dt:date:date_cjk", "dt:date:date_cjk_ko", "dt:date:date_cjk_noyear",
+        "dt:date:date_cjk_ko_noyear",
     },
 }
 

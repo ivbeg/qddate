@@ -382,6 +382,10 @@ _PROBE_STRINGS = [
     "5. máj 2022",                    # sk_base_lc
     "5. Mája 2022",                   # sk_gen
     "5. mája 2022",                   # sk_gen_lc
+    "2022年5月5日",                   # date_cjk
+    "2022년 5월 5일",                 # date_cjk_ko
+    "5月5日",                         # date_cjk_noyear
+    "5월 5일",                        # date_cjk_ko_noyear
     "5 May",                          # date_eng_noyear_dm
 ]
 

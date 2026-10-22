@@ -34,6 +34,22 @@ All notable changes to this project are tracked here.
   `sk_gen_lc`). Month names shared with English, German, Dutch or the Polish
   genitive (`august`, `september`, `marca`) do not claim Slovak, so
   `5 September 2022` stays English.
+- Chinese, Japanese and Korean numeric dates: `2022年5月5日`, `2022年5月5号`,
+  `２０２２年５月５日` (full-width digits), `2022년 5월 5일` (all returned
+  `None`), with a weekday (`(木)`, `（木曜日）`, `星期四`, `(목)`, `목요일`) and a
+  time: `2022年5月5日 14:30` (generated variants), `14時30分`, `14时30分`,
+  `14시 30분`, `午後2時30分`, `下午2:30`, `오후 2:30`. `5月5日` and `5월 5일`
+  are dates without a year. The four patterns (`dt:date:date_cjk`,
+  `date_cjk_ko`, `date_cjk_noyear`, `date_cjk_ko_noyear`) belong to no
+  language, like the numeric ones: every `languages=` hint tries them and
+  `DateMatch.language` is `None`. `DateParser(languages=["en"])` includes
+  them with the other numeric patterns.
+- The checks before a grammar runs know two more facts, so the new
+  patterns cost text without a date nothing: a required literal word (`年`,
+  `년`, `de`) must occur in the text, and a month list that every
+  alternative of a grammar requires is required. Before, the ordinal suffix
+  `nd` in `Some random text node 123` stood in for the month name of
+  `date_eng2`, which ran 7 grammars on that text; it now runs none.
 
 **Time formats** (Q5–Q8 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
 - The 12-hour clock after a date: `AM`/`PM`, `am`/`pm`, `a.m.`/`p.m.`,
