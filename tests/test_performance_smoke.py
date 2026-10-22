@@ -103,3 +103,28 @@ def test_text_without_a_date_is_rejected_fast():
         "_match_candidates runs grammars the text cannot match "
         "(see tests/test_match_prefilter.py)."
     )
+
+
+@pytest.mark.skipif(not _PERF_GATED, reason="perf-gated (set QDDATE_PERF=1)")
+@pytest.mark.parametrize("labels", [None, True])
+def test_search_on_text_without_a_date_is_fast(labels):
+    """``search()`` runs a match at each position a date can start (a digit
+    run or a month name), so text without a date stays cheap; with
+    ``labels=True`` only positions after a label are matched."""
+    parser = DateParser()
+    for s in _NOT_DATES:
+        parser.search(s, labels=labels)
+
+    durations_ms = []
+    for _ in range(100):
+        for s in _NOT_DATES:
+            t0 = time.perf_counter()
+            parser.search(s, labels=labels)
+            durations_ms.append((time.perf_counter() - t0) * 1000.0)
+
+    mean_ms = statistics.mean(durations_ms)
+    assert mean_ms < _NOT_DATES_THRESHOLD_MEAN_MS, (
+        f"Mean search latency on text without a date {mean_ms:.2f}ms exceeds "
+        f"{_NOT_DATES_THRESHOLD_MEAN_MS:.2f}ms (labels={labels!r}). This usually "
+        "means search() tries positions where no date can start "
+        "(see qddate.qdparser._date_starts).")

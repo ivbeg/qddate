@@ -15,6 +15,7 @@ from .de import PATTERNS_DE
 from .es import PATTERNS_ES
 from .fr import PATTERNS_FR
 from .it import PATTERNS_IT
+from .labels import DATE_LABELS  # noqa: F401
 from .months import (  # noqa: F401
     LANGUAGE_ALIASES,
     MONTHS_BY_LANGUAGE,

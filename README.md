@@ -23,6 +23,7 @@ Full documentation is published at [ivbeg.github.io/qddate](https://ivbeg.github
 <!-- END qddate-stats -->
 - Multi-language parsing (English, Romanian, Ukrainian, Russian, Spanish, and more)
 - Handles left-aligned dates with trailing text: `12.03.1999 some text here`
+- Finds dates inside text with `search()` / `find_all()`, optionally only after a label or a dateline: `Posted on May 5, 2022`, `Опубликовано: 5 мая 2022`, `GENEVA, 29 July 2022`
 - Configurable language subsets via the `languages=` parameter
 - Prioritizes speed via pyparsing, hard-coded constants, and dirty tricks
 

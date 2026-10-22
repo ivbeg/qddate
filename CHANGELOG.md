@@ -92,6 +92,29 @@ All notable changes to this project are tracked here.
 - `HH:MM` after a date may follow `|` or the ISO `T`, as `HH:MM:SS` could:
   `21 September 1994 | 11:08`, `2022-05-05T10:00` keep their time.
 
+**Dates inside text** (Q18)
+- `DateParser.search(text)` returns the first date wherever it starts and
+  `find_all(text)` every date, left to right, as `DateMatch` objects whose
+  `span` locates the date: `search("Posted on May 5, 2022").span == (10, 21)`.
+  A date is tried only where one can start (position 0, a run of one, two,
+  four or eight digits that starts a word, a month or weekday name), and at
+  each such position the result is what `match_typed()` finds there.
+- Against false dates: `max_offset=` (a date must start by that index) and
+  `labels=True`, under which a date that does not start the text must follow
+  a label of the new `qddate.patterns.DATE_LABELS` (`Posted on`, `Updated:`,
+  `Опубликовано:`, `Обновлено`, `Veröffentlicht am`, `Publié le`, `Publicado
+  el`, `发布时间`, `입력`, … in every language), a dateline (`GENEVA, `,
+  `New York – `) or punctuation alone. A string or list of labels replaces
+  the built-in ones. This covers what newsworker's `_DATELINE_PREFIX_RE`
+  read and the labels it could not.
+- Text without a date stays cheap: with `labels=True` a phone number, a
+  price or a sentence with numbers runs no grammar; without labels a search
+  costs two to three `match()` calls on such text (0.6 ms against 0.25 ms
+  on the noise texts of `tests/test_performance_smoke.py`).
+- `DateMatch.span` ends where the date ends: the `,`, `|`, `:` or `)` a
+  `:t_right` variant reads after the date is no longer counted
+  (`match_typed("5 May 2022, more").span` is `(0, 10)`, was `(0, 11)`).
+
 **API** (Q14–Q17)
 - `languages=` on `match()`, `match_all()`, `parse()`, `match_typed()` (and
   `parse_many()`): the patterns of these languages and the language-neutral
