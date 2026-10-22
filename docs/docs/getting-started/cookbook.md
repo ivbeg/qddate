@@ -51,11 +51,18 @@ parser.parse("30 de junio, 2026")
 
 ```python
 parser.parse("01.12")                       # 1 December of the current year
+parser.parse("May 5")                       # 5 May of the current year
+parser.parse("5th May")                     # also "Sept. 5", "Dec 25th", "Jan 1"
+parser.parse("Dec 25", reference=datetime.datetime(2026, 1, 3), prefer="past")
+# datetime.datetime(2025, 12, 25, 0, 0)
 parser.parse("01.12", allow_no_year=False)  # None
 ```
 
 Day-month strings match by default. Pass `allow_no_year=False` when you do not
-want them: they can cause false positives on short numeric fragments.
+want them: they can cause false positives on short numeric fragments. English
+month names count only when capitalised or in capitals (`may 5` is not a date),
+and a number after them reads as a year, not a day-month date (`May 5, 22` gives
+`None`).
 
 ## Detailed walkthroughs
 

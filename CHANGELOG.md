@@ -4,6 +4,20 @@ All notable changes to this project are tracked here.
 
 ## Unreleased
 
+**Dates without a year, more forms** (Q9–Q13 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
+- English dates without a year, month first and day first: `May 5`, `5 May`,
+  `Jan 1`, `May 5th`, `25th December`, `Dec. 25`, `Sept. 5` (all returned
+  `None`). New patterns `dt:date:date_eng_noyear_md` and
+  `dt:date:date_eng_noyear_dm` carry the `noyear` flag, so the year comes from
+  `reference=` (the current year by default) as for `05.12` and `5 мая`,
+  `prefer="past"` moves `Dec 25` read on 3 January to the previous year, and
+  `allow_no_year=False` skips them. A time may follow or come first
+  (`May 5 at 3:45 PM`, `14:30, May 5`). To keep words from reading as dates,
+  the month must be capitalised or in capitals (`may 5` is not a date), no
+  letter may follow it (`5 Marketing tips`), no digit may follow the day
+  (`May 2022`), and a two- or four-digit number after the date is taken for a
+  year, not ignored (`May 5, 22` gives `None`).
+
 **Time formats** (Q5–Q8 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
 - The 12-hour clock after a date: `AM`/`PM`, `am`/`pm`, `a.m.`/`p.m.`,
   with or without minutes and seconds (`May 5, 2022 at 3:45 PM` → 15:45,

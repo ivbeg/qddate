@@ -188,10 +188,14 @@ def generate_examples(pattern, lang_code):
         # Patterns without year
         if fmt == '%d.%m':
             examples = ['15.03', '3.12', '28.07']
-        elif fmt == '%d %m' and months_to_use:
+        elif fmt in ('%d %m', '%d %b') and months_to_use:
             # Day and month name
             examples = [f'{day1} {months_to_use[2]}', f'{day2} {months_to_use[11]}',
                         f'{day3} {months_to_use[6]}']
+        elif fmt == '%b %d' and months_to_use:
+            # Month name and day
+            examples = [f'{months_to_use[2]} {day1}', f'{months_to_use[11]} {day2}',
+                        f'{months_to_use[6]} {day3}']
     elif '%d%m%Y' in fmt or fmt == '%d%m%Y':
         # Compact numeric format
         examples = ['15032024', '03122023', '28072025']

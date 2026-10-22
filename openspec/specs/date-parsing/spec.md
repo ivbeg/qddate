@@ -236,6 +236,13 @@ move to the previous year; with `prefer="future"` a date more than that
 before it SHALL move to the next year; a day that does not exist in that year
 SHALL give `None`. Other `prefer` values SHALL raise `ValueError`. With `allow_no_year=False`, `noyear` patterns
 SHALL NOT match. Only a pattern marked `noyear` SHALL match a date without a year.
+
+English dates without a year SHALL be read month first and day first, with a
+full or abbreviated month name (`Sept` included, an optional dot after it)
+and an optional ordinal suffix: `May 5`, `Sept. 5`, `Dec 25th`, `5 May`,
+`25th December`. The month name SHALL be capitalised or in capitals, SHALL NOT
+be followed by a letter, and the day SHALL NOT be followed by a digit or by a
+two- or four-digit number that is not a time.
 The keyword is specified in `packaging-and-api` ("Public parsing methods accept
 `allow_no_year=`"), which also keeps `noyear=` as a deprecated alias.
 
@@ -258,8 +265,19 @@ The keyword is specified in `packaging-and-api` ("Public parsing methods accept
   is called
 - **THEN** the result SHALL equal `datetime.datetime(2025, 12, 31)`
 
+#### Scenario: English month and day
+- **WHEN** `parse("May 5", reference=datetime.datetime(2026, 10, 22))` or
+  `parse("5th May", reference=datetime.datetime(2026, 10, 22))` is called
+- **THEN** the result SHALL equal `datetime.datetime(2026, 5, 5)`
+
+#### Scenario: English words that are not dates
+- **WHEN** `parse("may 5")`, `parse("5 Marketing tips")`, `parse("May 2022")`
+  or `parse("May 5, 22")` is called
+- **THEN** the result SHALL be `None`
+
 #### Scenario: No-year patterns disabled
-- **WHEN** `parse("4 Сентября в 04:06:33", allow_no_year=False)` or
+- **WHEN** `parse("4 Сентября в 04:06:33", allow_no_year=False)`,
+  `parse("May 5", allow_no_year=False)` or
   `parse("05.12", allow_no_year=False)` is called
 - **THEN** the result SHALL be `None`
 

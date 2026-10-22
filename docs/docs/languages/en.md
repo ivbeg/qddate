@@ -7,7 +7,7 @@ description: "Base date patterns for English (en)"
 
 # English (`en`)
 
-**Base patterns:** 42. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
+**Base patterns:** 44. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
@@ -51,6 +51,8 @@ description: "Base date patterns for English (en)"
 | `dt:date:weekday_eng_wshort_us` | Date with short english weekday and month first | `%b %d, %Y` | 13 | 24 |  |  | 1 | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
 | `dt:date:weekday_eng_abbrev_wshort_us` | Date with short english weekday and abbreviated month first | `%b %d, %Y` | 13 | 19 |  |  | 1 | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
 | `dt:date:date_eng_abbrev_postfix` | Date with abbreviated English month and day with ordinal suffix | `%d %b %Y` | 11 | 16 |  |  | 1 | `15 mar 2024`, `3 dec 2023`, `28 jul 2025` |
+| `dt:date:date_eng_noyear_md` | English month and day without year | `%b %d` | 5 | 15 |  | Yes | 1 | `March 15`, `December 3`, `July 28` |
+| `dt:date:date_eng_noyear_dm` | English day and month without year | `%d %b` | 5 | 14 |  | Yes | 1 | `15 March`, `3 December`, `28 July` |
 | `dt:date:date_5` | Datetime string as ddmmyyyy | `%d%m%Y` | 8 | 8 |  |  |  | `15032024`, `03122023`, `28072025` |
 | `dt:date:date_6` | Datetime string as yyyymmdd | `%Y%m%d` | 8 | 8 |  |  |  | `20240315`, `20231203`, `20250728` |
 

@@ -11,7 +11,7 @@ pattern table and tests — not by loading CLDR at runtime.
 
 | Code | Language | Notes |
 |------|----------|-------|
-| `en` | English | Numeric cores, US `mm/dd`, weekdays, abbreviated months |
+| `en` | English | Numeric cores, US `mm/dd`, weekdays, abbreviated months, dates without a year (`May 5`, `5 May`) |
 | `de` | German | Full, short, weekday, month-first |
 | `ru` | Russian | Nominative/genitive months, optional `г.` / `года` |
 | `es` | Spanish | Articles (`de`), comma-year (`03 de Julio, 2026`) |
@@ -32,7 +32,7 @@ language.
 
 ## How many patterns?
 
-The catalog is **base patterns × generated variants** (134 base patterns in the current tree). Each base date pattern can expand with a time after it (`HH:MM` or `14h30`, `HH:MM:SS`, `[HH:MM]`, the 12-hour clock), a time before it, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
+The catalog is **base patterns × generated variants** (140 base patterns in the current tree). Each base date pattern can expand with a time after it (`HH:MM` or `14h30`, `HH:MM:SS`, `[HH:MM]`, the 12-hour clock), a time before it, and trailing-text forms. Counts on each language page are **base** patterns from `qddate/patterns/*.py`. Generated variants are produced at `DateParser` construction when `generate=True`.
 
 Regenerate the per-language tables after pattern changes:
 
@@ -43,7 +43,7 @@ python scripts/generate_pattern_docs.py
 ## Pattern flags
 
 - **Year Short**: 2-digit years (`24` → 2024-style handling in that pattern)
-- **No Year**: day-month only; `parse()` fills the current year
+- **No Year**: day-month only; `parse()` fills the year of `reference=` (the current year by default)
 - **Filter**: stricter prefix/length filtering (higher means more aggressive)
 
 Format strings use `strftime`-style tokens (`%d`, `%m`, `%Y`, `%y`, `%b`). Length

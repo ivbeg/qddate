@@ -72,6 +72,9 @@ def _variants(expr):
     """
     if isinstance(expr, pp.White):
         return [(" ",)]
+    if isinstance(expr, pp.NotAny):
+        # A check on what follows ("no year after a date without one").
+        return [()]
     if isinstance(expr, (pp.PositionToken, pp.StringStart, pp.Empty)):
         # Match without consuming text (``:t_right`` variants start with
         # ``LineStart``; a zone or AM/PM marker may check the next character).
