@@ -97,6 +97,56 @@ every language.
 
 ---
 
+### Requirement: English abbreviations and dashed dates
+
+The parser SHALL read an abbreviated English month followed by a dot
+(`Sept. 5, 2022`, `Dec. 25, 2022`), an abbreviated month before an ordinal
+day (`Sep 5th 2022`), an ordinal day before `Sept` or an abbreviated month
+with a dot (`5th Sept 2022`, `5th Dec. 2022`), and day, month and four-digit
+year between dashes (`5-May-2022`, `05-Sep-2022`). `Sept` SHALL be read as
+September. Forms that parsed before SHALL keep their pattern.
+
+#### Scenario: AP-style abbreviation
+- **WHEN** `parse("Sept. 5, 2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 9, 5)`
+
+#### Scenario: Ordinal day after an abbreviation
+- **WHEN** `parse("Sep 5th 2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 9, 5)`
+
+#### Scenario: Dashes and a four-digit year
+- **WHEN** `parse("5-May-2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5)`
+
+---
+
+### Requirement: Chinese, Japanese and Korean numeric dates
+
+The parser SHALL read a year, month and day written as numbers followed by
+their units: `年`, `月`, `日` or `号` (Chinese, Japanese) and `년`, `월`, `일`
+(Korean), with ASCII or full-width digits. A weekday may follow the day, in
+brackets or written out (`(木)`, `（木曜日）`, `星期四`, `(목)`, `목요일`), then
+a time written with units (`14時30分`, `14时30分`, `14시 30분`) or after a
+morning or afternoon marker (`午前`, `午後`, `上午`, `下午`, `오전`, `오후`); an
+hour above 12 after a marker SHALL NOT be read as a time. A month and day
+without a year (`5月5日`, `5월 5일`) SHALL be a `noyear` pattern. The patterns
+SHALL belong to no language.
+
+#### Scenario: Chinese or Japanese date
+- **WHEN** `parse("2022年5月5日")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5)`
+
+#### Scenario: Korean date
+- **WHEN** `parse("2022년 5월 5일")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5)`
+
+#### Scenario: Time after the date
+- **WHEN** `parse("2022年5月5日 14:30")` or `parse("2022年5月5日午後2時30分")`
+  is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5, 14, 30)`
+
+---
+
 ### Requirement: Twelve-hour clock
 
 The parser SHALL accept a 12-hour time after a date: an hour of one or two
@@ -236,6 +286,13 @@ move to the previous year; with `prefer="future"` a date more than that
 before it SHALL move to the next year; a day that does not exist in that year
 SHALL give `None`. Other `prefer` values SHALL raise `ValueError`. With `allow_no_year=False`, `noyear` patterns
 SHALL NOT match. Only a pattern marked `noyear` SHALL match a date without a year.
+
+English dates without a year SHALL be read month first and day first, with a
+full or abbreviated month name (`Sept` included, an optional dot after it)
+and an optional ordinal suffix: `May 5`, `Sept. 5`, `Dec 25th`, `5 May`,
+`25th December`. The month name SHALL be capitalised or in capitals, SHALL NOT
+be followed by a letter, and the day SHALL NOT be followed by a digit or by a
+two- or four-digit number that is not a time.
 The keyword is specified in `packaging-and-api` ("Public parsing methods accept
 `allow_no_year=`"), which also keeps `noyear=` as a deprecated alias.
 
@@ -258,8 +315,19 @@ The keyword is specified in `packaging-and-api` ("Public parsing methods accept
   is called
 - **THEN** the result SHALL equal `datetime.datetime(2025, 12, 31)`
 
+#### Scenario: English month and day
+- **WHEN** `parse("May 5", reference=datetime.datetime(2026, 10, 22))` or
+  `parse("5th May", reference=datetime.datetime(2026, 10, 22))` is called
+- **THEN** the result SHALL equal `datetime.datetime(2026, 5, 5)`
+
+#### Scenario: English words that are not dates
+- **WHEN** `parse("may 5")`, `parse("5 Marketing tips")`, `parse("May 2022")`
+  or `parse("May 5, 22")` is called
+- **THEN** the result SHALL be `None`
+
 #### Scenario: No-year patterns disabled
-- **WHEN** `parse("4 Сентября в 04:06:33", allow_no_year=False)` or
+- **WHEN** `parse("4 Сентября в 04:06:33", allow_no_year=False)`,
+  `parse("May 5", allow_no_year=False)` or
   `parse("05.12", allow_no_year=False)` is called
 - **THEN** the result SHALL be `None`
 
@@ -499,7 +567,7 @@ its dimension, so the candidate set can only widen, as on the legacy path.
 `datetime`, the matched pattern's key (`pattern_key`), its language
 (`language`, `None` for language-neutral patterns), its `format` string, the
 raw input (`raw`), the `span` `(0, end)` of the date in `raw` (in characters of
-the original text), its `precision` (`"day"` without a time, `"hour"` for a
+the original text, without the `,`, `|`, `:` or `)` read after the date), its `precision` (`"day"` without a time, `"hour"` for a
 12-hour time without minutes, `"minute"`, `"second"`), the written zone
 (`tzinfo`, whether or not the parser is `tz_aware`, `None` without a zone) and
 `has_year` (`False` for a `noyear` pattern), or `None` when nothing matches.
@@ -523,6 +591,45 @@ working. The dict returned by `match()` SHALL remain unchanged.
 - **THEN** `.span` SHALL be `(0, 22)`, `.precision` SHALL be `"minute"`,
   `.tzinfo` SHALL have the offset `+03:00`, `.has_year` SHALL be `True`
 - **AND** `.datetime` SHALL be naive
+
+---
+
+### Requirement: Search for dates inside text
+
+`search(text)` SHALL return the `DateMatch` of the first date in `text`
+wherever it starts, or `None`; `find_all(text)` SHALL return every date, left
+to right, without overlaps. `span` SHALL give the date's start and end in
+`text`. A date SHALL be tried at position 0 and at the start of every run of
+one, two, four or eight digits that starts a word (not after a letter other
+than a Chinese, Japanese or Korean one, not inside a number) and of every
+month or weekday name; at each position the result SHALL be what
+`match_typed()` finds there. With `max_offset=N` a date SHALL start at or
+before index `N`. With `labels=True` a date that does not start the text (or
+follow the previous date) SHALL follow a label of `DATE_LABELS` (compared
+case-insensitively with the text after the last separator, punctuation after
+it removed), a dateline (up to four words without digits and a comma or a
+spaced dash) or punctuation alone; with a string or a list of strings, those
+labels SHALL replace the built-in ones. `reference=`, `prefer=` and the keyword
+arguments of `match()` SHALL apply.
+
+#### Scenario: Date after a label
+- **WHEN** `search("Posted on May 5, 2022")` is called
+- **THEN** `.datetime` SHALL equal `datetime.datetime(2022, 5, 5)` and `.span`
+  SHALL be `(10, 21)`
+
+#### Scenario: Labels required
+- **WHEN** `search("Some text 5 May 2022", labels=True)` is called
+- **THEN** the result SHALL be `None`
+- **AND** `search("Опубликовано: 5 мая 2022", labels=True)` and
+  `search("GENEVA, 29 July 2022", labels=True)` SHALL find the date
+
+#### Scenario: Every date
+- **WHEN** `find_all("From 5 May 2022 to 7 May 2022")` is called
+- **THEN** it SHALL return two matches with spans `(5, 15)` and `(19, 29)`
+
+#### Scenario: Not a date start
+- **WHEN** `search("Tel. +7 495 123-45-67", labels=True)` is called
+- **THEN** the result SHALL be `None` without running a grammar
 
 ---
 

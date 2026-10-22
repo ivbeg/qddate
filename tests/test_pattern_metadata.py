@@ -41,6 +41,9 @@ def _legacy_infer_language(basekey):
         return "tr"
     elif "_nl" in basekey or "nl_" in basekey:
         return "nl"
+    elif "_sk" in basekey or "sk_" in basekey:
+        # Added with Slovak (2026-10); not part of the pre-refactor code.
+        return "sk"
     elif "_eng" in basekey or "eng" in basekey or "date_usa" in basekey:
         return "en"
     return None
@@ -65,7 +68,7 @@ def _legacy_infer_separator(basekey):
     if any(x in basekey for x in ["date_5", "date_6", "date_7"]):
         return "none"
     if any(x in basekey for x in ["eng", "rus", "fr", "de", "es", "it", "pt", "ro",
-                                  "bg", "cz", "pl", "tr", "nl", "ro", "uk", "weekday"]):
+                                  "bg", "cz", "pl", "tr", "nl", "ro", "uk", "sk", "weekday"]):
         return "space"
     return "mixed"
 
@@ -118,8 +121,10 @@ def test_stamped_separator_matches_legacy_inference():
 #   via the "eng" substring, so the separator filter discarded it for dashed input.
 # - date_rus_lc1 also parses "17/апреля/1908"; with 'space' the separator filter
 #   discarded slashed input (spaced input passes as a language pattern anyway).
+# - date_eng4 parses "5-May-2022" (dashes), like date_eng4_short.
 _INTENTIONAL_SEPARATOR_OVERRIDES = {
     "dt:date:date_eng4_short": "dash",
+    "dt:date:date_eng4": "dash",
     "dt:date:date_rus_lc1": "slash",
 }
 
@@ -155,6 +160,9 @@ _LEGACY_CHARSET = {
         "dt:date:date_9", "dt:date:date_10", "dt:date:noyear_1",
         "dt:date:date_4_point", "dt:date:date_5", "dt:date:date_6",
         "dt:date:date_usa_1", "dt:date:date_usa",
+        # Added with the Chinese, Japanese and Korean patterns (2026-10).
+        "dt:date:date_cjk", "dt:date:date_cjk_ko", "dt:date:date_cjk_noyear",
+        "dt:date:date_cjk_ko_noyear",
     },
 }
 
@@ -186,7 +194,7 @@ def test_infer_char_sets_matches_legacy_output():
         script = {"ru": "cyrillic", "bg": "cyrillic", "fr": "accented", "cz": "accented",
                   "pl": "accented", "es": "accented", "it": "accented", "pt": "accented",
                   "de": "latin", "tr": "latin", "en": "latin", "nl": "latin",
-                  "ro": "latin", "uk": "cyrillic"}.get(lang)
+                  "ro": "latin", "uk": "cyrillic", "sk": "accented"}.get(lang)
         return expected_map.get(script, expected_map["latin"])
 
     mismatches = []

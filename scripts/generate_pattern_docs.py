@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from qddate.patterns import (
     INTEGER_LIKE_PATTERNS,
     PATTERNS_BG,
+    PATTERNS_CJK,
     PATTERNS_CZ,
     PATTERNS_DE,
     PATTERNS_EN,
@@ -27,6 +28,7 @@ from qddate.patterns import (
     PATTERNS_PL,
     PATTERNS_PT,
     PATTERNS_RU,
+    PATTERNS_SK,
     PATTERNS_TR,
     base,
     bg,
@@ -39,6 +41,7 @@ from qddate.patterns import (
     pl,
     pt,
     ru,
+    sk,
     tr,
 )
 
@@ -70,13 +73,14 @@ LANGUAGE_NAMES = {
     'cz': 'Czech',
     'pl': 'Polish',
     'ro': 'Romanian',
+    'sk': 'Slovak',
     'tr': 'Turkish',
     'uk': 'Ukrainian',
 }
 
 # Pattern collections by language
 PATTERN_COLLECTIONS = {
-    'en': PATTERNS_EN + INTEGER_LIKE_PATTERNS,
+    'en': PATTERNS_EN + INTEGER_LIKE_PATTERNS + PATTERNS_CJK,
     'bg': PATTERNS_BG,
     'cz': PATTERNS_CZ,
     'de': PATTERNS_DE,
@@ -88,6 +92,7 @@ PATTERN_COLLECTIONS = {
     'pt': PATTERNS_PT,
     'ro': PATTERNS_RO,
     'ru': PATTERNS_RU,
+    'sk': PATTERNS_SK,
     'tr': PATTERNS_TR,
     'uk': PATTERNS_UK,
 }
@@ -106,6 +111,7 @@ LANG_MONTHS = {
     'bg': {'full': bg.BG_MONTHS, 'lc': bg.BG_MONTHS_LC},
     'cz': {'full': cz.CZ_MONTHS, 'lc': cz.CZ_MONTHS_LC, 'gen': cz.CZ_MONTHS_GEN, 'gen_lc': cz.CZ_MONTHS_GEN_LC},
     'pl': {'full': pl.PL_MONTHS, 'lc': pl.PL_MONTHS_LC, 'gen': pl.PL_MONTHS_GEN, 'gen_lc': pl.PL_MONTHS_GEN_LC},
+    'sk': {'full': sk.SK_MONTHS, 'lc': sk.SK_MONTHS_LC, 'gen': sk.SK_MONTHS_GEN, 'gen_lc': sk.SK_MONTHS_GEN_LC},
     'tr': {'full': tr.TR_MONTHS, 'lc': tr.TR_MONTHS_LC},
 }
 
@@ -188,10 +194,22 @@ def generate_examples(pattern, lang_code):
         # Patterns without year
         if fmt == '%d.%m':
             examples = ['15.03', '3.12', '28.07']
-        elif fmt == '%d %m' and months_to_use:
+        elif fmt in ('%d %m', '%d %b') and months_to_use:
             # Day and month name
             examples = [f'{day1} {months_to_use[2]}', f'{day2} {months_to_use[11]}',
                         f'{day3} {months_to_use[6]}']
+        elif fmt == '%m月%d日':
+            examples = ['3月15日', '12月3日 10:30', '7月28日(月)']
+        elif fmt == '%m월 %d일':
+            examples = ['3월 15일', '12월 3일 오후 2:30', '7월 28일 (월)']
+        elif fmt == '%b %d' and months_to_use:
+            # Month name and day
+            examples = [f'{months_to_use[2]} {day1}', f'{months_to_use[11]} {day2}',
+                        f'{months_to_use[6]} {day3}']
+    elif fmt == '%Y年%m月%d日':
+        examples = ['2024年3月15日', '2023年12月3日 14:30', '2025年7月28日(月) 午後2時']
+    elif fmt == '%Y년 %m월 %d일':
+        examples = ['2024년 3월 15일', '2023년 12월 3일 14:30', '2025년 7월 28일 (월) 오후 2:30']
     elif '%d%m%Y' in fmt or fmt == '%d%m%Y':
         # Compact numeric format
         examples = ['15032024', '03122023', '28072025']
@@ -220,6 +238,20 @@ def generate_examples(pattern, lang_code):
         examples = ['03/15/2024', '12/3/2023', '7/28/2025']
     elif '%m/%d/%y' in fmt or fmt == '%m/%d/%y':
         examples = ['03/15/24', '12/3/23', '7/28/25']
+    elif fmt in ('%d-%b-%Y', '%b. %d, %Y', '%d %b. %Y'):
+        # English abbreviated month: dashes, or a dot after it
+        if months_to_use:
+            month1, month2, month3 = (m[:3].capitalize() for m in
+                                      (months_to_use[2], months_to_use[11], months_to_use[6]))
+            if fmt == '%d-%b-%Y':
+                examples = [f'{day1}-{month1}-{year_full1}', f'{day2}-{month2}-{year_full2}',
+                            f'{day3}-{month3}-{year_full3}']
+            elif fmt == '%b. %d, %Y':
+                examples = [f'{month1}. {day1}, {year_full1}', f'Sep {day2}rd {year_full2}',
+                            f'Sept. {day3}, {year_full3}']
+            else:
+                examples = [f'{day1}th {month1}. {year_full1}', f'{day2}rd Sept {year_full2}',
+                            f'{day3}th {month3}. {year_full3}']
     elif '%d-%b-%y' in fmt or fmt == '%d-%b-%y':
         if months_to_use:
             month1 = months_to_use[2][:3] if len(months_to_use) > 2 else months_to_use[0][:3]

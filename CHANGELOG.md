@@ -4,6 +4,101 @@ All notable changes to this project are tracked here.
 
 ## Unreleased
 
+**Dates without a year, more forms** (Q9–Q13 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
+- English dates without a year, month first and day first: `May 5`, `5 May`,
+  `Jan 1`, `May 5th`, `25th December`, `Dec. 25`, `Sept. 5` (all returned
+  `None`). New patterns `dt:date:date_eng_noyear_md` and
+  `dt:date:date_eng_noyear_dm` carry the `noyear` flag, so the year comes from
+  `reference=` (the current year by default) as for `05.12` and `5 мая`,
+  `prefer="past"` moves `Dec 25` read on 3 January to the previous year, and
+  `allow_no_year=False` skips them. A time may follow or come first
+  (`May 5 at 3:45 PM`, `14:30, May 5`). To keep words from reading as dates,
+  the month must be capitalised or in capitals (`may 5` is not a date), no
+  letter may follow it (`5 Marketing tips`), no digit may follow the day
+  (`May 2022`), and a two- or four-digit number after the date is taken for a
+  year, not ignored (`May 5, 22` gives `None`).
+- English abbreviations and dashes: `Sept. 5, 2022`, `Dec. 25, 2022`,
+  `Sep 5th 2022`, `5th Sept 2022`, `5th Dec. 2022` (new
+  `dt:date:date_eng5` / `date_eng6`) and `5-May-2022`, `05-Sep-2022`,
+  `5-September-2022` (new `dt:date:date_eng4`; `25-Dec-20` stays
+  `date_eng4_short`). All returned `None`. `Sept` is September. The new
+  patterns read only forms no older pattern reads, so `Sept 5, 2022`
+  (`fr_short_monthfirst`), `5th Dec 2022` and `May 5th, 2022` keep their
+  pattern.
+- A dot after the day in Czech (`5. května 2022`, `1. ledna 2020`, the
+  standard spelling) and Polish (`5. maja 2022`); both returned `None`, while
+  `5 května 2022` already parsed. German already read `5. Mai 2022`.
+- Slovak (`sk`), the fifteenth language: `5. mája 2022`, `1. januára 2020`,
+  `12. septembra 2022`, nominative and genitive, capitalised or lower-case,
+  with or without the dot (`dt:date:sk_base`, `sk_base_lc`, `sk_gen`,
+  `sk_gen_lc`). Month names shared with English, German, Dutch or the Polish
+  genitive (`august`, `september`, `marca`) do not claim Slovak, so
+  `5 September 2022` stays English.
+- Chinese, Japanese and Korean numeric dates: `2022年5月5日`, `2022年5月5号`,
+  `２０２２年５月５日` (full-width digits), `2022년 5월 5일` (all returned
+  `None`), with a weekday (`(木)`, `（木曜日）`, `星期四`, `(목)`, `목요일`) and a
+  time: `2022年5月5日 14:30` (generated variants), `14時30分`, `14时30分`,
+  `14시 30분`, `午後2時30分`, `下午2:30`, `오후 2:30`. `5月5日` and `5월 5일`
+  are dates without a year. The four patterns (`dt:date:date_cjk`,
+  `date_cjk_ko`, `date_cjk_noyear`, `date_cjk_ko_noyear`) belong to no
+  language, like the numeric ones: every `languages=` hint tries them and
+  `DateMatch.language` is `None`. `DateParser(languages=["en"])` includes
+  them with the other numeric patterns.
+- Czech's ISO 639-1 code `cs` is accepted wherever a language code is:
+  `DateParser(languages="cs")`, the per-call `languages="cs"` hint,
+  `get_patterns_for_languages("cs")`, `get_months("cs")`. Results keep the
+  code `cz` (`DateMatch.language`, a pattern's `language`,
+  `SUPPORTED_LANGUAGES`), so callers comparing with `"cz"` keep working;
+  `qddate.patterns.LANGUAGE_ALIASES` and `normalize_language()` map one to the
+  other. A hint with `cs` and one with `cz` share one cached index.
+- The checks before a grammar runs know two more facts, so the new
+  patterns cost text without a date nothing: a required literal word (`年`,
+  `년`, `de`) must occur in the text, and a month list that every
+  alternative of a grammar requires is required. Before, the ordinal suffix
+  `nd` in `Some random text node 123` stood in for the month name of
+  `date_eng2`, which ran 7 grammars on that text; it now runs none.
+
+**Dates inside text** (Q18)
+- `DateParser.search(text)` returns the first date wherever it starts and
+  `find_all(text)` every date, left to right, as `DateMatch` objects whose
+  `span` locates the date: `search("Posted on May 5, 2022").span == (10, 21)`.
+  A date is tried only where one can start (position 0, a run of one, two,
+  four or eight digits that starts a word, a month or weekday name), and at
+  each such position the result is what `match_typed()` finds there.
+- Against false dates: `max_offset=` (a date must start by that index) and
+  `labels=True`, under which a date that does not start the text must follow
+  a label of the new `qddate.patterns.DATE_LABELS` (`Posted on`, `Updated:`,
+  `Опубликовано:`, `Обновлено`, `Veröffentlicht am`, `Publié le`, `Publicado
+  el`, `发布时间`, `입력`, … in every language), a dateline (`GENEVA, `,
+  `New York – `) or punctuation alone. A string or list of labels replaces
+  the built-in ones. This covers what newsworker's `_DATELINE_PREFIX_RE`
+  read and the labels it could not.
+- Text without a date stays cheap: with `labels=True` a phone number, a
+  price or a sentence with numbers runs no grammar, so a search costs about
+  one `match()` call (0.36 ms against 0.34 ms on the noise texts of
+  `tests/test_performance_smoke.py`); without labels it costs 0.55 ms.
+- `DateMatch.span` ends where the date ends: the `,`, `|`, `:` or `)` a
+  `:t_right` variant reads after the date is no longer counted
+  (`match_typed("5 May 2022, more").span` is `(0, 10)`, was `(0, 11)`).
+
+**Benchmark rows that change** (Q9–Q13, Q18; 54,565 rows of
+`benchmarks/test_data.csv` and `benchmarks/webpage_test_data.csv`, `match()`
+and `parse()` compared with `master`)
+- 59 rows of `webpage_test_data.csv`, all text nodes that are English dates
+  without a year and returned `None`: 57 day first (`12 March`,
+  `19 December`, `18 Dec.`, `02 Jan`, `20 November, the`) and 2 month first
+  (`Jan 30`, `Jan 30 December`). They now read as dates of the reference
+  year (Q9). No other row changes: Q10–Q13 add forms no row contains or that
+  no older pattern read, and `search()` (Q18) leaves `match()` unchanged.
+- The default parser has 1,812 generated patterns instead of 1,656 (151 base
+  patterns instead of 138). On an Apple M-series machine the 54,565 rows
+  take 8.6 s against 8.4 s on `master`, a `match()` 0.30 ms on dates and
+  0.34 ms on text without a date, as on `master`.
+- newsworker gives the same results against this branch as against
+  `master`: its `master` (with ivbeg/newsworker#74) passes 556 tests and its
+  232-page corpus keeps F1 and `date_accuracy` at 1.0 (8.3 s of CPU both);
+  the older local checkout passes 457 tests with the same corpus scores.
+
 **Time formats** (Q5–Q8 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
 - The 12-hour clock after a date: `AM`/`PM`, `am`/`pm`, `a.m.`/`p.m.`,
   with or without minutes and seconds (`May 5, 2022 at 3:45 PM` → 15:45,
@@ -62,7 +157,7 @@ All notable changes to this project are tracked here.
   `tz_aware=True` too) and `has_year`. `to_dict()` includes them; the old
   five-argument constructor still works.
 
-**Benchmark rows that change** (54,565 rows of `benchmarks/test_data.csv` and
+**Benchmark rows that change** (Q5–Q8, Q14–Q17; 54,565 rows of `benchmarks/test_data.csv` and
 `benchmarks/webpage_test_data.csv`, compared with `master` for `match()`,
 `parse()` with and without `tz_aware`, `match_all()` with and without
 `allow_no_year`, the legacy filter and `DateParser(languages=["en", "ru"])`)

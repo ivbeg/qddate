@@ -1,5 +1,10 @@
 # qddate — Code Review & Improvement Plan
 
+> **Superseded.** The current roadmap for qddate and newsworker is
+> [`dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`](dev/docs/IMPROVEMENT_PLAN_2026-10-21.md)
+> (review of 2026-10-21). This document is kept as the record of the
+> 2026-09-21 review; all 22 of its items are closed.
+
 > Review date: 2026-09-21 · Reviewed against branch `openspec/stabilize-and-cleanup`
 > (uncommitted Romanian/Ukrainian work included) · Supersedes the 2026-08-04 review,
 > most of which has been implemented — see §3.

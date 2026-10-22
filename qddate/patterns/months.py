@@ -212,6 +212,25 @@ MONTHS_BY_LANGUAGE: Mapping[str, LanguageMonths] = {
         genitive_lc=("ledna", "února", "března", "dubna", "května", "června",
                       "července", "srpna", "září", "října", "listopadu", "prosince"),
     ),
+    "sk": LanguageMonths(
+        code="sk",
+        full=("Január", "Február", "Marec", "Apríl", "Máj", "Jún",
+              "Júl", "August", "September", "Október", "November", "December"),
+        full_lc=("január", "február", "marec", "apríl", "máj", "jún",
+                 "júl", "august", "september", "október", "november", "december"),
+        # Like Czech, no abbreviations: dates use the genitive after the day.
+        abbrev=(),
+        abbrev_lc=(),
+        genitive=("Januára", "Februára", "Marca", "Apríla", "Mája", "Júna",
+                  "Júla", "Augusta", "Septembra", "Októbra", "Novembra", "Decembra"),
+        genitive_lc=("januára", "februára", "marca", "apríla", "mája", "júna",
+                      "júla", "augusta", "septembra", "októbra", "novembra", "decembra"),
+        # Shared with English/German/Dutch ("august", "september", …) and
+        # the Polish genitive ("marca"); all map to the same month.
+        detect_excludes=("August", "august", "September", "september",
+                         "November", "november", "December", "december",
+                         "Marca", "marca"),
+    ),
     "ro": LanguageMonths(
         code="ro",
         full=("Ianuarie", "Februarie", "Martie", "Aprilie", "Mai", "Iunie",
@@ -268,8 +287,22 @@ MONTHS_BY_LANGUAGE: Mapping[str, LanguageMonths] = {
 }
 
 
+#: ISO 639-1 codes accepted in place of qddate's own code. Czech has been
+#: filed under ``cz`` (a country code) since the first release; results keep
+#: reporting ``cz``.
+LANGUAGE_ALIASES: Mapping[str, str] = {"cs": "cz"}
+
+
+def normalize_language(code: str) -> str:
+    """Return qddate's code for ``code``: ``"cz"`` for ``"cs"``, any other
+    code unchanged (it is not validated here)."""
+    return LANGUAGE_ALIASES.get(code, code)
+
+
 def get_months(code: str) -> LanguageMonths:
-    """Return the ``LanguageMonths`` for ``code`` or raise ``ValueError``."""
+    """Return the ``LanguageMonths`` for ``code`` (``"cs"`` is read as
+    ``"cz"``) or raise ``ValueError``."""
+    code = normalize_language(code)
     if code not in MONTHS_BY_LANGUAGE:
         raise ValueError(
             f"Unknown language code {code!r}; expected one of {sorted(MONTHS_BY_LANGUAGE)}"

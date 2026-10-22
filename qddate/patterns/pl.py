@@ -56,7 +56,7 @@ BASE_PATTERNS_PL = {
 
 
 PATTERNS_PL = [
-    # Polish patterns
+    # Polish patterns. A dot after the day ("5. maja 2022") is accepted.
     {
         "key":
         "dt:date:pl_base",
@@ -64,6 +64,7 @@ PATTERNS_PL = [
         "Base polish date with month name (nominative)",
         "pattern":
         Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(".").suppress() +
         BASE_PATTERNS_PL["pat:pl:months"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],
@@ -83,6 +84,7 @@ PATTERNS_PL = [
         "Base polish date with month name lower-case (nominative)",
         "pattern":
         Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(".").suppress() +
         BASE_PATTERNS_PL["pat:pl:months_lc"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],
@@ -102,6 +104,7 @@ PATTERNS_PL = [
         "Polish date with month name in genitive form",
         "pattern":
         Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(".").suppress() +
         BASE_PATTERNS_PL["pat:pl:months_gen"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],
@@ -121,6 +124,7 @@ PATTERNS_PL = [
         "Polish date with month name in genitive form (lower-case)",
         "pattern":
         Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(".").suppress() +
         BASE_PATTERNS_PL["pat:pl:months_gen_lc"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year") +
         BASE_PATTERNS_PL["pat:pl:year_suffix"],

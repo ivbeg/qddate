@@ -64,8 +64,10 @@ or `Price: 1 200 руб.`, can still keep hundreds of candidates. So each
 candidate is checked against two facts read from its grammar once:
 
 - the characters a match can start with (a digit for `01.12.2009`), and
-- the month or weekday names it requires, at least one of which must occur
-  in the text.
+- the month or weekday names and the literal words it requires (`年` for
+  `2022年5月5日`): from each required list, one must occur in the text. A
+  list every alternative of a grammar requires is required, so the ordinal
+  suffix `nd` in `Some random text` does not stand in for a month name.
 
 A candidate that fails either check cannot match and is skipped without
 running pyparsing. Such text now usually runs no grammar at all. The checks

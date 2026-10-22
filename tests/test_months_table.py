@@ -99,6 +99,7 @@ def test_month_to_int_compatible_with_legacy_dict(code):
         "uk": "qddate.patterns.uk",
         "tr": "qddate.patterns.tr",
         "bg": "qddate.patterns.bg",
+        "sk": "qddate.patterns.sk",
     }
     import sys
     full_name = LANG_PATHS[code]
@@ -165,6 +166,10 @@ def test_month_to_int_compatible_with_legacy_dict(code):
         "TR_MONTHS_LC": "trlc_mname2mon",
         "BG_MONTHS": "bg_mname2mon",
         "BG_MONTHS_LC": "bglc_mname2mon",
+        "SK_MONTHS": "sk_mname2mon",
+        "SK_MONTHS_LC": "sk_mname2mon",
+        "SK_MONTHS_GEN": "sk_mname2mon",
+        "SK_MONTHS_GEN_LC": "sk_mname2mon",
     }
 
     for list_attr, dict_attr in list_attr_to_dict_attr.items():

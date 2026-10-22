@@ -9,24 +9,33 @@ from .base import (  # noqa: F401
     TIMEZONE_ABBREVIATIONS,
 )
 from .bg import PATTERNS_BG
+from .cjk import PATTERNS_CJK
 from .cz import PATTERNS_CZ
 from .de import PATTERNS_DE
 from .es import PATTERNS_ES
 from .fr import PATTERNS_FR
 from .it import PATTERNS_IT
-from .months import MONTHS_BY_LANGUAGE, get_months  # noqa: F401
+from .labels import DATE_LABELS  # noqa: F401
+from .months import (  # noqa: F401
+    LANGUAGE_ALIASES,
+    MONTHS_BY_LANGUAGE,
+    get_months,
+    normalize_language,
+)
 from .nl import PATTERNS_NL
 from .pl import PATTERNS_PL
 from .pt import PATTERNS_PT
 from .ro import PATTERNS_RO
 from .ru import PATTERNS_RU, RUS_TIME_PREFIXES
+from .sk import PATTERNS_SK
 from .tr import PATTERNS_TR
 from .uk import PATTERNS_UK
 
 ALL_PATTERNS = (PATTERNS_EN + INTEGER_LIKE_PATTERNS + PATTERNS_BG +
                 PATTERNS_CZ + PATTERNS_DE + PATTERNS_ES + PATTERNS_FR +
                 PATTERNS_IT + PATTERNS_NL + PATTERNS_PL + PATTERNS_PT +
-                PATTERNS_RO + PATTERNS_RU + PATTERNS_TR + PATTERNS_UK)
+                PATTERNS_RO + PATTERNS_RU + PATTERNS_TR + PATTERNS_UK +
+                PATTERNS_SK + PATTERNS_CJK)
 
 
 # Authoritative per-pattern metadata: basekey -> (language, separator).
@@ -59,6 +68,11 @@ _PATTERN_METADATA = {
     'dt:date:date_4_point': (None, 'dot'),
     'dt:date:date_5': (None, 'none'),
     'dt:date:date_6': (None, 'none'),
+    # Chinese, Japanese and Korean (cjk.py): numbers with units, no separator.
+    'dt:date:date_cjk': (None, 'mixed'),
+    'dt:date:date_cjk_ko': (None, 'mixed'),
+    'dt:date:date_cjk_noyear': (None, 'mixed'),
+    'dt:date:date_cjk_ko_noyear': (None, 'mixed'),
     # English (base.py) — numeric and month-name patterns
     'dt:date:date_usa_1': ('en', 'slash'),
     'dt:date:date_usa': ('en', 'slash'),
@@ -92,6 +106,12 @@ _PATTERN_METADATA = {
     'dt:date:weekday_eng_wshort_us': ('en', 'space'),
     'dt:date:weekday_eng_abbrev_wshort_us': ('en', 'space'),
     'dt:date:date_eng_abbrev_postfix': ('en', 'space'),
+    'dt:date:date_eng5': ('en', 'space'),
+    'dt:date:date_eng6': ('en', 'space'),
+    # "5-May-2022": dashes, like date_eng4_short.
+    'dt:date:date_eng4': ('en', 'dash'),
+    'dt:date:date_eng_noyear_md': ('en', 'space'),
+    'dt:date:date_eng_noyear_dm': ('en', 'space'),
     # Bulgarian (bg.py)
     'dt:date:bg_base': ('bg', 'space'),
     'dt:date:bg_base_lc': ('bg', 'space'),
@@ -203,6 +223,11 @@ _PATTERN_METADATA = {
     # Turkish (tr.py)
     'dt:date:tr_base': ('tr', 'space'),
     'dt:date:tr_base_lc': ('tr', 'space'),
+    # Slovak (sk.py)
+    'dt:date:sk_base': ('sk', 'space'),
+    'dt:date:sk_base_lc': ('sk', 'space'),
+    'dt:date:sk_gen': ('sk', 'space'),
+    'dt:date:sk_gen_lc': ('sk', 'space'),
 }
 
 
@@ -242,6 +267,8 @@ _NUMERIC_PATTERN_KEYS = frozenset({
     "dt:date:date_9", "dt:date:date_10", "dt:date:noyear_1",
     "dt:date:date_4_point", "dt:date:date_5", "dt:date:date_6",
     "dt:date:date_usa_1", "dt:date:date_usa",
+    "dt:date:date_cjk", "dt:date:date_cjk_ko", "dt:date:date_cjk_noyear",
+    "dt:date:date_cjk_ko_noyear",
 })
 
 
@@ -273,6 +300,7 @@ LANGUAGE_CHAR_SETS = {
     "tr": frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}),
     "ro": frozenset({CHAR_SET_DIGITS, CHAR_SET_LATIN}),
     "uk": frozenset({CHAR_SET_DIGITS, CHAR_SET_CYRILLIC}),
+    "sk": frozenset({CHAR_SET_DIGITS, CHAR_SET_ACCENTED}),
 }
 
 
@@ -311,6 +339,7 @@ SUPPORTED_LANGUAGES = [
     "pt",
     "ro",
     "ru",
+    "sk",
     "tr",
     "uk",
 ]
@@ -335,9 +364,11 @@ TIME_PREFIXES_BY_LANGUAGE = {
 ALL_TIME_PREFIXES = tuple(sorted({
     word for words in TIME_PREFIXES_BY_LANGUAGE.values() for word in words}))
 
-# Mapping of language codes to their pattern lists
+# Mapping of language codes to their pattern lists. The language-neutral
+# numeric patterns, Chinese, Japanese and Korean ones included, are filed
+# under English.
 PATTERNS_BY_LANGUAGE = {
-    "en": PATTERNS_EN + INTEGER_LIKE_PATTERNS,
+    "en": PATTERNS_EN + INTEGER_LIKE_PATTERNS + PATTERNS_CJK,
     "bg": PATTERNS_BG,
     "cz": PATTERNS_CZ,
     "de": PATTERNS_DE,
@@ -349,6 +380,7 @@ PATTERNS_BY_LANGUAGE = {
     "pt": PATTERNS_PT,
     "ro": PATTERNS_RO,
     "ru": PATTERNS_RU,
+    "sk": PATTERNS_SK,
     "tr": PATTERNS_TR,
     "uk": PATTERNS_UK,
 }
@@ -358,7 +390,8 @@ def get_patterns_for_languages(languages):
     """Get patterns for specified languages.
 
     :param languages: Language code (str) or list of language codes (list of str).
-                     If None or empty, returns all patterns.
+                     If None or empty, returns all patterns. ``"cs"`` is read
+                     as ``"cz"`` (see ``LANGUAGE_ALIASES``).
     :type languages: str|list|None
     :return: Combined list of patterns for specified languages
     :rtype: list
@@ -376,12 +409,16 @@ def get_patterns_for_languages(languages):
     if len(languages) == 0:
         return ALL_PATTERNS
 
+    # "cs" and "cz" name the same patterns; keep the first of each.
+    languages = list(dict.fromkeys(normalize_language(lang) for lang in languages))
+
     # Validate all language codes
     invalid_languages = [lang for lang in languages if lang not in SUPPORTED_LANGUAGES]
     if invalid_languages:
         raise ValueError(
             f"Unsupported language(s): {invalid_languages}. "
-            f"Supported languages: {SUPPORTED_LANGUAGES}"
+            f"Supported languages: {SUPPORTED_LANGUAGES} "
+            f"(also accepted: {sorted(LANGUAGE_ALIASES)})"
         )
 
     # Combine patterns for specified languages

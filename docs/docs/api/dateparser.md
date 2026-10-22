@@ -27,7 +27,7 @@ DateParser(generate=True, patterns=ALL_PATTERNS, base_only=False, languages=None
 | `generate` | `True` | Expand each base date pattern with time-of-day and trailing-text variants |
 | `patterns` | `qddate.patterns.ALL_PATTERNS` | Pattern dicts to load |
 | `base_only` | `False` | Keep only base patterns; skip generated "date plus extra text" variants |
-| `languages` | `None` | Language code, list of codes, or `None` for all languages |
+| `languages` | `None` | Language code, list of codes, or `None` for all languages. Czech is `cz`; `cs` is accepted too |
 | `pivot_year` | `None` | 4-digit pivot for two-digit years: with `1968`, `99` → 1999 and `20` → 2020. `None` keeps the raw two-digit year. A bool or other non-integer raises `TypeError`: `pivot_year=True` would mean pivot year 1 |
 | `tz_aware` | `False` | Attach the zone written after the time to the result: `+0300`, `+03:00`, `Z`, `GMT+3`, `UTC-05:30` or an abbreviation (`MSK`/`МСК`, `CET`/`CEST`, `EET`/`EEST`, `BST`, `EST`/`EDT`, `PST`/`PDT`, …; see `qddate.patterns.TIMEZONE_ABBREVIATIONS`) |
 | `use_fingerprint` | `True` | Use the fingerprint candidate filter. `False` selects the legacy 6-level filter and emits `DeprecationWarning`; it will be removed in 2.0 |
@@ -108,18 +108,69 @@ parser.end_session()
 The camelCase `startSession()` / `endSession()` still work and emit
 `DeprecationWarning`.
 
+## Dates inside text: search() and find_all()
+
+`match()` and `match_typed()` read a date only at the start of the text.
+`search()` returns the first date wherever it starts, `find_all()` every date
+left to right; both return `DateMatch` objects whose `span` tells where the
+date is.
+
+```python
+parser.search("Posted on May 5, 2022").span        # (10, 21)
+parser.search("Опубликовано: 5 мая 2022").datetime # datetime(2022, 5, 5, 0, 0)
+[m.datetime for m in parser.find_all("From 5 May 2022 to 7 May 2022")]
+# [datetime(2022, 5, 5, 0, 0), datetime(2022, 5, 7, 0, 0)]
+```
+
+A date is tried only where one can start: position 0, a run of one, two,
+four or eight digits that starts a word (not `200` in `1.200`, not `2` in
+`v2`), or a month or weekday name. At each of them `search()` finds what
+`match_typed()` finds there, so a date at the start gives the same result.
+Text without a date stays cheap: a phone number's `495` is never tried.
+
+Two options keep words and numbers from reading as dates:
+
+| Argument | Default | Meaning |
+|----------|---------|---------|
+| `max_offset` | `None` | A date must start at or before this index |
+| `labels` | `None` | `True`: a date that does not start the text (or follow the previous date) must follow a label of `qddate.patterns.DATE_LABELS`, a dateline or punctuation alone. A string or a list of strings: those labels instead of the built-in ones |
+
+```python
+parser.search("Some text 5 May 2022", labels=True)          # None
+parser.search("By Jane Doe | Updated: 5 May 2022", labels=True).span   # (23, 33)
+parser.search("GENEVA, 29 July 2022", labels=True).span     # (8, 20): a dateline
+parser.search("Stand der Daten 5. Mai 2022", labels=["Stand der Daten"])
+```
+
+`DATE_LABELS` holds short labels per language: `posted on`, `published`,
+`updated`, `last updated`, `опубликовано`, `обновлено`, `veröffentlicht am`,
+`publié le`, `mis en ligne le`, `publicado el`, `pubblicato il`,
+`gepubliceerd op`, `opublikowano`, `publikováno`, `发布时间`, `公開日`,
+`입력`, …. A label is compared case-insensitively with the text after the last
+separator before the date (`|`, `:`, `,`, `·`, a spaced dash, brackets), with
+the punctuation after it removed, so `Updated:` and `UPDATED` match `updated`.
+A dateline is up to four words without digits followed by a comma or a spaced
+dash (`GENEVA, `, `New York – `). Punctuation alone (`• `, `(`, ` – ` between
+two dates) is accepted; a symbol is not (`+7 495 …`, `© 2022`).
+
+`search()` and `find_all()` take `reference=`, `prefer=` and the keyword
+arguments of `match()` (`languages=`, `date_order=`, `allow_no_year=`, the
+filter flags). With `labels`, the labels of every language are accepted
+whatever the `languages=` hint.
+
 ## DateMatch
 
-`match_typed()` returns a `qddate.DateMatch` dataclass:
+`match_typed()`, `search()` and `find_all()` return `qddate.DateMatch`
+dataclasses:
 
 ```python
 m = parser.match_typed("6 Jan 2009")
 m.datetime      # datetime(2009, 1, 6, 0, 0); pivot_year / tz_aware already applied
 m.pattern_key   # "dt:date:date_eng1_short"
-m.language      # "en" (None for language-neutral numeric patterns)
+m.language      # "en" (None for language-neutral numeric patterns; "cz" for Czech, even with languages="cs")
 m.format        # "%d.%b.%Y"
 m.raw           # "6 Jan 2009"
-m.span          # (0, 10): where the date is in raw; raw[m.span[1]:] is the rest
+m.span          # (0, 10): raw[start:end] is the date, raw[end:] the rest; start is 0 for match_typed()
 m.precision     # "day", "hour" ("3 PM"), "minute" or "second"
 m.tzinfo        # zone written after the time ("+03:00", "МСК") or None
 m.has_year      # False for "05.12": the year came from reference=

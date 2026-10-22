@@ -24,6 +24,8 @@ qddate.__version__
 | [`DateParser.match`](/api/match) | String → `{values, pattern}` or `None` |
 | [`DateParser.match_all`](/api/dateparser#methods) | String → every matching `{values, pattern}`, best first |
 | [`DateParser.match_typed`](/api/dateparser#datematch) | String → `DateMatch` or `None` |
+| [`DateParser.search`](/api/dateparser#dates-inside-text-search-and-find_all) | First date anywhere in the string → `DateMatch` (with its `span`) or `None` |
+| [`DateParser.find_all`](/api/dateparser#dates-inside-text-search-and-find_all) | Every date in the string, left to right → list of `DateMatch` |
 | [`DateParser.parse_many`](/api/dateparser#methods) | Iterable of strings → iterator of `datetime.datetime` or `None` |
 | [`DateParser.parse_relative`](/api/dateparser#relative-date-parsing) | `today`, `3 days ago`, `через 5 дней` → `datetime.datetime` or `None` |
 | [`DateParser.format_date`](/api/dateparser#datematch) / `qddate.format_date` | `datetime` + pattern key → string |
@@ -37,7 +39,7 @@ qddate.__version__
 - `qddate.DateMatch`: typed result of `match_typed()`
 - `qddate.format_date`: module-level form of `DateParser.format_date()`
 - `qddate.__version__`: package version string
-- `qddate.patterns`: pattern tables, `ALL_PATTERNS`, `SUPPORTED_LANGUAGES`, `get_patterns_for_languages`
+- `qddate.patterns`: pattern tables, `ALL_PATTERNS`, `SUPPORTED_LANGUAGES`, `get_patterns_for_languages`, `LANGUAGE_ALIASES`, `DATE_LABELS`
 
 Internal helpers (`qddate.dirty`, filter indexes, generated variant keys) may
 change without a major version bump.

@@ -9,9 +9,10 @@ import datetime
 import numbers
 import re
 import time
+import unicodedata
 import warnings
 from dataclasses import dataclass
-from typing import Any, Iterator, NamedTuple, Optional, Union
+from typing import Any, Iterable, Iterator, NamedTuple, Optional, Union
 from typing import Optional as TOptional
 
 from pyparsing import (
@@ -52,21 +53,24 @@ from .patterns import (
     ALL_PATTERNS,
     ALL_TIME_PREFIXES,
     BASE_TIME_PATTERNS,
+    DATE_LABELS,
+    LANGUAGE_ALIASES,
     MONTHS_BY_LANGUAGE,
     SUPPORTED_LANGUAGES,
     TIME_PREFIXES_BY_LANGUAGE,
     TIMEZONE_ABBREVIATIONS,
     _infer_required_chars,
     get_patterns_for_languages,
+    normalize_language,
 )
-from .patterns.base import ENG_WEEKDAYS
+from .patterns.base import ENG_WEEKDAYS, ENG_WEEKDAYS_SHORT
 from .patterns.cz import CZ_WEEKDAYS
 from .patterns.de import DE_WEEKDAYS
 from .patterns.es import ES_WEEKDAYS
 from .patterns.fr import FR_WEEKDAYS
 from .patterns.it import IT_WEEKDAYS
 from .patterns.nl import NL_WEEKDAYS
-from .patterns.pt import PT_WEEKDAYS
+from .patterns.pt import PT_WEEKDAYS, PT_WEEKDAYS_SHORT
 from .patterns.ru import RUS_WEEKDAYS
 from .relative import parse_relative as _parse_relative
 
@@ -110,6 +114,7 @@ _PORTUGUESE_MONTHS = _lang_month_names("pt")
 _ROMANIAN_MONTHS = _lang_month_names("ro")
 _UKRAINIAN_MONTHS = _lang_month_names("uk")
 _CZECH_MONTHS = _lang_month_names("cz")
+_SLOVAK_MONTHS = _lang_month_names("sk")
 _POLISH_MONTHS = _lang_month_names("pl")
 _ENGLISH_MONTHS = _lang_month_names("en")
 _GERMAN_MONTHS = _lang_month_names("de")
@@ -141,6 +146,7 @@ _LATIN_DETECTION: tuple[tuple[str, frozenset[str]], ...] = (
     ("pt", _PORTUGUESE_MONTHS),
     ("cz", _CZECH_MONTHS),
     ("pl", _POLISH_MONTHS),
+    ("sk", _SLOVAK_MONTHS),
     ("ro", _ROMANIAN_MONTHS),
     ("en", _ENGLISH_MONTHS),
     ("nl", _DUTCH_MONTHS),
@@ -217,6 +223,7 @@ LANGUAGE_CHAR_SETS = {
     'pt': {CHAR_SET_DIGITS, CHAR_SET_ACCENTED},
     'ro': {CHAR_SET_DIGITS, CHAR_SET_LATIN},
     'uk': {CHAR_SET_DIGITS, CHAR_SET_CYRILLIC},
+    'sk': {CHAR_SET_DIGITS, CHAR_SET_ACCENTED},
     'de': {CHAR_SET_DIGITS, CHAR_SET_LATIN},  # may have umlauts but treated as latin
     'tr': {CHAR_SET_DIGITS, CHAR_SET_LATIN},
     'en': {CHAR_SET_DIGITS, CHAR_SET_LATIN},
@@ -268,8 +275,11 @@ class DateMatch:
 
     Fields:
 
-    - ``span``: ``(start, end)`` of the date in ``raw``; ``start`` is always 0
-      (a date must start the text) and ``raw[end:]`` is the text after it.
+    - ``span``: ``(start, end)`` of the date in ``raw``: ``raw[start:end]`` is
+      the date and ``raw[end:]`` the text after it. ``start`` is 0 for
+      :meth:`DateParser.match_typed` (a date must start the text);
+      :meth:`DateParser.search` and :meth:`DateParser.find_all` find dates
+      further on.
     - ``precision``: the finest unit the text states: ``"day"`` (no time),
       ``"hour"`` ("3 PM"), ``"minute"`` or ``"second"``.
     - ``tzinfo``: the timezone written in the text (``+03:00``, ``MSK``),
@@ -451,6 +461,117 @@ def _original_index(text: str, end: int) -> int:
     return len(text)
 
 
+# Where ``search()`` and ``find_all()`` try a date: the start of a run of
+# digits, or of a word that is a month or weekday name.
+_SEARCH_TOKEN_RE = re.compile(r"\d+|[^\W\d_]+")
+# A digit after one of these and a digit is inside a number ("1.200",
+# "14:30", "2022-05-05"), not at the start of a date.
+_NUMBER_JOINERS = frozenset(".,:/-")
+# A date starts with a run of one, two, four or eight digits: a day, month,
+# hour, year or "20220505" (tests/test_search.py checks every grammar). A
+# phone number's "495" or a price's "1200" does not start one.
+_DATE_DIGIT_RUNS = frozenset({1, 2, 4, 8})
+
+
+def _is_cjk(char: str) -> bool:
+    """Whether ``char`` is Chinese, Japanese, Korean or full-width: a number
+    may follow such a character without a space ("发布于2022年5月5日")."""
+    code = ord(char)
+    return (0x1100 <= code <= 0x11FF or 0x3040 <= code <= 0x30FF
+            or 0x3130 <= code <= 0x318F or 0x3400 <= code <= 0x4DBF
+            or 0x4E00 <= code <= 0x9FFF or 0xAC00 <= code <= 0xD7AF
+            or 0xF900 <= code <= 0xFAFF or 0xFF00 <= code <= 0xFFEF)
+
+
+def _search_words() -> frozenset:
+    """Lower-cased month and weekday names (and their abbreviations) of every
+    language: the words a date may start with."""
+    words: set = set()
+    for data in MONTHS_BY_LANGUAGE.values():
+        for names in (data.full, data.full_lc, data.abbrev, data.abbrev_lc,
+                      data.genitive or (), data.genitive_lc or (),
+                      data.short or (), data.short_lc or ()):
+            for name in names:
+                words.update(_WORD_RE.findall(name.lower()))
+    for weekdays in _WEEKDAYS_BY_LANGUAGE.values():
+        words |= weekdays
+    words |= _lang_weekday_words(ENG_WEEKDAYS_SHORT, PT_WEEKDAYS_SHORT)
+    words.add("sept")
+    return frozenset(words)
+
+
+_SEARCH_WORDS = _search_words()
+
+
+def _date_starts(text: str) -> Iterator[int]:
+    """Yield, in order, the positions of ``text`` a date may start at: 0, and
+    every run of digits or month or weekday name that starts a word. A digit
+    inside a number ("200" in "1.200") or after a letter ("v2"), and a run
+    of three, five to seven or more than eight digits, are skipped; a digit
+    after a Chinese, Japanese or Korean character is not."""
+    yield 0
+    for token in _SEARCH_TOKEN_RE.finditer(text):
+        start = token.start()
+        if start == 0:
+            continue
+        before = text[start - 1]
+        if token.group()[0].isdigit():
+            if len(token.group()) not in _DATE_DIGIT_RUNS:
+                continue
+            if before in _NUMBER_JOINERS and start > 1 and text[start - 2].isdigit():
+                continue
+            if before.isalpha() and not _is_cjk(before):
+                continue
+            yield start
+        elif not before.isdigit() and token.group().lower() in _SEARCH_WORDS:
+            yield start
+
+
+def _normalize_label(label: str) -> str:
+    """``label`` case-folded, with runs of whitespace as one space."""
+    return " ".join(label.split()).casefold()
+
+
+#: Every label of ``qddate.patterns.DATE_LABELS``, normalised.
+_ALL_DATE_LABELS = frozenset(
+    _normalize_label(label) for labels in DATE_LABELS.values() for label in labels)
+# Punctuation and spaces between a label and its date ("Posted on: ").
+_TRAILING_NON_WORD_RE = re.compile(r"[\W_]+$")
+# A label starts after the last of these: "By Jane Doe | Updated 5 May 2022".
+_LABEL_SEPARATOR_RE = re.compile(r"[|·•:;,()\[\]{}/–—：，｜、]|\s-\s")
+# A dateline before the date: "GENEVA, ", "New York – " (up to four words
+# without digits, then a comma or a spaced dash).
+_DATELINE_RE = re.compile(
+    r"\s*[^\W\d_]+(?:[ .'’-]{1,2}[^\W\d_]+){0,3}\.?\s*(?:,|\s[-–—])\s*")
+
+
+def _label_set(labels: Union[bool, str, Iterable[str], None]) -> TOptional[frozenset]:
+    """The labels ``search(labels=...)`` accepts: None for no check, all of
+    ``DATE_LABELS`` for True, the given ones for a string or an iterable."""
+    if labels is None or labels is False:
+        return None
+    if labels is True:
+        return _ALL_DATE_LABELS
+    if isinstance(labels, str):
+        labels = [labels]
+    return frozenset(_normalize_label(label) for label in labels)
+
+
+def _label_allows(before: str, labels: frozenset) -> bool:
+    """Whether a date may follow ``before``, the text since the start or the
+    previous date: nothing but punctuation and spaces ("• ", " – "), a label
+    of ``labels`` after the last separator ("Updated:", "By Jane Doe |
+    Posted on") or a dateline ("GENEVA, "). A symbol is not punctuation:
+    "+7 495" and "© 2022" are not dates."""
+    tail = _TRAILING_NON_WORD_RE.sub("", before)
+    if not tail.strip():
+        return all(char.isspace() or unicodedata.category(char).startswith("P")
+                   for char in before)
+    if _normalize_label(_LABEL_SEPARATOR_RE.split(tail)[-1]) in labels:
+        return True
+    return _DATELINE_RE.fullmatch(before) is not None
+
+
 # Numeric patterns by the order they read day, month and year in. With
 # ``date_order=`` the patterns of that order win when several read the same
 # text ("05/06/2022": ``date_1`` day first, ``date_usa`` month first).
@@ -518,19 +639,21 @@ def _check_date_order(date_order: TOptional[str]) -> TOptional[str]:
 
 def _check_languages(languages: Union[str, list[str], tuple[str, ...], set[str], frozenset[str], None]
                      ) -> TOptional[frozenset]:
-    """Validate a ``languages=`` hint; None or empty means no hint."""
+    """Validate a ``languages=`` hint; None or empty means no hint. ``"cs"``
+    is read as ``"cz"``."""
     if languages is None:
         return None
     if isinstance(languages, str):
         languages = [languages]
     elif not isinstance(languages, (list, tuple, set, frozenset)):
         raise TypeError("languages must be a string, list of strings, or None")
-    codes = frozenset(languages)
+    codes = frozenset(normalize_language(code) for code in languages)
     invalid = sorted(codes - set(SUPPORTED_LANGUAGES))
     if invalid:
         raise ValueError(
             f"Unsupported language(s): {invalid}. "
-            f"Supported languages: {SUPPORTED_LANGUAGES}")
+            f"Supported languages: {SUPPORTED_LANGUAGES} "
+            f"(also accepted: {sorted(LANGUAGE_ALIASES)})")
     return codes or None
 
 
@@ -547,8 +670,8 @@ class _GrammarNeeds(NamedTuple):
     """What a text must contain for a grammar to match it at position 0.
 
     ``words`` holds one set of regexes per required element that needs a
-    letter (a month or weekday name list); from each set, one regex must be
-    found in the text. ``first`` is the set of characters such a match can
+    letter (a month or weekday name list, a literal such as "年"); from each
+    set, one regex must be found in the text. ``first`` is the set of characters such a match can
     start with when the text does not start with whitespace, or ``None`` when
     it is not known.
     """
@@ -584,7 +707,12 @@ def _grammar_needs(expr: ParserElement, cache: dict[int, tuple[Any, _GrammarNeed
         needs = _GrammarNeeds(frozenset(), frozenset(expr.initChars))
     elif isinstance(expr, Literal) and not isinstance(expr, CaselessLiteral):
         if expr.match:
-            needs = _GrammarNeeds(frozenset(), frozenset(expr.match[0]))
+            # A literal with a character that is not a digit, separator or
+            # space ("年", "de") must occur in the text as written.
+            literal: frozenset = frozenset()
+            if any(char not in _NON_LETTER_PROBE for char in expr.match):
+                literal = frozenset({frozenset({re.compile(re.escape(expr.match))})})
+            needs = _GrammarNeeds(literal, frozenset(expr.match[0]))
     elif isinstance(expr, (LineStart, StringStart, Empty)):
         # Match without consuming a character.
         needs = _GrammarNeeds(frozenset(), frozenset())
@@ -607,12 +735,16 @@ def _grammar_needs(expr: ParserElement, cache: dict[int, tuple[Any, _GrammarNeed
             frozenset(starts) if start_known else None)
     elif isinstance(expr, (MatchFirst, Or)):
         alternatives = [_grammar_needs(alt, cache) for alt in expr.exprs]
-        # Any alternative may match. Each one that needs words finds one of
-        # its regexes, so one regex of all of them must be found, provided
-        # every alternative needs words.
+        # Any alternative may match. A set of regexes every alternative
+        # requires (the month list of "May 5th, 2022" and "5th May 2022") is
+        # required. Besides, each one that needs words finds one of its
+        # regexes, so one regex of all of them must be found, provided every
+        # alternative needs words.
         words: frozenset = frozenset()
+        if alternatives:
+            words = frozenset.intersection(*(alt.words for alt in alternatives))
         if alternatives and all(alt.words for alt in alternatives):
-            words = frozenset({frozenset(
+            words |= frozenset({frozenset(
                 rx for alt in alternatives for regexes in alt.words for rx in regexes)})
         firsts = [alt.first for alt in alternatives if alt.first is not None]
         needs = _GrammarNeeds(
@@ -776,7 +908,9 @@ class DateParser:
         :param languages: Language code (str) or list of language codes (list of str) to filter patterns by.
                           If None, uses all patterns. If specified, filters patterns to only include those
                           for the specified languages. Examples: languages="ru", languages=["en", "de"],
-                          languages=None (default).
+                          languages=None (default). Czech is ``"cz"``; the ISO code ``"cs"`` is
+                          accepted too (here and in every ``languages=`` hint), and results keep
+                          reporting ``"cz"``.
         :type languages: str|list|None
         :param pivot_year: Optional 4-digit pivot year for interpreting 2-digit years (patterns with the
                           ``yearshort`` flag). Years ``00`` to ``(pivot_year % 100) - 1`` map to 20xx, the
@@ -854,9 +988,9 @@ class DateParser:
         self._language_allowlist: set[str] | None = None
         if languages is not None:
             if isinstance(languages, str):
-                self._language_allowlist = {languages}
+                self._language_allowlist = {normalize_language(languages)}
             else:
-                self._language_allowlist = set(languages)
+                self._language_allowlist = {normalize_language(code) for code in languages}
         self._current_year = datetime.datetime.now().year
         self._year_refresh_interval = 3600  # seconds
         self._next_year_refresh = time.monotonic() + self._year_refresh_interval
@@ -864,6 +998,14 @@ class DateParser:
             self.__generate(base_only)
         # Generation order; breaks priority ties in ``_match_candidates``.
         self._pattern_rank = {p["key"]: i for i, p in enumerate(self.patterns)}
+        self._patterns_by_key = {p["key"]: p for p in self.patterns}
+        # How much text ``search()`` matches at a position: all the rest when
+        # some pattern accepts that length, otherwise the longest date with
+        # its time (the ``:t_right`` variants read the text after a date).
+        self._search_whole = max((p["length"]["max"] for p in self.patterns), default=0)
+        self._search_window = max(
+            (p["length"]["max"] for p in self.patterns if not p["key"].endswith(":t_right")),
+            default=self._search_whole)
         # Filled on first use by ``_match_candidates``, keyed by the grammar's
         # ``id``: what each grammar needs from a text (see ``_grammar_needs``)
         # and the grammar wrapped to report where its match starts and ends.
@@ -1384,7 +1526,7 @@ class DateParser:
                             for token in [
                                 "eng", "rus", "fr", "de", "es", "it", "pt", "bg",
                                 "cz", "pl", "tr", "nl", "ro", "weekday", "rare",
-                                "uk",
+                                "uk", "sk", "cjk",
                             ]
                         ):
                             if 'space' in separators or 'mixed' in separators:
@@ -2241,23 +2383,138 @@ class DateParser:
         found = self._match_end(text, **kwargs)
         if found is None:
             return None
+        return self._date_match(text, 0, text, found, reference, prefer)
+
+    def _date_match(self, text, start, part, found, reference, prefer):
+        """Build the :class:`DateMatch` of ``found``, the ``_match_end`` result
+        for ``part``, which is ``text`` from ``start`` on; None when the
+        values do not form a date."""
         end, res = found
         dt = self._build_datetime(res, reference=reference, prefer=prefer)
         if dt is None:
             return None
         p = res["pattern"]
         values = res["values"]
+        end = self._date_end(part, p, end)
         return DateMatch(
             datetime=dt,
             pattern_key=p["key"],
             language=_pattern_language(p),
             format=p.get("format", ""),
             raw=text,
-            span=(0, _original_index(text, end)),
+            span=(start, start + _original_index(part, end)),
             precision=_precision(values),
             tzinfo=parse_timezone(values.get("timezone")),
             has_year=not p.get("noyear", False),
         )
+
+    def _date_end(self, part, pattern, end):
+        """Where the date of ``pattern`` ends in ``part`` (tabs expanded):
+        ``end`` without the ``,``, ``|``, ``:`` or ``)`` a ``:t_right``
+        variant reads after the date ("5 May 2022, more text"). The variant
+        without ``:t_right`` reads the date alone; a ``)`` of the date itself
+        ("2022年5月5日(木)") stays."""
+        expanded = part.expandtabs()
+        key = pattern["key"]
+        if not key.endswith(":t_right") or expanded[end - 1:end] not in (",", "|", ":", ")"):
+            return end
+        plain = self._patterns_by_key.get(key[:-len(":t_right")])
+        if plain is None:
+            return end
+        try:
+            located = self._anchored(plain["pattern"]).parse_string(part)
+        except ParseBaseException:
+            return end
+        date_end = located.locn_end
+        while date_end > 0 and expanded[date_end - 1].isspace():
+            date_end -= 1
+        return min(date_end, end)
+
+    def search(self, text: str, *, max_offset: TOptional[int] = None,
+               labels: Union[bool, str, Iterable[str], None] = None,
+               reference: TOptional[datetime.datetime] = None,
+               prefer: TOptional[str] = None, **kwargs: Any) -> Union[DateMatch, None]:
+        """Return the first date in ``text``, wherever it starts, or None.
+
+        :meth:`match` reads a date only at the start of the text. ``search``
+        also tries every later position where a date can start: a run of
+        digits that starts a word, or a month or weekday name ("Posted on
+        May 5, 2022", "GENEVA, 29 July 2022"). At each position it finds what
+        :meth:`match_typed` finds there, so a date at the start gives the
+        same result. ``span`` tells where the date is in ``text``.
+
+        Two options keep words and numbers from reading as dates:
+
+        - ``max_offset``: a date must start at or before this index.
+        - ``labels``: a date that does not start the text (or follow the
+          previous one, in :meth:`find_all`) must follow a label, a dateline
+          or punctuation alone. ``True`` accepts the labels of
+          ``qddate.patterns.DATE_LABELS`` in every language ("Posted on",
+          "Updated:", "Опубликовано:", "Veröffentlicht am", "Publié le"); a
+          string or an iterable of strings accepts those labels instead. A
+          label is compared case-insensitively with the text after the last
+          separator (``|``, ``:``, ``,``, ``·``, a spaced dash…) before the
+          date, punctuation after it removed. A dateline is up to four words
+          without digits followed by a comma or a spaced dash ("GENEVA, ",
+          "New York – ").
+
+        ``reference``, ``prefer`` and the keyword arguments of :meth:`match`
+        (``languages=``, ``date_order=``, ``allow_no_year=``, filter flags)
+        apply as in :meth:`match_typed`.
+        """
+        return next(self._search(text, max_offset, labels, reference, prefer, kwargs), None)
+
+    def find_all(self, text: str, *, max_offset: TOptional[int] = None,
+                 labels: Union[bool, str, Iterable[str], None] = None,
+                 reference: TOptional[datetime.datetime] = None,
+                 prefer: TOptional[str] = None, **kwargs: Any) -> list[DateMatch]:
+        """Return every date in ``text``, left to right, without overlaps.
+
+        After a date, the next one is searched from where it ends; with
+        ``labels``, the text between the two must be a label, a dateline or
+        punctuation ("5 May 2022 – 7 May 2022", "Posted 5 May 2022, updated
+        7 May 2022"). Takes the arguments of :meth:`search`.
+        """
+        return list(self._search(text, max_offset, labels, reference, prefer, kwargs))
+
+    def _search(self, text, max_offset, labels, reference, prefer, kwargs):
+        """Yield the dates of :meth:`find_all` one by one."""
+        if max_offset is not None and (isinstance(max_offset, bool) or
+                                       not isinstance(max_offset, numbers.Integral)):
+            raise TypeError(f"max_offset must be an integer or None; got {max_offset!r}")
+        if max_offset is not None and max_offset < 0:
+            raise ValueError(f"max_offset must not be negative; got {max_offset!r}")
+        _check_prefer(prefer)
+        noyear = kwargs.pop("noyear", None)
+        if noyear is not None:
+            warnings.warn(
+                "noyear= is deprecated; use allow_no_year= instead.",
+                DeprecationWarning, stacklevel=3,
+            )
+            kwargs["allow_no_year"] = noyear
+        accepted = _label_set(labels)
+        previous_end = 0
+        for start in _date_starts(text):
+            if start < previous_end:
+                continue
+            if max_offset is not None and start > max_offset:
+                return
+            if accepted is not None and not _label_allows(text[previous_end:start], accepted):
+                continue
+            # Text longer than any pattern accepts is cut to the longest date
+            # with its time; the ``:t_right`` variants read the rest.
+            if len(text) - start <= self._search_whole:
+                part = text[start:]
+            else:
+                part = text[start:start + self._search_window]
+            found = self._match_end(part, **kwargs)
+            if found is None:
+                continue
+            match = self._date_match(text, start, part, found, reference, prefer)
+            if match is None:
+                continue
+            yield match
+            previous_end = match.span[1]
 
     def parse_many(self, texts: list[str], **kwargs: Any) -> Iterator[Union[datetime.datetime, None]]:
         """Lazily parse an iterable of date strings.

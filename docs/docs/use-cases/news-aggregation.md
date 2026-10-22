@@ -11,8 +11,11 @@ lets a crawler attach a timestamp to each reconstructed item.
 ## What the parser assumes
 
 - The candidate is a **publication date**, not a relative phrase.
-- It appears at the **start** of the extracted string.
-- Language coverage is the 14 supported codes, not every locale on earth.
+- It appears at the **start** of the extracted string for `parse()` and
+  `match()`. After a label or a dateline (`Posted on May 5, 2022`,
+  `Опубликовано: 5 мая 2022`, `GENEVA, 29 July 2022`) use
+  `search(text, labels=True)`, which returns the date and its `span`.
+- Language coverage is the 15 supported codes, not every locale on earth.
 
 Relative labels ("2 hours ago") need a different tool. See
 [when to use](/getting-started/when-to-use).
@@ -43,6 +46,9 @@ site's day/month order per call.
 ```python
 parser = qddate.DateParser()
 m = parser.match_typed(text, languages=page_lang, date_order="MDY",
+                       reference=fetched_at, prefer="past")
+# A date after a label or a dateline in the same text node:
+m = m or parser.search(text, labels=True, languages=page_lang,
                        reference=fetched_at, prefer="past")
 ```
 

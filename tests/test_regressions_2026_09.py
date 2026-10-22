@@ -374,6 +374,19 @@ _PROBE_STRINGS = [
     "Пятница, 5 Мая 2020 года",       # weekday_rus
     "Воскресенье, 5 мая 2020 года",   # weekday_rus_lc1
     "4 Сентября в 04:06:33",          # date_rus_noyear
+    "May 5",                          # date_eng_noyear_md
+    "Sept. 5, 2022",                  # date_eng5
+    "5th Sept 2022",                  # date_eng6
+    "5-May-2022",                     # date_eng4
+    "5. Máj 2022",                    # sk_base
+    "5. máj 2022",                    # sk_base_lc
+    "5. Mája 2022",                   # sk_gen
+    "5. mája 2022",                   # sk_gen_lc
+    "2022年5月5日",                   # date_cjk
+    "2022년 5월 5일",                 # date_cjk_ko
+    "5月5日",                         # date_cjk_noyear
+    "5월 5일",                        # date_cjk_ko_noyear
+    "5 May",                          # date_eng_noyear_dm
 ]
 
 

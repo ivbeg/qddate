@@ -74,4 +74,4 @@ def test_romanian_filter_excludes_other_languages(parser_ro):
 
 def test_supported_languages_include_ro_exactly_once():
     assert SUPPORTED_LANGUAGES.count("ro") == 1
-    assert len(SUPPORTED_LANGUAGES) == 14
+    assert len(SUPPORTED_LANGUAGES) == 15

@@ -221,6 +221,14 @@ enabbrev_mname2mon = dict((m, i + 1) for i, m in enumerate(ENG_MONTHS_ABBREV) if
 ensh_wday2weekday = dict(
     (m, i + 1) for i, m in enumerate(ENG_WEEKDAYS_SHORT) if m)
 
+# Month names of a date without a year ("May 5", "Sept. 5", "5 May"):
+# capitalised or in capitals only, since "may" and "march" are also words.
+_ENG_NOYEAR_TITLE = list(dict.fromkeys(ENG_MONTHS + ENG_MONTHS_ABBREV + ["Sept"]))
+ENG_MONTHS_NOYEAR = _ENG_NOYEAR_TITLE + [m.upper() for m in _ENG_NOYEAR_TITLE]
+ennoyear_mname2mon = {m.lower(): i for m, i in en_mname2mon.items()}
+ennoyear_mname2mon.update((m.lower(), i) for m, i in enabbrev_mname2mon.items())
+ennoyear_mname2mon["sept"] = 9
+
 BASE_PATTERNS_EN = {
     "pat:eng:months":
     one_of(ENG_MONTHS, caseless=True).set_parse_action(lambda t: en_mname2mon[t[0].capitalize()]),
@@ -239,6 +247,24 @@ BASE_PATTERNS_EN = {
     "pat:eng:weekdays:short":
     one_of(ENG_WEEKDAYS_SHORT, caseless=True).set_parse_action(
         lambda t: ensh_wday2weekday[t[0].lower()]),
+    "pat:eng:months:noyear":
+    _letter_bounded(ENG_MONTHS_NOYEAR).set_parse_action(
+        lambda t: ennoyear_mname2mon[t[0].lower()]),
+    # A day not followed by a digit ("May 2022" is not May 20).
+    "pat:eng:day_bounded":
+    PAT_EN_DAY_NUMERIC | Word(nums, min=1, max=2, as_keyword=True).set_results_name("day"),
+    # Abbreviated month of a dated form: "Sept. 5, 2022", "Sep 5th 2022".
+    "pat:eng:months:abbrev_sept":
+    one_of(ENG_MONTHS_ABBREV + ["Sept"], caseless=True).set_parse_action(
+        lambda t: ennoyear_mname2mon[t[0].lower()]),
+    # Full or abbreviated month between dashes: "5-May-2022", "5-Sept-2022".
+    "pat:eng:months:any":
+    one_of(ENG_MONTHS + ENG_MONTHS_ABBREV + ["Sept"], caseless=True).set_parse_action(
+        lambda t: ennoyear_mname2mon[t[0].lower()]),
+    # After a date without a year: no year of two or four digits ("May 5, 22"),
+    # while a time ("May 5, 10:00", "5 May 14h30") may follow.
+    "pat:eng:no_year_after":
+    ~Regex(r",?\s*\d{2}(?:\d{2})?(?![\d:.hH])"),
 }
 
 PATTERNS_EN = [
@@ -898,6 +924,122 @@ PATTERNS_EN = [
         },
         "format":
         "%d %b %Y",
+        "filter":
+        1,
+    },
+    # An abbreviated month with a dot ("Sept. 5, 2022", "Dec. 25, 2022") or
+    # before an ordinal day ("Sep 5th 2022"). Without either the date is
+    # read by date_eng2_short / fr_short_monthfirst ("Sept 5, 2022").
+    {
+        "key":
+        "dt:date:date_eng5",
+        "name":
+        "Date with abbreviated English month and a dot or ordinal day (month first)",
+        "pattern":
+        ((BASE_PATTERNS_EN["pat:eng:months:abbrev_sept"].set_results_name("month") +
+          Literal(".").suppress() +
+          (PAT_EN_DAY_NUMERIC | Word(nums, min=1, max=2).set_results_name("day"))) |
+         (BASE_PATTERNS_EN["pat:eng:months:abbrev_sept"].set_results_name("month") +
+          PAT_EN_DAY_NUMERIC)) +
+        Optional(",").suppress() +
+        Word(nums, exact=4).set_results_name("year"),
+        "length": {
+            "min": 10,
+            "max": 16
+        },
+        "format":
+        "%b. %d, %Y",
+        "filter":
+        1,
+    },
+    # An ordinal day before an abbreviated month with a dot or "Sept":
+    # "5th Sept 2022", "5th Dec. 2022" ("5th Dec 2022" is
+    # date_eng_abbrev_postfix).
+    {
+        "key":
+        "dt:date:date_eng6",
+        "name":
+        "Date with ordinal day and abbreviated English month with a dot or Sept",
+        "pattern":
+        PAT_EN_DAY_NUMERIC +
+        ((BASE_PATTERNS_EN["pat:eng:months:abbrev_sept"].set_results_name("month") +
+          Literal(".").suppress()) |
+         one_of(["Sept"], caseless=True).set_parse_action(lambda t: 9).set_results_name("month")) +
+        Optional(",").suppress() +
+        Word(nums, exact=4).set_results_name("year"),
+        "length": {
+            "min": 12,
+            "max": 16
+        },
+        "format":
+        "%d %b. %Y",
+        "filter":
+        1,
+    },
+    # Day, month and four-digit year between dashes: "5-May-2022",
+    # "05-Sep-2022" ("25-Dec-20" is date_eng4_short).
+    {
+        "key":
+        "dt:date:date_eng4",
+        "name":
+        "Date with english month and four-digit year with dash",
+        "pattern":
+        Word(nums, min=1, max=2).set_results_name("day") +
+        Literal("-").suppress() +
+        BASE_PATTERNS_EN["pat:eng:months:any"].set_results_name("month") +
+        Literal("-").suppress() +
+        Word(nums, exact=4).set_results_name("year"),
+        "length": {
+            "min": 10,
+            "max": 17
+        },
+        "format":
+        "%d-%b-%Y",
+        "filter":
+        1,
+    },
+    # Dates without a year: "May 5", "Sept. 5", "Dec 25th", "5 May",
+    # "25th December". The year comes from ``reference=`` (the current year by
+    # default), as for "05.12". No letter may follow the month and no digit
+    # the day, so "5 Marketing tips" and "May 2022" are not dates.
+    {
+        "key":
+        "dt:date:date_eng_noyear_md",
+        "name":
+        "English month and day without year",
+        "pattern":
+        BASE_PATTERNS_EN["pat:eng:months:noyear"].set_results_name("month") +
+        Optional(".").suppress() +
+        BASE_PATTERNS_EN["pat:eng:day_bounded"] +
+        BASE_PATTERNS_EN["pat:eng:no_year_after"],
+        "length": {
+            "min": 5,
+            "max": 15
+        },
+        "format":
+        "%b %d",
+        "noyear":
+        True,
+        "filter":
+        1,
+    },
+    {
+        "key":
+        "dt:date:date_eng_noyear_dm",
+        "name":
+        "English day and month without year",
+        "pattern":
+        (PAT_EN_DAY_NUMERIC | Word(nums, min=1, max=2).set_results_name("day")) +
+        BASE_PATTERNS_EN["pat:eng:months:noyear"].set_results_name("month") +
+        BASE_PATTERNS_EN["pat:eng:no_year_after"],
+        "length": {
+            "min": 5,
+            "max": 14
+        },
+        "format":
+        "%d %b",
+        "noyear":
+        True,
         "filter":
         1,
     },

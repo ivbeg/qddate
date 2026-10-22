@@ -31,6 +31,8 @@ _NOT_DATES = [
     "Опубликовано 5 мая 2022",
     "Some random text node 123",
     "15 комментариев",
+    "评论 (12)",
+    "共 2022 条",
     "1 2 3 4 5",
     # Leading whitespace: scan_string skipped it before a match and the match
     # was dropped, except for "\n" before a ``:t_right`` variant.
@@ -50,6 +52,10 @@ _NO_GRAMMAR_RUNS = [
     "Read more »",
     "+7 495 123-45-67",
     "Опубликовано 5 мая 2022",
+    # "nd" in "random" satisfied the ordinal suffix of date_eng2, whose
+    # alternatives both need a month name.
+    "Some random text node 123",
+    "评论 (12)",
 ]
 
 
@@ -122,6 +128,8 @@ def test_text_without_a_date_runs_no_grammar(parser, text):
 def test_a_date_runs_few_grammars(parser):
     assert _grammars_run(parser, "5 May 2022") <= 10
     assert _grammars_run(parser, "12.03.1999 10:20") <= 10
+    assert _grammars_run(parser, "2022年5月5日") <= 10
+    assert _grammars_run(parser, "May 5") <= 10
 
 
 @pytest.mark.parametrize("flags", [

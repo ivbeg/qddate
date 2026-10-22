@@ -11,7 +11,7 @@ ISO-like patterns still participate for the languages you select.
 
 | Value | Effect |
 |-------|--------|
-| `None` (default) | All 14 languages |
+| `None` (default) | All 15 languages |
 | `[]` | Same as all languages (backward compatible) |
 | `"ru"` | Russian month-name patterns plus numeric patterns associated with that filter |
 | `["en", "de"]` | Union of those catalogs |
@@ -26,10 +26,18 @@ DateParser(languages="invalid")  # ValueError
 
 ## Supported codes
 
-`bg`, `cz`, `de`, `en`, `es`, `fr`, `it`, `nl`, `pl`, `pt`, `ro`, `ru`, `tr`, `uk`.
+`bg`, `cz`, `de`, `en`, `es`, `fr`, `it`, `nl`, `pl`, `pt`, `ro`, `ru`, `sk`, `tr`, `uk`.
 
 The live list is `qddate.patterns.SUPPORTED_LANGUAGES`. See the
 [language overview](/languages/).
+
+Czech is filed under `cz`, a country code. Every API that takes a language
+code also accepts the ISO 639-1 code `cs` (`DateParser(languages="cs")`,
+`languages="cs"` per call, `get_patterns_for_languages("cs")`,
+`get_months("cs")`). Results keep the code `cz`: `DateMatch.language`, the
+`language` field of a pattern and `SUPPORTED_LANGUAGES` are unchanged, so
+code that compares with `"cz"` keeps working. `qddate.patterns.LANGUAGE_ALIASES`
+(`{"cs": "cz"}`) maps one to the other and `normalize_language()` applies it.
 
 ## Exclusive parsing
 

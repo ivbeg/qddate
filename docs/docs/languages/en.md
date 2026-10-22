@@ -7,7 +7,7 @@ description: "Base date patterns for English (en)"
 
 # English (`en`)
 
-**Base patterns:** 42. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
+**Base patterns:** 51. Time-of-day and trailing-text variants are generated at `DateParser` construction. See the [language overview](/languages/) for flags and format codes.
 
 | Pattern Key | Name | Format | Min Length | Max Length | Year Short | No Year | Filter | Examples |
 |-------------|------|--------|------------|------------|------------|---------|--------|----------|
@@ -51,7 +51,16 @@ description: "Base date patterns for English (en)"
 | `dt:date:weekday_eng_wshort_us` | Date with short english weekday and month first | `%b %d, %Y` | 13 | 24 |  |  | 1 | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
 | `dt:date:weekday_eng_abbrev_wshort_us` | Date with short english weekday and abbreviated month first | `%b %d, %Y` | 13 | 19 |  |  | 1 | `mar 15, 2024`, `dec 3, 2023`, `jul 28, 2025` |
 | `dt:date:date_eng_abbrev_postfix` | Date with abbreviated English month and day with ordinal suffix | `%d %b %Y` | 11 | 16 |  |  | 1 | `15 mar 2024`, `3 dec 2023`, `28 jul 2025` |
+| `dt:date:date_eng5` | Date with abbreviated English month and a dot or ordinal day (month first) | `%b. %d, %Y` | 10 | 16 |  |  | 1 | `Mar. 15, 2024`, `Sep 3rd 2023`, `Sept. 28, 2025` |
+| `dt:date:date_eng6` | Date with ordinal day and abbreviated English month with a dot or Sept | `%d %b. %Y` | 12 | 16 |  |  | 1 | `15th Mar. 2024`, `3rd Sept 2023`, `28th Jul. 2025` |
+| `dt:date:date_eng4` | Date with english month and four-digit year with dash | `%d-%b-%Y` | 10 | 17 |  |  | 1 | `15-Mar-2024`, `3-Dec-2023`, `28-Jul-2025` |
+| `dt:date:date_eng_noyear_md` | English month and day without year | `%b %d` | 5 | 15 |  | Yes | 1 | `March 15`, `December 3`, `July 28` |
+| `dt:date:date_eng_noyear_dm` | English day and month without year | `%d %b` | 5 | 14 |  | Yes | 1 | `15 March`, `3 December`, `28 July` |
 | `dt:date:date_5` | Datetime string as ddmmyyyy | `%d%m%Y` | 8 | 8 |  |  |  | `15032024`, `03122023`, `28072025` |
 | `dt:date:date_6` | Datetime string as yyyymmdd | `%Y%m%d` | 8 | 8 |  |  |  | `20240315`, `20231203`, `20250728` |
+| `dt:date:date_cjk` | Chinese or Japanese date with year, month and day units | `%Y年%m月%d日` | 8 | 44 |  |  |  | `2024年3月15日`, `2023年12月3日 14:30`, `2025年7月28日(月) 午後2時` |
+| `dt:date:date_cjk_ko` | Korean date with year, month and day units | `%Y년 %m월 %d일` | 8 | 44 |  |  |  | `2024년 3월 15일`, `2023년 12월 3일 14:30`, `2025년 7월 28일 (월) 오후 2:30` |
+| `dt:date:date_cjk_noyear` | Chinese or Japanese date with month and day units, without year | `%m月%d日` | 4 | 38 |  | Yes |  | `3月15日`, `12月3日 10:30`, `7月28日(月)` |
+| `dt:date:date_cjk_ko_noyear` | Korean date with month and day units, without year | `%m월 %d일` | 4 | 38 |  | Yes |  | `3월 15일`, `12월 3일 오후 2:30`, `7월 28일 (월)` |
 
 See also: [languages=](/api/languages), [adding languages](/development/adding-languages).

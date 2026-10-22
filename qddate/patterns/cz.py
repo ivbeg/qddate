@@ -8,6 +8,7 @@ variants.
 """
 
 from pyparsing import (
+    Optional,
     Word,
     nums,
     one_of,
@@ -56,7 +57,8 @@ BASE_PATTERNS_CZ = {
 }
 
 PATTERNS_CZ = [
-    # Czech date patterns
+    # Czech date patterns. The day is written with a dot ("5. května 2022"),
+    # sometimes without one.
     {
         "key":
         "dt:date:cz_base",
@@ -64,6 +66,7 @@ PATTERNS_CZ = [
         "Base Czech date with month name (nominative)",
         "pattern":
         Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(".").suppress() +
         BASE_PATTERNS_CZ["pat:cz:months"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
@@ -82,6 +85,7 @@ PATTERNS_CZ = [
         "Base Czech date with month name lowercase (nominative)",
         "pattern":
         Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(".").suppress() +
         BASE_PATTERNS_CZ["pat:cz:months_lc"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
@@ -100,6 +104,7 @@ PATTERNS_CZ = [
         "Czech date with month name in genitive form",
         "pattern":
         Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(".").suppress() +
         BASE_PATTERNS_CZ["pat:cz:months_gen"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
@@ -118,6 +123,7 @@ PATTERNS_CZ = [
         "Czech date with month name in genitive form (lowercase)",
         "pattern":
         Word(nums, min=1, max=2).set_results_name("day") +
+        Optional(".").suppress() +
         BASE_PATTERNS_CZ["pat:cz:months_gen_lc"].set_results_name("month") +
         Word(nums, exact=4).set_results_name("year"),
         "length": {
