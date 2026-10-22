@@ -15,7 +15,12 @@ from .de import PATTERNS_DE
 from .es import PATTERNS_ES
 from .fr import PATTERNS_FR
 from .it import PATTERNS_IT
-from .months import MONTHS_BY_LANGUAGE, get_months  # noqa: F401
+from .months import (  # noqa: F401
+    LANGUAGE_ALIASES,
+    MONTHS_BY_LANGUAGE,
+    get_months,
+    normalize_language,
+)
 from .nl import PATTERNS_NL
 from .pl import PATTERNS_PL
 from .pt import PATTERNS_PT
@@ -384,7 +389,8 @@ def get_patterns_for_languages(languages):
     """Get patterns for specified languages.
 
     :param languages: Language code (str) or list of language codes (list of str).
-                     If None or empty, returns all patterns.
+                     If None or empty, returns all patterns. ``"cs"`` is read
+                     as ``"cz"`` (see ``LANGUAGE_ALIASES``).
     :type languages: str|list|None
     :return: Combined list of patterns for specified languages
     :rtype: list
@@ -402,12 +408,16 @@ def get_patterns_for_languages(languages):
     if len(languages) == 0:
         return ALL_PATTERNS
 
+    # "cs" and "cz" name the same patterns; keep the first of each.
+    languages = list(dict.fromkeys(normalize_language(lang) for lang in languages))
+
     # Validate all language codes
     invalid_languages = [lang for lang in languages if lang not in SUPPORTED_LANGUAGES]
     if invalid_languages:
         raise ValueError(
             f"Unsupported language(s): {invalid_languages}. "
-            f"Supported languages: {SUPPORTED_LANGUAGES}"
+            f"Supported languages: {SUPPORTED_LANGUAGES} "
+            f"(also accepted: {sorted(LANGUAGE_ALIASES)})"
         )
 
     # Combine patterns for specified languages

@@ -287,8 +287,22 @@ MONTHS_BY_LANGUAGE: Mapping[str, LanguageMonths] = {
 }
 
 
+#: ISO 639-1 codes accepted in place of qddate's own code. Czech has been
+#: filed under ``cz`` (a country code) since the first release; results keep
+#: reporting ``cz``.
+LANGUAGE_ALIASES: Mapping[str, str] = {"cs": "cz"}
+
+
+def normalize_language(code: str) -> str:
+    """Return qddate's code for ``code``: ``"cz"`` for ``"cs"``, any other
+    code unchanged (it is not validated here)."""
+    return LANGUAGE_ALIASES.get(code, code)
+
+
 def get_months(code: str) -> LanguageMonths:
-    """Return the ``LanguageMonths`` for ``code`` or raise ``ValueError``."""
+    """Return the ``LanguageMonths`` for ``code`` (``"cs"`` is read as
+    ``"cz"``) or raise ``ValueError``."""
+    code = normalize_language(code)
     if code not in MONTHS_BY_LANGUAGE:
         raise ValueError(
             f"Unknown language code {code!r}; expected one of {sorted(MONTHS_BY_LANGUAGE)}"

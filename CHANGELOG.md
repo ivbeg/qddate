@@ -44,6 +44,13 @@ All notable changes to this project are tracked here.
   language, like the numeric ones: every `languages=` hint tries them and
   `DateMatch.language` is `None`. `DateParser(languages=["en"])` includes
   them with the other numeric patterns.
+- Czech's ISO 639-1 code `cs` is accepted wherever a language code is:
+  `DateParser(languages="cs")`, the per-call `languages="cs"` hint,
+  `get_patterns_for_languages("cs")`, `get_months("cs")`. Results keep the
+  code `cz` (`DateMatch.language`, a pattern's `language`,
+  `SUPPORTED_LANGUAGES`), so callers comparing with `"cz"` keep working;
+  `qddate.patterns.LANGUAGE_ALIASES` and `normalize_language()` map one to the
+  other. A hint with `cs` and one with `cz` share one cached index.
 - The checks before a grammar runs know two more facts, so the new
   patterns cost text without a date nothing: a required literal word (`年`,
   `년`, `de`) must occur in the text, and a month list that every

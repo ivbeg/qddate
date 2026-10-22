@@ -52,12 +52,14 @@ from .patterns import (
     ALL_PATTERNS,
     ALL_TIME_PREFIXES,
     BASE_TIME_PATTERNS,
+    LANGUAGE_ALIASES,
     MONTHS_BY_LANGUAGE,
     SUPPORTED_LANGUAGES,
     TIME_PREFIXES_BY_LANGUAGE,
     TIMEZONE_ABBREVIATIONS,
     _infer_required_chars,
     get_patterns_for_languages,
+    normalize_language,
 )
 from .patterns.base import ENG_WEEKDAYS
 from .patterns.cz import CZ_WEEKDAYS
@@ -521,19 +523,21 @@ def _check_date_order(date_order: TOptional[str]) -> TOptional[str]:
 
 def _check_languages(languages: Union[str, list[str], tuple[str, ...], set[str], frozenset[str], None]
                      ) -> TOptional[frozenset]:
-    """Validate a ``languages=`` hint; None or empty means no hint."""
+    """Validate a ``languages=`` hint; None or empty means no hint. ``"cs"``
+    is read as ``"cz"``."""
     if languages is None:
         return None
     if isinstance(languages, str):
         languages = [languages]
     elif not isinstance(languages, (list, tuple, set, frozenset)):
         raise TypeError("languages must be a string, list of strings, or None")
-    codes = frozenset(languages)
+    codes = frozenset(normalize_language(code) for code in languages)
     invalid = sorted(codes - set(SUPPORTED_LANGUAGES))
     if invalid:
         raise ValueError(
             f"Unsupported language(s): {invalid}. "
-            f"Supported languages: {SUPPORTED_LANGUAGES}")
+            f"Supported languages: {SUPPORTED_LANGUAGES} "
+            f"(also accepted: {sorted(LANGUAGE_ALIASES)})")
     return codes or None
 
 
@@ -788,7 +792,9 @@ class DateParser:
         :param languages: Language code (str) or list of language codes (list of str) to filter patterns by.
                           If None, uses all patterns. If specified, filters patterns to only include those
                           for the specified languages. Examples: languages="ru", languages=["en", "de"],
-                          languages=None (default).
+                          languages=None (default). Czech is ``"cz"``; the ISO code ``"cs"`` is
+                          accepted too (here and in every ``languages=`` hint), and results keep
+                          reporting ``"cz"``.
         :type languages: str|list|None
         :param pivot_year: Optional 4-digit pivot year for interpreting 2-digit years (patterns with the
                           ``yearshort`` flag). Years ``00`` to ``(pivot_year % 100) - 1`` map to 20xx, the
@@ -866,9 +872,9 @@ class DateParser:
         self._language_allowlist: set[str] | None = None
         if languages is not None:
             if isinstance(languages, str):
-                self._language_allowlist = {languages}
+                self._language_allowlist = {normalize_language(languages)}
             else:
-                self._language_allowlist = set(languages)
+                self._language_allowlist = {normalize_language(code) for code in languages}
         self._current_year = datetime.datetime.now().year
         self._year_refresh_interval = 3600  # seconds
         self._next_year_refresh = time.monotonic() + self._year_refresh_interval

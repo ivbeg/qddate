@@ -27,7 +27,7 @@ DateParser(generate=True, patterns=ALL_PATTERNS, base_only=False, languages=None
 | `generate` | `True` | Expand each base date pattern with time-of-day and trailing-text variants |
 | `patterns` | `qddate.patterns.ALL_PATTERNS` | Pattern dicts to load |
 | `base_only` | `False` | Keep only base patterns; skip generated "date plus extra text" variants |
-| `languages` | `None` | Language code, list of codes, or `None` for all languages |
+| `languages` | `None` | Language code, list of codes, or `None` for all languages. Czech is `cz`; `cs` is accepted too |
 | `pivot_year` | `None` | 4-digit pivot for two-digit years: with `1968`, `99` → 1999 and `20` → 2020. `None` keeps the raw two-digit year. A bool or other non-integer raises `TypeError`: `pivot_year=True` would mean pivot year 1 |
 | `tz_aware` | `False` | Attach the zone written after the time to the result: `+0300`, `+03:00`, `Z`, `GMT+3`, `UTC-05:30` or an abbreviation (`MSK`/`МСК`, `CET`/`CEST`, `EET`/`EEST`, `BST`, `EST`/`EDT`, `PST`/`PDT`, …; see `qddate.patterns.TIMEZONE_ABBREVIATIONS`) |
 | `use_fingerprint` | `True` | Use the fingerprint candidate filter. `False` selects the legacy 6-level filter and emits `DeprecationWarning`; it will be removed in 2.0 |
@@ -116,7 +116,7 @@ The camelCase `startSession()` / `endSession()` still work and emit
 m = parser.match_typed("6 Jan 2009")
 m.datetime      # datetime(2009, 1, 6, 0, 0); pivot_year / tz_aware already applied
 m.pattern_key   # "dt:date:date_eng1_short"
-m.language      # "en" (None for language-neutral numeric patterns)
+m.language      # "en" (None for language-neutral numeric patterns; "cz" for Czech, even with languages="cs")
 m.format        # "%d.%b.%Y"
 m.raw           # "6 Jan 2009"
 m.span          # (0, 10): where the date is in raw; raw[m.span[1]:] is the rest

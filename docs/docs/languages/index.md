@@ -20,7 +20,7 @@ pattern table and tests — not by loading CLDR at runtime.
 | `nl` | Dutch | Full and short months, weekdays |
 | `pt` | Portuguese | Articles |
 | `pl` | Polish | Nominative and genitive, optional dot after the day |
-| `cz` | Czech | Nominative and genitive, day with a dot (`5. května 2022`) |
+| `cz` | Czech (`cs` is accepted too) | Nominative and genitive, day with a dot (`5. května 2022`) |
 | `bg` | Bulgarian | Cyrillic month names |
 | `tr` | Turkish | Month names, optional suffixes |
 | `ro` | Romanian | Full and CLDR-abbreviated months |

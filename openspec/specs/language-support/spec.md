@@ -23,6 +23,26 @@ The library SHALL support exactly the following language codes: `bg`, `cz`, `de`
 
 ---
 
+### Requirement: ISO code for Czech
+
+Every API that takes a language code (`DateParser(languages=...)`, the
+per-call `languages=` hint, `get_patterns_for_languages()`, `get_months()`)
+SHALL accept `cs` as Czech, the same as `cz`. Results SHALL keep the code
+`cz`: `DateMatch.language`, the `language` field of a pattern and
+`SUPPORTED_LANGUAGES` SHALL NOT change. `qddate.patterns.LANGUAGE_ALIASES`
+SHALL map `cs` to `cz`.
+
+#### Scenario: Constructor with the ISO code
+- **GIVEN** `DateParser(languages="cs")`
+- **WHEN** `parse("5. května 2022")` is called
+- **THEN** the result SHALL equal `datetime.datetime(2022, 5, 5)`
+
+#### Scenario: Hint with the ISO code
+- **WHEN** `match_typed("5. května 2022", languages="cs")` is called
+- **THEN** its `language` SHALL be `"cz"`
+
+---
+
 ### Requirement: Filter patterns by language
 
 The `DateParser` constructor SHALL accept a `languages` parameter (a single code, a
