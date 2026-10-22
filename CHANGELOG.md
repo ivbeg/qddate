@@ -58,6 +58,47 @@ All notable changes to this project are tracked here.
   `nd` in `Some random text node 123` stood in for the month name of
   `date_eng2`, which ran 7 grammars on that text; it now runs none.
 
+**Dates inside text** (Q18)
+- `DateParser.search(text)` returns the first date wherever it starts and
+  `find_all(text)` every date, left to right, as `DateMatch` objects whose
+  `span` locates the date: `search("Posted on May 5, 2022").span == (10, 21)`.
+  A date is tried only where one can start (position 0, a run of one, two,
+  four or eight digits that starts a word, a month or weekday name), and at
+  each such position the result is what `match_typed()` finds there.
+- Against false dates: `max_offset=` (a date must start by that index) and
+  `labels=True`, under which a date that does not start the text must follow
+  a label of the new `qddate.patterns.DATE_LABELS` (`Posted on`, `Updated:`,
+  `Опубликовано:`, `Обновлено`, `Veröffentlicht am`, `Publié le`, `Publicado
+  el`, `发布时间`, `입력`, … in every language), a dateline (`GENEVA, `,
+  `New York – `) or punctuation alone. A string or list of labels replaces
+  the built-in ones. This covers what newsworker's `_DATELINE_PREFIX_RE`
+  read and the labels it could not.
+- Text without a date stays cheap: with `labels=True` a phone number, a
+  price or a sentence with numbers runs no grammar, so a search costs about
+  one `match()` call (0.36 ms against 0.34 ms on the noise texts of
+  `tests/test_performance_smoke.py`); without labels it costs 0.55 ms.
+- `DateMatch.span` ends where the date ends: the `,`, `|`, `:` or `)` a
+  `:t_right` variant reads after the date is no longer counted
+  (`match_typed("5 May 2022, more").span` is `(0, 10)`, was `(0, 11)`).
+
+**Benchmark rows that change** (Q9–Q13, Q18; 54,565 rows of
+`benchmarks/test_data.csv` and `benchmarks/webpage_test_data.csv`, `match()`
+and `parse()` compared with `master`)
+- 59 rows of `webpage_test_data.csv`, all text nodes that are English dates
+  without a year and returned `None`: 57 day first (`12 March`,
+  `19 December`, `18 Dec.`, `02 Jan`, `20 November, the`) and 2 month first
+  (`Jan 30`, `Jan 30 December`). They now read as dates of the reference
+  year (Q9). No other row changes: Q10–Q13 add forms no row contains or that
+  no older pattern read, and `search()` (Q18) leaves `match()` unchanged.
+- The default parser has 1,812 generated patterns instead of 1,656 (151 base
+  patterns instead of 138). On an Apple M-series machine the 54,565 rows
+  take 8.6 s against 8.4 s on `master`, a `match()` 0.30 ms on dates and
+  0.34 ms on text without a date, as on `master`.
+- newsworker gives the same results against this branch as against
+  `master`: its `master` (with ivbeg/newsworker#74) passes 556 tests and its
+  232-page corpus keeps F1 and `date_accuracy` at 1.0 (8.3 s of CPU both);
+  the older local checkout passes 457 tests with the same corpus scores.
+
 **Time formats** (Q5–Q8 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
 - The 12-hour clock after a date: `AM`/`PM`, `am`/`pm`, `a.m.`/`p.m.`,
   with or without minutes and seconds (`May 5, 2022 at 3:45 PM` → 15:45,
@@ -92,29 +133,6 @@ All notable changes to this project are tracked here.
 - `HH:MM` after a date may follow `|` or the ISO `T`, as `HH:MM:SS` could:
   `21 September 1994 | 11:08`, `2022-05-05T10:00` keep their time.
 
-**Dates inside text** (Q18)
-- `DateParser.search(text)` returns the first date wherever it starts and
-  `find_all(text)` every date, left to right, as `DateMatch` objects whose
-  `span` locates the date: `search("Posted on May 5, 2022").span == (10, 21)`.
-  A date is tried only where one can start (position 0, a run of one, two,
-  four or eight digits that starts a word, a month or weekday name), and at
-  each such position the result is what `match_typed()` finds there.
-- Against false dates: `max_offset=` (a date must start by that index) and
-  `labels=True`, under which a date that does not start the text must follow
-  a label of the new `qddate.patterns.DATE_LABELS` (`Posted on`, `Updated:`,
-  `Опубликовано:`, `Обновлено`, `Veröffentlicht am`, `Publié le`, `Publicado
-  el`, `发布时间`, `입력`, … in every language), a dateline (`GENEVA, `,
-  `New York – `) or punctuation alone. A string or list of labels replaces
-  the built-in ones. This covers what newsworker's `_DATELINE_PREFIX_RE`
-  read and the labels it could not.
-- Text without a date stays cheap: with `labels=True` a phone number, a
-  price or a sentence with numbers runs no grammar; without labels a search
-  costs two to three `match()` calls on such text (0.6 ms against 0.25 ms
-  on the noise texts of `tests/test_performance_smoke.py`).
-- `DateMatch.span` ends where the date ends: the `,`, `|`, `:` or `)` a
-  `:t_right` variant reads after the date is no longer counted
-  (`match_typed("5 May 2022, more").span` is `(0, 10)`, was `(0, 11)`).
-
 **API** (Q14–Q17)
 - `languages=` on `match()`, `match_all()`, `parse()`, `match_typed()` (and
   `parse_many()`): the patterns of these languages and the language-neutral
@@ -139,7 +157,7 @@ All notable changes to this project are tracked here.
   `tz_aware=True` too) and `has_year`. `to_dict()` includes them; the old
   five-argument constructor still works.
 
-**Benchmark rows that change** (54,565 rows of `benchmarks/test_data.csv` and
+**Benchmark rows that change** (Q5–Q8, Q14–Q17; 54,565 rows of `benchmarks/test_data.csv` and
 `benchmarks/webpage_test_data.csv`, compared with `master` for `match()`,
 `parse()` with and without `tz_aware`, `match_all()` with and without
 `allow_no_year`, the legacy filter and `DateParser(languages=["en", "ru"])`)
