@@ -60,47 +60,11 @@ def main():
     print("Packrat Parsing Benchmark")
     print("=" * 80)
 
-    # Test with packrat (default)
-    print("\n1. Testing WITH packrat parsing (default)...")
-    try:
-        from pyparsing import ParserElement
-        ParserElement.enable_packrat()
-        print("   Packrat enabled")
-    except Exception as e:
-        print(f"   Warning: Could not enable packrat: {e}")
+    from pyparsing import ParserElement
 
-    parser_with = DateParser()
-    timings_with = benchmark_parse(parser_with, TESTS, iterations=20)
-    mean_with = statistics.mean(timings_with)
-    print(f"   Mean time per parse: {mean_with*1000:.4f}ms")
-    print(f"   Median: {statistics.median(timings_with)*1000:.4f}ms")
-    print(f"   Min: {min(timings_with)*1000:.4f}ms")
-    print(f"   Max: {max(timings_with)*1000:.4f}ms")
-
-    # Test without packrat (if possible)
-    print("\n2. Testing WITHOUT packrat parsing...")
-    packrat_can_disable = False
-    try:
-        from pyparsing import ParserElement
-        if hasattr(ParserElement, 'disable_packrat'):
-            ParserElement.disable_packrat()
-            packrat_can_disable = True
-            print("   Packrat disabled")
-        else:
-            print("   Note: This version of pyparsing does not support disabling packrat")
-            print("   Packrat is permanently enabled once activated")
-            packrat_can_disable = False
-    except Exception as e:
-        print(f"   Warning: Could not disable packrat: {e}")
-        packrat_can_disable = False
-
-    if not packrat_can_disable:
-        print("\n   Packrat parsing is enabled and cannot be disabled in this pyparsing version.")
-        print("   This is expected behavior - packrat provides memoization for better performance.")
-        print("   The benchmark above shows performance WITH packrat enabled.")
-        return
-
-    # Clear any caches by creating new parser
+    # Test without packrat (default: qddate does not enable it)
+    print("\n1. Testing WITHOUT packrat parsing (default)...")
+    ParserElement.disable_memoization()
     parser_without = DateParser()
     timings_without = benchmark_parse(parser_without, TESTS, iterations=20)
     mean_without = statistics.mean(timings_without)
@@ -108,6 +72,20 @@ def main():
     print(f"   Median: {statistics.median(timings_without)*1000:.4f}ms")
     print(f"   Min: {min(timings_without)*1000:.4f}ms")
     print(f"   Max: {max(timings_without)*1000:.4f}ms")
+
+    # Test with packrat
+    print("\n2. Testing WITH packrat parsing...")
+    ParserElement.enable_packrat()
+    print("   Packrat enabled")
+
+    # Clear any caches by creating new parser
+    parser_with = DateParser()
+    timings_with = benchmark_parse(parser_with, TESTS, iterations=20)
+    mean_with = statistics.mean(timings_with)
+    print(f"   Mean time per parse: {mean_with*1000:.4f}ms")
+    print(f"   Median: {statistics.median(timings_with)*1000:.4f}ms")
+    print(f"   Min: {min(timings_with)*1000:.4f}ms")
+    print(f"   Max: {max(timings_with)*1000:.4f}ms")
 
     # Compare
     print("\n3. Comparison:")
@@ -126,12 +104,8 @@ def main():
     else:
         print("   Could not calculate comparison")
 
-    # Re-enable packrat for future use
-    try:
-        from pyparsing import ParserElement
-        ParserElement.enable_packrat()
-    except Exception:  # noqa: BLE001 — best-effort cleanup; packrat is optional
-        pass
+    # Restore the default (packrat off)
+    ParserElement.disable_memoization()
 
     print("\n" + "=" * 80)
     print("Benchmark complete!")

@@ -47,7 +47,7 @@ change without a major version bump.
 - Python 3.10–3.14, CPython and PyPy (CI tests CPython)
 - Runtime dependency: `pyparsing` only
 - Import does not read extra files or call the network
-- Import enables pyparsing packrat caching as a process-level optimization
+- Import does not change process-wide pyparsing settings (packrat stays off)
 
 Authoritative behavioral specs live in `openspec/specs/` in the repository.
 This site describes the same contract for humans.

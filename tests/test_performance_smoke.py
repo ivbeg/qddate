@@ -2,7 +2,7 @@
 
 Gated by ``QDDATE_PERF=1``. Runs a fixed corpus of common parses and asserts the
 mean latency stays under a generous threshold. Designed to catch catastrophic
-regressions (broken length-index prefilter, accidentally disabled packrat) on
+regressions (broken length-index prefilter, unanchored parsing) on
 CI runners without slowing down local development.
 
 The threshold is intentionally conservative; CI runner variance dominates
@@ -61,7 +61,7 @@ _NOT_DATES_THRESHOLD_MEAN_MS = 5.0
 def test_parse_latency_under_threshold():
     parser = DateParser()
 
-    # Warm up packrat + parser caches.
+    # Warm up parser caches.
     for s in _SAMPLES:
         parser.parse(s)
 
@@ -79,7 +79,7 @@ def test_parse_latency_under_threshold():
     assert mean_ms < _THRESHOLD_MEAN_MS, (
         f"Mean parse latency {mean_ms:.2f}ms exceeds threshold "
         f"{_THRESHOLD_MEAN_MS:.2f}ms (p95={p95_ms:.2f}ms over {len(durations_ms)} samples). "
-        "This usually means the length-index prefilter or packrat parsing is broken."
+        "This usually means the length-index prefilter or anchored parsing is broken."
     )
 
 
