@@ -97,6 +97,10 @@ All notable changes to this project are tracked here.
   other pyparsing grammar in the program. `scripts/benchmark_packrat.py` now
   measures both modes; it looked for `disable_packrat()`, which pyparsing 3
   does not have, so it never ran without packrat.
+  `tests/test_performance.py::test_parse_consistency` now warms the parser
+  up and times 5 parses per sample with the garbage collector off. A warm
+  parse is ~50 µs, so the cold first call or one collection pause pushed
+  the CV over 0.5.
 - Before running a grammar, the parser checks two facts read from it once:
   the characters its match can start with, and the month or weekday names it
   requires. A candidate the text cannot satisfy is skipped. Text without a

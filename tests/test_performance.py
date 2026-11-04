@@ -4,6 +4,7 @@ Performance regression tests for qddate.
 These tests establish baseline performance metrics and detect regressions.
 """
 
+import gc
 import os
 import statistics
 import time
@@ -241,9 +242,23 @@ class TestPerformanceConsistency:
         text = '01.12.2009'
         timings = []
 
-        for _ in range(20):
-            _, duration = time_function(parser.parse, text)
-            timings.append(duration)
+        # The first parse of a text fills the parser's caches and is several
+        # times slower; it is not part of the steady state measured here.
+        parser.parse(text)
+
+        # A warm parse takes ~50 us, so one garbage collection pause or a
+        # single slow call decides the CV. Time 5 parses per sample, with
+        # the collector off.
+        gc.collect()
+        gc.disable()
+        try:
+            for _ in range(20):
+                start = time.perf_counter()
+                for _ in range(5):
+                    parser.parse(text)
+                timings.append(time.perf_counter() - start)
+        finally:
+            gc.enable()
 
         # Check that variance is reasonable
         if len(timings) > 1:
