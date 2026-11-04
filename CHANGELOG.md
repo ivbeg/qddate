@@ -184,6 +184,18 @@ and `parse()` compared with `master`)
   start of the text only. They used `scan_string`, which tried every later
   position of a text that does not start with a date, and then discarded the
   match because it did not start at position 0.
+- Importing qddate no longer calls `ParserElement.enable_packrat()`. With
+  anchored parsing the packrat cache gets almost no hits, and its bookkeeping
+  cost more than it saved: `match()`, `parse()` and `match_all()` on the
+  54,565 benchmark rows take 17.2 s instead of 27.3 s, with no row changing
+  its result. The call was also process-wide and enabled packrat for every
+  other pyparsing grammar in the program. `scripts/benchmark_packrat.py` now
+  measures both modes; it looked for `disable_packrat()`, which pyparsing 3
+  does not have, so it never ran without packrat.
+  `tests/test_performance.py::test_parse_consistency` now warms the parser
+  up and times 5 parses per sample with the garbage collector off. A warm
+  parse is ~50 µs, so the cold first call or one collection pause pushed
+  the CV over 0.5.
 - Before running a grammar, the parser checks two facts read from it once:
   the characters its match can start with, and the month or weekday names it
   requires. A candidate the text cannot satisfy is skipped. Text without a

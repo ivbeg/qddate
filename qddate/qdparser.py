@@ -39,14 +39,10 @@ from pyparsing import (
 )
 from pyparsing import Optional as PpOptional
 
-# Enable packrat parsing for better performance
-try:
-    ParserElement.enable_packrat()
-except Exception:
-    # Packrat is an optimization; if it is unavailable or fails, fall back to
-    # standard parsing rather than crashing on import.
-    pass
-
+# Packrat is not enabled. Each grammar is parsed once at position 0, so the
+# cache gets almost no hits and its bookkeeping made parsing slower.
+# ``enable_packrat()`` is also process-wide: it changed every pyparsing user
+# that imported qddate.
 from .dirty import matchPrefix
 from .patterns import (
     _PATTERN_METADATA,
