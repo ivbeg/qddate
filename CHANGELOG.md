@@ -171,6 +171,38 @@ and `parse()` compared with `master`)
   `date_accuracy` 1.0) give the same results against this branch.
 
 **Performance**
+- A generated variant is skipped when the grammar it starts with does not
+  match on its own: the date it was made from for `:time_1` … `:time_4` and
+  `:t_right`, the time for `:time_left`. A failed date now costs one parse
+  instead of one per variant, and no grammar is parsed twice for one text.
+  The rule applies only to text that does not start with whitespace, where
+  no grammar skips any at position 0.
+- The candidates of a text fingerprint are kept with the prefix filter
+  applied, grouped by what their grammars need (first characters, month or
+  weekday names), with their priorities. A text is checked once per group
+  instead of once per candidate (about 500 per text on web pages, 278
+  distinct needs among the 1,812 patterns), and the candidates are no longer
+  copied, filtered and ranked again on every call.
+- Character sets and month claims of a text are computed once per call
+  instead of up to three times, and the year format is found with two
+  regexes instead of two `scan_string` runs over the whole text (same
+  result: `scan_string` never starts at a space, tab, newline or carriage
+  return).
+- Construction: the separators of the generated variants and the words
+  before a time are built once and shared (`one_of` compiled about 1,600
+  regexes per parser), and the indexes of the legacy filter are built on
+  first use.
+- On newsworker's workload (one general parser and eight language parsers,
+  the 2,725 `match()` calls of its 232-page corpus), on 2,850 text nodes with
+  a digit from `benchmarks/webpage_test_data.csv` and on
+  `benchmarks/test_data.csv`, timed alternately against the previous commit:
+  newsworker's calls are 3.4× faster (577 ms → 170 ms), web text nodes 5.3×
+  (994 ms → 188 ms), dates 2.2× (2,517 ms → 1,140 ms), `match_all()` 2.4×;
+  a default parser is built in 12 ms instead of 36 ms. newsworker's whole
+  corpus run (extraction included) takes 0.72 s instead of 1.18 s. No row
+  of the 54,565 benchmark rows changes its `match()`, `match_all()`,
+  `parse()`, `find_all(labels=True)`, `languages=` or session result;
+  newsworker's tests pass and its corpus keeps F1 and date accuracy 1.0.
 - A default parser has 1,656 generated patterns instead of 1,104 (the
   `:time_4` and `:time_left` variants). The fingerprint walk that selects
   candidates now keeps its result per text fingerprint (length, character
@@ -307,6 +339,11 @@ and `parse()` compared with `master`)
   when a declared length limit rejects a rendered date. Every pattern
   passes it now except `date_5`/`date_6`, whose grammar also accepts
   space-separated digit groups.
+- `tests/test_match_prefilter.py` also compares `match_all()` with the
+  grouped checks and the variant rule switched off, separately and together,
+  checks which grammar each variant requires and that no grammar runs twice
+  for one text, and that the year-format regexes find what `scan_string`
+  found.
 - `tests/test_match_prefilter.py` renders every generated grammar (347,476
   distinct texts with the 1.1.0 time variants) and checks that each text it
   matches passes its pre-grammar checks, compares `match_all()` with the

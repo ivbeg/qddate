@@ -138,8 +138,14 @@ def test_a_date_runs_few_grammars(parser):
     {"nolanguagefilter": True},
     {"allow_no_year": False},
 ])
-def test_checks_change_no_result(parser, monkeypatch, flags):
-    """``match_all()`` gives the same results with the checks switched off."""
+@pytest.mark.parametrize("checks", ["needs", "heads", "both"])
+def test_checks_change_no_result(parser, monkeypatch, flags, checks):
+    """``match_all()`` gives the same results with the checks switched off.
+
+    ``needs`` are the first character and words a grammar needs; ``heads``
+    skip a generated variant when the date (or time) it starts with does
+    not match on its own.
+    """
     texts = _PROBE_STRINGS + _NOT_DATES
 
     def results():
@@ -149,8 +155,52 @@ def test_checks_change_no_result(parser, monkeypatch, flags):
         ]
 
     with_checks = results()
-    monkeypatch.setattr(qdparser, "_may_match", lambda *args: True)
+    if checks in ("needs", "both"):
+        monkeypatch.setattr(qdparser, "_may_match", lambda *args: True)
+        monkeypatch.setattr(qdparser, "_select_candidates",
+                            lambda plan, text, found: list(plan.pats))
+    if checks in ("heads", "both"):
+        monkeypatch.setattr(parser, "_requires", {})
     assert results() == with_checks
+
+
+def test_variants_require_the_grammar_they_start_with(parser):
+    """Each generated variant starts with the grammar ``_requires`` names, so
+    a text that grammar does not match is not a match of the variant."""
+    time_any = qdparser.BASE_TIME_PATTERNS["pat:time:any"]
+    by_key = parser._patterns_by_key
+    date = by_key["dt:date:date_1"]["pattern"]
+    assert parser._requires["dt:date:date_1:time_1"] == (date,)
+    assert parser._requires["dt:date:date_1:time_1:t_right"] == (
+        date, by_key["dt:date:date_1:time_1"]["pattern"])
+    assert parser._requires["dt:date:date_1:t_right"] == (date,)
+    assert parser._requires["dt:date:date_1:time_left"] == (time_any,)
+    # Every variant except the date alone ("dt:date:date_1").
+    assert set(parser._requires) == {
+        p["key"] for p in parser.patterns if p["key"] != p["basekey"]}
+
+
+@pytest.mark.parametrize("text", [
+    "5 May 2022 10:20, more text",
+    "10:20 5 May 2022",
+    "01.12.2009 garbage",
+    "2022-05-05T10:00:00+03:00",
+])
+def test_variants_run_once_per_text(parser, text):
+    """No grammar is parsed twice for one text."""
+    run = []
+    anchored = parser._anchored
+
+    def counting(grammar):
+        run.append(id(grammar))
+        return anchored(grammar)
+
+    parser._anchored = counting
+    try:
+        parser.match_all(text)
+    finally:
+        del parser._anchored
+    assert len(run) == len(set(run))
 
 
 @pytest.mark.parametrize("text, expected", [
@@ -163,3 +213,19 @@ def test_tab_inside_the_text(parser, text, expected):
     match end in that text but indexed the original with it, and raised
     IndexError for "5\\tMay 2022"."""
     assert parser.parse(text) == expected
+
+
+@pytest.mark.parametrize("text", [
+    "05.05.22", "5/5/22", "May 22", "5 05 22", "a,22", "x\t22", "x\n22",
+    "x\xa022", "x　22", "1 , 22", "12345", "a1234b", "٣٣٣٣", "22", ",22x",
+    "-22-", ".221", "Mar 2022", "2022", "", "© 2025 Example. Updated 01.09.25.",
+])
+def test_year_format_regexes_match_scan_string(text):
+    """``_detect_year_format`` searches with regexes; it finds what
+    ``scan_string`` with ``_YEAR_4DIGIT_PATTERN`` / ``_YEAR_2DIGIT_PATTERN``
+    found (pyparsing skips whitespace before a position, so a space or a
+    newline never serves as the 2-digit separator)."""
+    assert (qdparser._YEAR_4DIGIT_RE.search(text) is not None) == (
+        next(qdparser._YEAR_4DIGIT_PATTERN.scan_string(text), None) is not None)
+    assert (qdparser._YEAR_2DIGIT_RE.search(text) is not None) == (
+        next(qdparser._YEAR_2DIGIT_PATTERN.scan_string(text), None) is not None)
