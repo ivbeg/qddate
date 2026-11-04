@@ -2074,13 +2074,13 @@ class DateParser:
     def _prefix_basekeys(self, prefix: str) -> TOptional[frozenset]:
         """The basekeys :func:`matchPrefix` returns for ``prefix`` (the first
         six characters of a text) as a frozenset, None when it returns none."""
-        basekeys = self._prefix_cache.get(prefix, False)
-        if basekeys is False:
-            found = self.__matchPrefix(prefix)
-            basekeys = frozenset(found) if found else None
-            if len(self._prefix_cache) >= _WALK_CACHE_SIZE:
-                self._prefix_cache.clear()
-            self._prefix_cache[prefix] = basekeys
+        if prefix in self._prefix_cache:
+            return self._prefix_cache[prefix]
+        found = self.__matchPrefix(prefix)
+        basekeys = frozenset(found) if found else None
+        if len(self._prefix_cache) >= _WALK_CACHE_SIZE:
+            self._prefix_cache.clear()
+        self._prefix_cache[prefix] = basekeys
         return basekeys
 
     def _calculate_pattern_priority(self, pattern, text, date_order=None):
