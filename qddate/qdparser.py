@@ -6,7 +6,9 @@ __author__ = "Ivan Begtin (ivan@begtin.tech)"
 __license__ = "BSD"
 
 import datetime
+import functools
 import numbers
+import operator
 import re
 import time
 import unicodedata
@@ -199,6 +201,12 @@ def _resolve_month_claims(claims: list, words: frozenset) -> list:
 _YEAR_4DIGIT_PATTERN = Word(nums, exact=4)
 # 2-digit year: separator + 2 digits + boundary (use Regex for complex pattern within pyparsing)
 _YEAR_2DIGIT_PATTERN = Regex(r'[/.\-,\s]\d{2}(?=\s|$|[^\d])')
+# What ``_detect_year_format`` finds with ``scan_string`` and the patterns
+# above, as plain regexes. ``scan_string`` skips pyparsing's whitespace
+# (space, tab, newline, carriage return) before trying a position, so the
+# 2-digit separator is never one of these four.
+_YEAR_4DIGIT_RE = re.compile(r'[0-9]{4}')
+_YEAR_2DIGIT_RE = re.compile(r'(?:[/.\-,]|[^\S \t\n\r])\d{2}(?=\s|$|[^\d])')
 
 # Character set constants for pattern filtering
 CHAR_SET_DIGITS = 'digits'
@@ -360,6 +368,34 @@ def format_date(dt: datetime.datetime, pattern_key: str) -> str:
 def _append(expr, extra):
     """Return ``expr + extra``, or ``expr`` unchanged when ``extra`` is None."""
     return expr if extra is None else expr + extra
+
+
+# Separators the generated variants accept around a time and after a date.
+# pyparsing elements can be part of many grammars, so every variant shares
+# these instead of building its own (``one_of`` compiles a regex each time).
+_TIME_SEPARATOR = PpOptional(one_of([",", "|", "T"])).suppress()
+_AMPM_SEPARATOR = PpOptional(one_of([",", "|"])).suppress()
+_LEFT_TIME_SEPARATOR = PpOptional(one_of([",", "|", "-"])).suppress()
+_TEXT_SEPARATOR = PpOptional(one_of([",", "|", ":", ")"])).suppress()
+_OPEN_BRACKET = PpOptional(Literal("[")).suppress()
+_CLOSE_BRACKET = PpOptional(Literal("]")).suppress()
+
+# ``(grammar, length)`` of the optional words written before a time, by the
+# words: the grammar (None without words) and the longest word with its space.
+_TIME_PREFIX_GRAMMARS: dict[tuple, tuple[TOptional[ParserElement], int]] = {}
+
+
+def _time_prefix(prefixes) -> tuple[TOptional[ParserElement], int]:
+    """The ``(grammar, length)`` of :data:`_TIME_PREFIX_GRAMMARS` for ``prefixes``."""
+    key = tuple(prefixes or ())
+    entry = _TIME_PREFIX_GRAMMARS.get(key)
+    if entry is None:
+        if key:
+            entry = (PpOptional(one_of(list(key))).suppress(), max(len(word) for word in key) + 1)
+        else:
+            entry = (None, 0)
+        _TIME_PREFIX_GRAMMARS[key] = entry
+    return entry
 
 
 def _values_in_range(d):
@@ -655,6 +691,9 @@ def _check_languages(languages: Union[str, list[str], tuple[str, ...], set[str],
 
 # Entries kept in ``DateParser._walk_cache`` before it is emptied.
 _WALK_CACHE_SIZE = 4096
+# Entries kept in ``DateParser._plan_cache``. A plan holds its candidates
+# twice (in order and grouped) and is cheap to rebuild from the walk cache.
+_PLAN_CACHE_SIZE = 1024
 
 
 # Digits, separators and spaces: what the numeric parts of a date are made of.
@@ -768,19 +807,152 @@ def _may_match(grammar: ParserElement, text: str,
     a set of regexes is found in it.
     """
     needs = _grammar_needs(grammar, cache)
+    first = None if grammar.mayReturnEmpty else needs.first
+    return _starts_right(first, text) and _words_found(needs.words, text, found)
+
+
+def _starts_right(first: TOptional[frozenset], text: str) -> bool:
+    """Whether ``text`` may start a match of a grammar whose matches start
+    with a character of ``first`` (None: any character)."""
     # An element after the first one skips whitespace before it, so a text
     # starting with whitespace may start a match with a different character.
+    if first is None:
+        return True
     first_char = text[:1]
-    if (needs.first is not None and first_char not in needs.first
-            and not first_char.isspace() and not grammar.mayReturnEmpty):
-        return False
-    for regexes in needs.words:
+    return first_char in first or first_char.isspace()
+
+
+def _words_found(words: frozenset, text: str, found: dict) -> bool:
+    """Whether ``text`` has one regex of each set in ``words``; ``found``
+    caches the answer per set for this text."""
+    for regexes in words:
         hit = found.get(regexes)
         if hit is None:
             hit = found[regexes] = any(rx.search(text) for rx in regexes)
         if not hit:
             return False
     return True
+
+
+class _CandidatePlan:
+    """Candidate patterns of a text fingerprint, prepared for ``_match_candidates``.
+
+    ``pats`` are the candidates in filter order. ``groups`` holds them by what
+    their grammars need (see :class:`_GrammarNeeds`): ``(first, ((words,
+    patterns), ...))`` per set of first characters, so a text is checked
+    once per distinct need instead of once per pattern. Most patterns share
+    their needs with others: the generated variants of a base pattern start
+    and need words like it does. ``needs`` maps a pattern's ``id`` to its
+    ``(first, words, pattern)``.
+
+    ``scores`` caches sort keys by ``(text length, separator class, date
+    order)`` and pattern ``id``. ``source`` is the index the plan was built
+    from, so a cached plan is not used for another index that got the same
+    ``id``.
+    """
+    __slots__ = ("pats", "groups", "scores", "source")
+
+    def __init__(self, pats, needs, source=None):
+        self.pats = tuple(pats)
+        self.source = source
+        by_first: dict = {}
+        for p in self.pats:
+            first, words, _p = needs[id(p)]
+            by_first.setdefault(first, {}).setdefault(words, []).append(p)
+        self.groups = tuple(
+            (first, tuple((words, tuple(members)) for words, members in by_words.items()))
+            for first, by_words in by_first.items())
+        self.scores: dict = {}
+
+
+def _select_candidates(plan: _CandidatePlan, text: str, found: dict) -> list:
+    """The patterns of ``plan`` whose grammars may match ``text`` at position 0.
+
+    ``text`` has its tabs expanded, as pyparsing reads it; ``found`` is the
+    ``_words_found`` cache for it. Equivalent to keeping the patterns for
+    which :func:`_may_match` is true, in the order of ``plan.groups``.
+    """
+    selected: list = []
+    for first, by_words in plan.groups:
+        if not _starts_right(first, text):
+            continue
+        for words, members in by_words:
+            if not words or _words_found(words, text, found):
+                selected.extend(members)
+    return selected
+
+
+def _separator_class(text: str) -> TOptional[str]:
+    """The separator that decides a pattern's priority bonus for ``text``:
+    ``/``, else ``.``, else ``-``, else a space, else None."""
+    for sep in ("/", ".", "-", " "):
+        if sep in text:
+            return sep
+    return None
+
+
+def _priority(pattern: dict, n: int, sepclass: TOptional[str],
+              date_order: TOptional[str] = None) -> int:
+    """Priority of ``pattern`` for a text of length ``n`` whose
+    :func:`_separator_class` is ``sepclass``; see
+    :meth:`DateParser._calculate_pattern_priority`."""
+    score = 0
+    key = pattern.get("key", "")
+    basekey = pattern.get("basekey", key)
+
+    # Higher priority for common patterns (exact basekey tiers; the former
+    # substring checks let "date_1" silently match "date_10").
+    if basekey in _PRIORITY_TIER_COMMON:
+        score += 100
+    elif basekey in _PRIORITY_TIER_ISO:
+        score += 80
+    elif basekey in _PRIORITY_TIER_9:
+        score += 75
+    elif basekey in _PRIORITY_TIER_MID:
+        score += 70
+    elif _pattern_language(pattern) is not None:
+        # Month-name patterns in any language rank just below the numeric cores.
+        score += 60
+
+    # Boost if separator matches (exact basekey sets per separator)
+    if sepclass == '/':
+        if basekey in _PRIORITY_SLASH_BOOST:
+            score += 20
+    elif sepclass == '.':
+        if basekey in _PRIORITY_DOT_BOOST:
+            score += 20
+    elif sepclass == '-':
+        if basekey in _PRIORITY_DASH_BOOST:
+            score += 20
+    elif sepclass == ' ':
+        # Month-name patterns (any language) are the likely match for spaced text.
+        if _pattern_language(pattern) is not None:
+            score += 20
+
+    # Boost if length is exact match (more likely to be correct). Not for
+    # ":t_right" variants: their bounds include the trailing text, so the
+    # input length says nothing about them, and the bonus let them outrank
+    # the plain variant that matches the same text.
+    length_min = pattern.get("length", {}).get("min", 0)
+    length_max = pattern.get("length", {}).get("max", 0)
+    if length_min <= n <= length_max and not key.endswith(":t_right"):
+        if n == length_min or n == length_max:
+            score += 10
+        else:
+            score += 5
+
+    # Slight penalty for patterns with noyear (less specific)
+    if pattern.get("noyear", False):
+        score -= 5
+
+    # Slight penalty for rare patterns
+    if "rare" in basekey:
+        score -= 10
+
+    if date_order is not None and basekey in _DATE_ORDER_BASEKEYS[date_order]:
+        score += _DATE_ORDER_BONUS
+
+    return score
 
 
 def _pattern_language(pattern):
@@ -825,49 +997,58 @@ def _index_by_fingerprint(patterns):
 
 
 def scan_char_sets(text):
-    """Single-pass scanner returning set of character categories present in text.
+    """Return the set of character categories present in text.
 
-    Optimized version: limits scanning to first 100 characters and uses early exit.
+    Only the first 100 characters are scanned (dates are rarely longer); each
+    distinct character is classified once.
 
     :param text: Input string to scan
     :type text: str
     :return: Set of character set constants present in the text
     :rtype: set
     """
+    return set(_char_sets(text))
+
+
+# Accented characters for various languages
+# French: éàèùâêîôûçÉÀÈÙÂÊÎÔÛÇ
+# Spanish: áíóúñÁÍÓÚÑ
+# German: äöüÄÖÜ
+# Czech/Polish: řžýčšďťňŘŽÝČŠĎŤŇ
+_ACCENTED_CHARS = frozenset('éàèùâêîôûçÉÀÈÙÂÊÎÔÛÇáíóúñÁÍÓÚÑäöüÄÖÜřžýčšďťňŘŽÝČŠĎŤŇ')
+_SEPARATOR_CHARS = frozenset('./-, ')
+# Separator types of ``DateParser._detect_separators``.
+_SEPARATOR_NAMES = (('/', 'slash'), ('.', 'dot'), ('-', 'dash'), (' ', 'space'))
+
+
+def _char_set(char: str) -> TOptional[str]:
+    """The character set constant of ``char``, or None."""
+    if char.isdigit():
+        return CHAR_SET_DIGITS
+    if 'а' <= char.lower() <= 'я' or char in 'ёЁ':
+        return CHAR_SET_CYRILLIC
+    if char.isalpha() and ord(char) < 128:
+        return CHAR_SET_LATIN
+    if char in _ACCENTED_CHARS:
+        return CHAR_SET_ACCENTED
+    if char in _SEPARATOR_CHARS:
+        return CHAR_SET_SEPARATORS
+    return None
+
+
+# Matching a text asks for its character sets and month claims several
+# times; the caches only need to outlive one ``match()`` call.
+_TEXT_CACHE_SIZE = 64
+
+
+@functools.lru_cache(maxsize=_TEXT_CACHE_SIZE)
+def _char_sets(text: str) -> frozenset:
+    """:func:`scan_char_sets` as a frozenset, cached."""
     if not text:
-        return set()
-
-    char_sets = set()
-    # Accented characters for various languages
-    # French: éàèùâêîôûçÉÀÈÙÂÊÎÔÛÇ
-    # Spanish: áíóúñÁÍÓÚÑ
-    # German: äöüÄÖÜ
-    # Czech/Polish: řžýčšďťňŘŽÝČŠĎŤŇ
-    accented_chars = 'éàèùâêîôûçÉÀÈÙÂÊÎÔÛÇáíóúñÁÍÓÚÑäöüÄÖÜřžýčšďťňŘŽÝČŠĎŤŇ'
-
-    # Limit scanning to first 100 characters (dates are rarely longer)
-    scan_len = min(100, len(text))
-
-    # Scan for character sets with early exit optimization
-    for i in range(scan_len):
-        char = text[i]
-        if char.isdigit():
-            char_sets.add(CHAR_SET_DIGITS)
-        elif 'а' <= char.lower() <= 'я' or char in 'ёЁ':
-            char_sets.add(CHAR_SET_CYRILLIC)
-        elif char.isalpha() and ord(char) < 128:
-            char_sets.add(CHAR_SET_LATIN)
-        elif char in accented_chars:
-            char_sets.add(CHAR_SET_ACCENTED)
-        elif char in './-, ':
-            char_sets.add(CHAR_SET_SEPARATORS)
-
-        # Early exit optimization: once we've found all possible sets, we can stop
-        # Maximum possible sets: digits, cyrillic, latin, accented, separators (5)
-        if len(char_sets) >= 5:
-            break
-
-    return char_sets
+        return frozenset()
+    found = {_char_set(char) for char in set(text[:100])}
+    found.discard(None)
+    return frozenset(found)
 
 
 def _month_claims(text: str, char_sets) -> list:
@@ -876,17 +1057,23 @@ def _month_claims(text: str, char_sets) -> list:
     ``char_sets`` is ``scan_char_sets(text)``; it selects the Cyrillic or the
     Latin-script table. See :meth:`DateParser._language_claims`.
     """
+    return list(_text_claims(text, frozenset(char_sets)))
+
+
+@functools.lru_cache(maxsize=_TEXT_CACHE_SIZE)
+def _text_claims(text: str, char_sets: frozenset) -> tuple:
+    """:func:`_month_claims` as a tuple, cached."""
     if CHAR_SET_CYRILLIC in char_sets:
         table = _CYRILLIC_DETECTION
     elif CHAR_SET_ACCENTED in char_sets or CHAR_SET_LATIN in char_sets:
         table = _LATIN_DETECTION
     else:
-        return []
+        return ()
     # Whole words only: a substring check lets French "mai" claim
     # Portuguese "maio", which then filters out the Portuguese patterns.
     words = frozenset(_WORD_RE.findall(text.lower()))
     claims = [lang for lang, months in table if not words.isdisjoint(months)]
-    return _resolve_month_claims(claims, words)
+    return tuple(_resolve_month_claims(claims, words))
 
 
 class DateParser:
@@ -990,6 +1177,9 @@ class DateParser:
         self._current_year = datetime.datetime.now().year
         self._year_refresh_interval = 3600  # seconds
         self._next_year_refresh = time.monotonic() + self._year_refresh_interval
+        # Grammars a generated variant starts with, by pattern key: the
+        # variant cannot match where they do not (see ``_match_candidates``).
+        self._requires: dict[str, tuple[ParserElement, ...]] = {}
         if generate:
             self.__generate(base_only)
         # Generation order; breaks priority ties in ``_match_candidates``.
@@ -1014,10 +1204,16 @@ class DateParser:
         # Results of the fingerprint walk by text fingerprint; see
         # ``_filter_patterns_fingerprint``.
         self._walk_cache: dict[tuple, tuple[dict, tuple]] = {}
-        self._build_length_index()
-        self._build_separator_index()
-        self._build_year_format_index()
-        self._build_language_index()
+        # The walk results narrowed by the prefix filter and prepared for
+        # matching, by walk key and prefix set; and ``matchPrefix`` results
+        # by the first six characters of a text.
+        self._plan_cache: dict[tuple, _CandidatePlan] = {}
+        # ``(first, words, pattern)`` by pattern ``id``; see ``_pattern_needs``.
+        self._needs_by_pattern: dict[int, tuple] = {}
+        self._prefix_cache: dict[str, TOptional[frozenset]] = {}
+        # ``_patterns_by_length``, ``_patterns_by_separator``,
+        # ``_patterns_by_year_format`` and ``_patterns_by_language`` serve the
+        # legacy filter only and are built on first use.
         # Per-instance fingerprint index — keyed by the same tuple as the
         # module-level ``_PATTERN_FINGERPRINTS`` but built from ``self.patterns``
         # so generated variants (suffix :time_N, :t_right, etc.) are included.
@@ -1079,6 +1275,7 @@ class DateParser:
         """Generates dates patterns"""
         base = []
         texted = []
+        requires = self._requires
         for pat in self.patterns:
             # Read-only against the source pattern: ``required_chars`` was
             # already stamped by ``annotate_patterns`` at import time.
@@ -1091,16 +1288,14 @@ class DateParser:
             language = pat.get("language")
             prefixes = (TIME_PREFIXES_BY_LANGUAGE.get(language) if language is not None
                         else ALL_TIME_PREFIXES)
-            if prefixes:
-                time_prefix = PpOptional(one_of(list(prefixes))).suppress()
-                prefix_len = max(len(word) for word in prefixes) + 1
-            else:
-                time_prefix = None
-                prefix_len = 0
+            time_prefix, prefix_len = _time_prefix(prefixes)
 
-            def time_variant(suffix, grammar, min_add, max_add, time_format, pat=pat):
+            def time_variant(suffix, grammar, min_add, max_add, time_format, pat=pat,
+                             head=pat["pattern"]):
                 """Return a copy of ``pat`` matching ``grammar``, whose length
-                bounds exceed the date's by ``min_add`` and ``max_add``."""
+                bounds exceed the date's by ``min_add`` and ``max_add``.
+                ``grammar`` starts with ``head``."""
+                requires[pat["key"] + suffix] = (head,)
                 data = {**pat}
                 data["basekey"] = data["key"]
                 data["key"] += suffix
@@ -1122,8 +1317,8 @@ class DateParser:
             # by ",", "|" or the ISO "T".
             base.append(time_variant(
                 ":time_1",
-                _append(pat["pattern"] + PpOptional(one_of([",", "|", "T"])).suppress(),
-                        time_prefix) + BASE_TIME_PATTERNS["pat:time:clock"],
+                _append(pat["pattern"] + _TIME_SEPARATOR, time_prefix) +
+                BASE_TIME_PATTERNS["pat:time:clock"],
                 5, 3 + 7 + 10 + prefix_len, "%H:%M"))
             # HH:MM:SS adds 9 chars (eight and one separating space); the
             # optional zone adds up to 10 more. Without room for it,
@@ -1131,28 +1326,25 @@ class DateParser:
             # fell back to HH:MM (seconds dropped).
             base.append(time_variant(
                 ":time_2",
-                _append(pat["pattern"] + PpOptional(one_of([",", "|", "T"])).suppress(),
-                        time_prefix) + BASE_TIME_PATTERNS["pat:time:full"],
+                _append(pat["pattern"] + _TIME_SEPARATOR, time_prefix) +
+                BASE_TIME_PATTERNS["pat:time:full"],
                 9, 3 + 8 + 10 + prefix_len, "%H:%M:%S"))
             base.append(time_variant(
                 ":time_3",
-                _append(pat["pattern"], time_prefix) +
-                PpOptional(Literal("[")).suppress() +
-                BASE_TIME_PATTERNS["pat:time:minutes"] +
-                PpOptional(Literal("]")).suppress(),
+                _append(pat["pattern"], time_prefix) + _OPEN_BRACKET +
+                BASE_TIME_PATTERNS["pat:time:minutes"] + _CLOSE_BRACKET,
                 7, 10 + prefix_len, "%H:%M"))
             # 12-hour clock: "3 PM", " 12:45:00 p.m." is up to 13 characters.
             base.append(time_variant(
                 ":time_4",
-                _append(pat["pattern"] + PpOptional(one_of([",", "|"])).suppress(),
-                        time_prefix) + BASE_TIME_PATTERNS["pat:time:clock_ampm"],
+                _append(pat["pattern"] + _AMPM_SEPARATOR, time_prefix) +
+                BASE_TIME_PATTERNS["pat:time:clock_ampm"],
                 4, 3 + 13 + 10 + prefix_len, "%I:%M %p"))
             # The time before the date: "12:30, 5 мая 2022", "14:30 | 5 May 2022".
             base.append(time_variant(
                 ":time_left",
-                BASE_TIME_PATTERNS["pat:time:any"] +
-                PpOptional(one_of([",", "|", "-"])).suppress() + pat["pattern"],
-                4, 13 + 10 + 3, "%H:%M"))
+                BASE_TIME_PATTERNS["pat:time:any"] + _LEFT_TIME_SEPARATOR + pat["pattern"],
+                4, 13 + 10 + 3, "%H:%M", head=BASE_TIME_PATTERNS["pat:time:any"]))
 
             data = {**pat}
             data["pattern"] = data["pattern"]
@@ -1171,9 +1363,10 @@ class DateParser:
                 # it with the other candidates'.
                 data = {**pat}
                 data["key"] += ":t_right"
-                data["pattern"] = (
-                    lineStart + data["pattern"] +
-                    PpOptional(one_of([",", "|", ":", ")"])).suppress())
+                data["pattern"] = lineStart + data["pattern"] + _TEXT_SEPARATOR
+                # ``lineStart`` matches at 0 without consuming: the variant
+                # needs what ``pat`` needs, then ``pat`` itself.
+                requires[data["key"]] = requires.get(pat["key"], ()) + (pat["pattern"],)
                 data["length"] = {
                     "min": data["length"]["min"] + 1,
                     "max": data["length"]["max"] + 90,
@@ -1194,20 +1387,22 @@ class DateParser:
         """
         return set(_infer_required_chars(pattern))
 
-    def _build_length_index(self):
-        """Pre-index patterns by length ranges for faster filtering"""
-        self._patterns_by_length = {}
+    @functools.cached_property
+    def _patterns_by_length(self):
+        """Patterns by every length they accept, for the legacy filter;
+        built on first use."""
+        index: dict = {}
         for p in self.patterns:
             min_len = p["length"]["min"]
             max_len = p["length"]["max"]
             for length in range(min_len, max_len + 1):
-                if length not in self._patterns_by_length:
-                    self._patterns_by_length[length] = []
-                self._patterns_by_length[length].append(p)
+                index.setdefault(length, []).append(p)
+        return index
 
-    def _build_separator_index(self):
-        """Pre-index patterns by separator types for faster filtering"""
-        self._patterns_by_separator = {
+    @functools.cached_property
+    def _patterns_by_separator(self):
+        """Patterns by separator type, for the legacy filter; built on first use."""
+        index = {
             'slash': [],      # Patterns using /
             'dot': [],        # Patterns using .
             'dash': [],       # Patterns using -
@@ -1221,7 +1416,8 @@ class DateParser:
             # resolves generated variants via basekey. The old substring ladder is
             # gone — adding/renaming a pattern no longer risks mis-bucketing it.
             sep = _pattern_separator(p)
-            self._patterns_by_separator[sep].append(p)
+            index[sep].append(p)
+        return index
 
     def _detect_separators(self, text):
         """Quickly detect separator types in text.
@@ -1234,19 +1430,9 @@ class DateParser:
         if not text:
             return set()
 
-        separators = set()
         # Check first 20 chars for efficiency
-        scan_len = min(20, len(text))
-        for i in range(scan_len):
-            char = text[i]
-            if char == '/':
-                separators.add('slash')
-            elif char == '.':
-                separators.add('dot')
-            elif char == '-':
-                separators.add('dash')
-            elif char == ' ':
-                separators.add('space')
+        head = text[:20]
+        separators = {name for char, name in _SEPARATOR_NAMES if char in head}
 
         # If no separators found and text is mostly digits, it might be 'none'
         if not separators and text and text[0].isdigit():
@@ -1291,9 +1477,11 @@ class DateParser:
             self._session_fingerprints_source = cached
         return self._session_fingerprints
 
-    def _build_year_format_index(self):
-        """Pre-index patterns by year format requirements for faster filtering"""
-        self._patterns_by_year_format = {
+    @functools.cached_property
+    def _patterns_by_year_format(self):
+        """Patterns by year format requirements, for the legacy filter;
+        built on first use."""
+        index = {
             '4digit': [],   # Patterns requiring 4-digit year
             '2digit': [],   # Patterns requiring 2-digit year
             'noyear': [],   # Patterns without year
@@ -1305,15 +1493,16 @@ class DateParser:
             basekey = p.get("basekey", key)
 
             if p.get("noyear", False):
-                self._patterns_by_year_format['noyear'].append(p)
+                index['noyear'].append(p)
             elif p.get("yearshort", False):
-                self._patterns_by_year_format['2digit'].append(p)
+                index['2digit'].append(p)
             elif any(x in basekey for x in ["date_iso8601", "date_9", "date_10"]):
                 # ISO formats typically use 4-digit years
-                self._patterns_by_year_format['4digit'].append(p)
+                index['4digit'].append(p)
             else:
                 # Most patterns can handle both, but default to 4-digit preference
-                self._patterns_by_year_format['any'].append(p)
+                index['any'].append(p)
+        return index
 
     def _detect_year_format(self, text):
         """Detect if text likely has 2-digit or 4-digit year.
@@ -1329,12 +1518,11 @@ class DateParser:
             return 'unknown'
 
         # Look for 4-digit year patterns (more specific, check first)
-        # Use pyparsing scan_string for consistency with codebase
-        if next(_YEAR_4DIGIT_PATTERN.scan_string(text), None) is not None:
+        if _YEAR_4DIGIT_RE.search(text) is not None:
             return '4digit'
 
-        # Look for 2-digit year patterns using pyparsing
-        if next(_YEAR_2DIGIT_PATTERN.scan_string(text), None) is not None:
+        # Look for 2-digit year patterns
+        if _YEAR_2DIGIT_RE.search(text) is not None:
             return '2digit'
 
         return 'unknown'
@@ -1354,7 +1542,7 @@ class DateParser:
         """
         if not text:
             return []
-        return _month_claims(text, scan_char_sets(text))
+        return list(_text_claims(text, _char_sets(text)))
 
     def _detect_language(self, text):
         """Detect language from text using character sets and month name detection.
@@ -1373,8 +1561,8 @@ class DateParser:
         if not text:
             return None
 
-        char_sets = scan_char_sets(text)
-        claims = _month_claims(text, char_sets)
+        char_sets = _char_sets(text)
+        claims = list(_text_claims(text, char_sets))
         if CHAR_SET_CYRILLIC in char_sets:
             if not claims or claims == ['bg']:
                 # Could be Russian or Bulgarian
@@ -1384,19 +1572,20 @@ class DateParser:
         # (let other filters handle it)
         return claims[:1] or None
 
-    def _build_language_index(self):
-        """Pre-index patterns by language for faster filtering.
+    @functools.cached_property
+    def _patterns_by_language(self):
+        """Patterns by language, for the legacy filter; built on first use.
 
         Reads the authoritative ``language`` field (stamped from
         ``_PATTERN_METADATA``) rather than re-deriving it from key substrings.
         Generated variants inherit the base pattern's language via ``basekey``.
         """
-        self._patterns_by_language = {}
-
+        index: dict = {}
         for p in self.patterns:
             lang = _pattern_language(p)
             if lang:
-                self._patterns_by_language.setdefault(lang, []).append(p)
+                index.setdefault(lang, []).append(p)
+        return index
 
     def _filter_patterns_hierarchical(self, text, n, noprefix=False, allow_no_year=True,
                                        nocharsetfilter=False, noseparatorfilter=False,
@@ -1660,15 +1849,19 @@ class DateParser:
         :return: Filtered list of patterns, or None if no patterns remain.
         :rtype: list|None
         """
-        # Local imports to avoid a circular import (qdparser imports patterns
-        # at module top, fingerprint re-imports from there). This is also why
-        # the helper is referenced via ``from .patterns.fingerprint import ...``
-        # lazily inside the method.
-        from .patterns.fingerprint import (
-            CHAR_SET_ACCENTED,
-            CHAR_SET_LATIN,
-        )
+        plan = self._fingerprint_plan(
+            text, n, noprefix=noprefix, nocharsetfilter=nocharsetfilter,
+            noseparatorfilter=noseparatorfilter, noyearformatfilter=noyearformatfilter,
+            nolanguagefilter=nolanguagefilter, languages=languages)
+        return list(plan.pats) if plan is not None else None
 
+    def _fingerprint_plan(self, text, n, noprefix=False, nocharsetfilter=False,
+                          noseparatorfilter=False, noyearformatfilter=False,
+                          nolanguagefilter=False, languages=None):
+        """The :class:`_CandidatePlan` of :meth:`_filter_patterns_fingerprint`
+        (its patterns are that method's result), or None when no pattern is a
+        candidate. Plans are cached by text fingerprint and prefix set.
+        """
         # A disabled dimension is skipped, not matched against a placeholder:
         # an empty text charset or a ``{"mixed"}`` separator would *narrow*
         # the candidate set (``fp_chars <= frozenset()`` rejects every pattern
@@ -1679,7 +1872,7 @@ class DateParser:
         allowlist = self._language_allowlist if languages is None else languages
         check_chars = n > 5 and not noprefix and not nocharsetfilter
         check_separator = not noseparatorfilter
-        text_char_sets = scan_char_sets(text) if check_chars else frozenset()
+        text_char_sets = _char_sets(text) if check_chars else frozenset()
         separators = self._detect_separators(text) if check_separator else set()
         if nolanguagefilter or n <= 5:
             detected_languages: list[str] = []
@@ -1712,7 +1905,65 @@ class DateParser:
         # text (e.g. ``"17 Marca 2018 r."`` has both space and dot).
         detected_separators = frozenset(separators) if separators else frozenset({"mixed"})
 
-        text_has_letters = any(c.isalpha() for c in text)
+        text_has_letters = any(map(str.isalpha, text))
+
+        index = self._candidate_index(languages)
+        cache_key = (id(index), n, text_char_sets, detected_separators,
+                     check_separator, detected_language, year_format,
+                     text_has_letters, None if allowlist is None else frozenset(allowlist))
+        # Final gate: prefix filter (level 6). Same logic as the legacy
+        # pipeline: when ``n > 5`` and prefix is enabled, keep patterns
+        # whose ``basekey`` is in the prefix set, OR patterns without the
+        # ``right`` flag (left-aligned only). The set depends on the first
+        # six characters only.
+        prefix = None
+        if n > 5 and not noprefix:
+            prefix = self._prefix_basekeys(text[:6])
+        plan_key = (cache_key, prefix)
+        plan = self._plan_cache.get(plan_key)
+        if plan is not None and plan.source is index:
+            return plan if plan.pats else None
+
+        # The walk depends only on what the text's fingerprint says, so its
+        # result is kept per fingerprint: text nodes of a page mostly share
+        # a few, and the walk grows with the number of generated variants.
+        cached = self._walk_cache.get(cache_key)
+        if cached is not None and cached[0] is index:
+            walked = cached[1]
+        else:
+            walked = self._walk_fingerprints(
+                index, n, check_chars, text_char_sets, check_separator,
+                detected_separators, text_has_letters, detected_language,
+                allowlist, year_format)
+            if len(self._walk_cache) >= _WALK_CACHE_SIZE:
+                self._walk_cache.clear()
+            self._walk_cache[cache_key] = (index, walked)
+
+        pats = walked
+        if prefix is not None and walked:
+            pats = [
+                p for p in walked
+                if p.get("basekey") in prefix or not p.get("right", False)
+            ]
+        plan = _CandidatePlan(pats, self._pattern_needs(pats), index)
+        if len(self._plan_cache) >= _PLAN_CACHE_SIZE:
+            self._plan_cache.clear()
+        self._plan_cache[plan_key] = plan
+        return plan if plan.pats else None
+
+    def _walk_fingerprints(self, index, n, check_chars, text_char_sets, check_separator,
+                           detected_separators, text_has_letters, detected_language,
+                           allowlist, year_format):
+        """The patterns of ``index`` whose fingerprint admits a text with
+        these properties (see :meth:`_fingerprint_plan`), in index order."""
+        # Local imports to avoid a circular import (qdparser imports patterns
+        # at module top, fingerprint re-imports from there). This is also why
+        # the helper is referenced via ``from .patterns.fingerprint import ...``
+        # lazily inside the method.
+        from .patterns.fingerprint import (
+            CHAR_SET_ACCENTED,
+            CHAR_SET_LATIN,
+        )
 
         # Charset match (mirrors ``candidate_keys_for``'s ``chars_match``).
         def _chars_match(fp_chars) -> bool:
@@ -1802,55 +2053,35 @@ class DateParser:
         # is skipped at the bucket level when detected is ``"space"`` —
         # but a pattern whose basekey is ``date_1``/``date_8``/``date_3``
         # gets a free pass via ``_space_compat_basekey``.
-        #
-        # The walk depends only on what the text's fingerprint says, so its
-        # result is kept per fingerprint: text nodes of a page mostly share
-        # a few, and the walk grows with the number of generated variants.
-        index = self._candidate_index(languages)
-        cache_key = (id(index), n, frozenset(text_char_sets), detected_separators,
-                     check_separator, detected_language, year_format,
-                     text_has_letters, None if allowlist is None else frozenset(allowlist))
-        cached = self._walk_cache.get(cache_key)
-        if cached is not None and cached[0] is index:
-            pats = list(cached[1])
-        else:
-            pats = []
-            for fp, bucket in index.items():
-                if fp.length_min > n or fp.length_max < n:
-                    continue
-                if check_chars and not _chars_match(fp.chars):
-                    continue
-                if not _lang_match(fp.language):
-                    continue
-                if not _year_match(fp.year_format):
-                    continue
-                if not check_separator or _sep_match(fp.separator, fp.language):
-                    pats.extend(bucket)
-                    continue
-                for p in bucket:
-                    if _space_compat_basekey(p.get("basekey", p.get("key", ""))):
-                        pats.append(p)
-            if len(self._walk_cache) >= _WALK_CACHE_SIZE:
-                self._walk_cache.clear()
-            self._walk_cache[cache_key] = (index, tuple(pats))
+        pats = []
+        for fp, bucket in index.items():
+            if fp.length_min > n or fp.length_max < n:
+                continue
+            if check_chars and not _chars_match(fp.chars):
+                continue
+            if not _lang_match(fp.language):
+                continue
+            if not _year_match(fp.year_format):
+                continue
+            if not check_separator or _sep_match(fp.separator, fp.language):
+                pats.extend(bucket)
+                continue
+            for p in bucket:
+                if _space_compat_basekey(p.get("basekey", p.get("key", ""))):
+                    pats.append(p)
+        return tuple(pats)
 
-        if not pats:
-            return None
-
-        # Final gate: prefix filter (level 6). Same logic as the legacy
-        # pipeline: when ``n > 5`` and prefix is enabled, keep patterns
-        # whose ``basekey`` is in the prefix set, OR patterns without the
-        # ``right`` flag (left-aligned only).
-        if n > 5 and not noprefix:
-            basekeys_list = self.__matchPrefix(text[:6])
-            basekeys = set(basekeys_list) if basekeys_list else set()
-            if basekeys:
-                pats = [
-                    p for p in pats
-                    if p.get("basekey") in basekeys or not p.get("right", False)
-                ]
-
-        return pats if pats else None
+    def _prefix_basekeys(self, prefix: str) -> TOptional[frozenset]:
+        """The basekeys :func:`matchPrefix` returns for ``prefix`` (the first
+        six characters of a text) as a frozenset, None when it returns none."""
+        if prefix in self._prefix_cache:
+            return self._prefix_cache[prefix]
+        found = self.__matchPrefix(prefix)
+        basekeys = frozenset(found) if found else None
+        if len(self._prefix_cache) >= _WALK_CACHE_SIZE:
+            self._prefix_cache.clear()
+        self._prefix_cache[prefix] = basekeys
+        return basekeys
 
     def _calculate_pattern_priority(self, pattern, text, date_order=None):
         """Calculate priority score for pattern based on text characteristics.
@@ -1869,64 +2100,7 @@ class DateParser:
         :return: Integer priority score (higher = more likely)
         :rtype: int
         """
-        score = 0
-        key = pattern.get("key", "")
-        basekey = pattern.get("basekey", key)
-        n = len(text)
-
-        # Higher priority for common patterns (exact basekey tiers; the former
-        # substring checks let "date_1" silently match "date_10").
-        if basekey in _PRIORITY_TIER_COMMON:
-            score += 100
-        elif basekey in _PRIORITY_TIER_ISO:
-            score += 80
-        elif basekey in _PRIORITY_TIER_9:
-            score += 75
-        elif basekey in _PRIORITY_TIER_MID:
-            score += 70
-        elif _pattern_language(pattern) is not None:
-            # Month-name patterns in any language rank just below the numeric cores.
-            score += 60
-
-        # Boost if separator matches (exact basekey sets per separator)
-        if '/' in text:
-            if basekey in _PRIORITY_SLASH_BOOST:
-                score += 20
-        elif '.' in text:
-            if basekey in _PRIORITY_DOT_BOOST:
-                score += 20
-        elif '-' in text:
-            if basekey in _PRIORITY_DASH_BOOST:
-                score += 20
-        elif ' ' in text:
-            # Month-name patterns (any language) are the likely match for spaced text.
-            if _pattern_language(pattern) is not None:
-                score += 20
-
-        # Boost if length is exact match (more likely to be correct). Not for
-        # ":t_right" variants: their bounds include the trailing text, so the
-        # input length says nothing about them, and the bonus let them outrank
-        # the plain variant that matches the same text.
-        length_min = pattern.get("length", {}).get("min", 0)
-        length_max = pattern.get("length", {}).get("max", 0)
-        if length_min <= n <= length_max and not key.endswith(":t_right"):
-            if n == length_min or n == length_max:
-                score += 10
-            else:
-                score += 5
-
-        # Slight penalty for patterns with noyear (less specific)
-        if pattern.get("noyear", False):
-            score -= 5
-
-        # Slight penalty for rare patterns
-        if "rare" in basekey:
-            score -= 10
-
-        if date_order is not None and basekey in _DATE_ORDER_BASEKEYS[date_order]:
-            score += _DATE_ORDER_BONUS
-
-        return score
+        return _priority(pattern, len(text), _separator_class(text), date_order)
 
     def _iter_matches(self, text, noprefix=False, allow_no_year=True, nocharsetfilter=False,
                       noseparatorfilter=False, noyearformatfilter=False,
@@ -1953,9 +2127,9 @@ class DateParser:
         if tried is None:
             tried = set()
         found = False
-        pats = self._filter_patterns(text, languages=languages,
-                                     nolanguagefilter=nolanguagefilter, **filter_flags)
-        for item in self._match_candidates(text, pats, allow_no_year, tried, date_order):
+        plan = self._candidate_plan(text, languages=languages,
+                                    nolanguagefilter=nolanguagefilter, **filter_flags)
+        for item in self._match_candidates(text, plan, allow_no_year, tried, date_order):
             found = True
             yield item
         if found or nolanguagefilter or len(self._language_claims(text)) < 2:
@@ -1963,9 +2137,9 @@ class DateParser:
         # The month name is shared by several languages and the language filter
         # kept only the first one ("30. Mai 1953": French before German). It
         # found nothing, so try the patterns of every language.
-        pats = self._filter_patterns(text, languages=languages, nolanguagefilter=True,
-                                     **filter_flags)
-        yield from self._match_candidates(text, pats, allow_no_year, tried, date_order)
+        plan = self._candidate_plan(text, languages=languages, nolanguagefilter=True,
+                                    **filter_flags)
+        yield from self._match_candidates(text, plan, allow_no_year, tried, date_order)
 
     def _iter_passes(self, text, languages=None, date_order=None, first_only=False, **flags):
         """Yield ``(pass, priority, end, result)`` from :meth:`_iter_matches`.
@@ -2007,6 +2181,28 @@ class DateParser:
                     or _pattern_language(p) is None]
         return pats or None
 
+    def _candidate_plan(self, text, languages=None, **flags):
+        """The :class:`_CandidatePlan` of :meth:`_filter_patterns`, or None."""
+        if self.use_fingerprint:
+            flags.pop("allow_no_year", None)
+            return self._fingerprint_plan(text, len(text), languages=languages, **flags)
+        pats = self._filter_patterns(text, languages=languages, **flags)
+        return _CandidatePlan(pats, self._pattern_needs(pats)) if pats else None
+
+    def _pattern_needs(self, pats):
+        """The ``{id(pattern): (first, words, pattern)}`` table of the parser, with an
+        entry for every pattern of ``pats``: what a text needs for the
+        pattern's grammar to match it at position 0 (see :func:`_may_match`)."""
+        table = self._needs_by_pattern
+        for p in pats:
+            if id(p) not in table:
+                grammar = p["pattern"]
+                needs = _grammar_needs(grammar, self._needs_cache)
+                # The entry keeps ``p`` alive, so its ``id`` is not reused.
+                table[id(p)] = (None if grammar.mayReturnEmpty else needs.first,
+                                needs.words, p)
+        return table
+
     def _candidate_index(self, languages=None):
         """Return the fingerprint index the fingerprint filter walks.
 
@@ -2040,44 +2236,85 @@ class DateParser:
             self._anchored_grammars[id(grammar)] = entry
         return entry[1]
 
-    def _match_candidates(self, text, pats, allow_no_year, tried, date_order=None):
-        """Yield ``(priority, end, result)`` for the patterns in ``pats`` that
-        match ``text`` at position 0, highest priority first.
+    def _parse_start(self, grammar, text, parsed):
+        """``Located`` result of ``grammar`` parsed at the start of ``text``,
+        or None when it does not match; ``parsed`` caches results by grammar
+        ``id`` for this text."""
+        key = id(grammar)
+        if key in parsed:
+            return parsed[key]
+        # Parse at position 0 only. ``scan_string`` also tried every later
+        # position of a text that does not start with a date, only for the
+        # match to be discarded.
+        try:
+            located = self._anchored(grammar).parse_string(text)
+        except ParseBaseException:
+            located = None
+        parsed[key] = located
+        return located
+
+    def _match_candidates(self, text, plan, allow_no_year, tried, date_order=None):
+        """Yield ``(priority, end, result)`` for the patterns of ``plan`` (a
+        :class:`_CandidatePlan` or None) that match ``text`` at position 0,
+        highest priority first.
 
         Keys of the patterns run are added to ``tried``; patterns already in it
         are skipped.
         """
-        if not pats:
+        if plan is None:
             return
         n = len(text)
         # ``parse_string`` expands tabs before matching; check what a grammar
         # needs against the same string.
         expanded = text.expandtabs()
-        found = {}
 
-        # Cheap checks before ranking: the length bounds, then the character
-        # the date starts with and the month or weekday names it contains.
+        # Cheap checks before ranking: the character the date starts with and
+        # the month or weekday names it contains, then the length bounds.
         # Most text that is not a date ("Page 2 of 10") fails them before any
         # grammar runs. Only patterns that cannot match are dropped.
-        pats = [
-            p for p in pats
-            if p["length"]["min"] <= n <= p["length"]["max"]
-            and (allow_no_year or not p.get("noyear", False))
-            and _may_match(p["pattern"], expanded, self._needs_cache, found)
-        ]
+        selected = _select_candidates(plan, expanded, {})
+        if not selected:
+            return
 
         # Sort patterns by priority (try most likely patterns first). Ties
         # keep the generation order: the two filters return candidates in
         # different orders, and both must pick the same pattern.
+        sepclass = _separator_class(text)
+        sort_keys = plan.scores.get((n, sepclass, date_order))
+        if sort_keys is None:
+            sort_keys = plan.scores[(n, sepclass, date_order)] = {}
         rank = self._pattern_rank
-        scored = sorted(
-            ((self._calculate_pattern_priority(p, text, date_order), p) for p in pats),
-            key=lambda item: (-item[0], rank.get(item[1]["key"], len(rank))))
-
-        for _score, p in scored:
-            if p["key"] in tried:
+        scored = []
+        for p in selected:
+            length = p["length"]
+            if not length["min"] <= n <= length["max"]:
                 continue
-            tried.add(p["key"])
+            if not allow_no_year and p.get("noyear", False):
+                continue
+            sort_key = sort_keys.get(id(p))
+            if sort_key is None:
+                # Ties keep the generation order; patterns the parser did not
+                # generate come after its own, in candidate order.
+                tie = rank.get(p["key"])
+                if tie is None:
+                    tie = len(rank) + plan.pats.index(p)
+                sort_key = sort_keys[id(p)] = (-_priority(p, n, sepclass, date_order), tie)
+            scored.append((sort_key, p))
+        scored.sort(key=operator.itemgetter(0))
+
+        # A generated variant starts with the date it was made from (or, for
+        # ``:time_left``, with the time). When the text does not start with
+        # whitespace, no grammar skips any at position 0, so the variant can
+        # only match where that grammar matches on its own: one failed parse
+        # of a date rules out all of its variants. Results by grammar ``id``
+        # for this text, None for a failed parse.
+        parsed: dict[int, Any] = {}
+        requires = self._requires if expanded[:1] and not expanded[0].isspace() else {}
+        for (neg_score, _tie), p in scored:
+            key = p["key"]
+            if key in tried:
+                continue
+            tried.add(key)
             grammar = p["pattern"]
             # ``scan_string`` skipped the grammar's whitespace characters
             # before a match, so a text starting with one never matched at 0.
@@ -2085,12 +2322,12 @@ class DateParser:
             # ``LineStart`` (the ``:t_right`` variants); keep that rule.
             if expanded[:1] in grammar.whiteChars:
                 continue
-            # Parse at position 0 only. ``scan_string`` also tried every later
-            # position of a text that does not start with a date, only for the
-            # match to be discarded.
-            try:
-                located = self._anchored(grammar).parse_string(text)
-            except ParseBaseException:
+            heads = requires.get(key)
+            if heads and not all(self._parse_start(head, text, parsed) is not None
+                                 for head in heads):
+                continue
+            located = self._parse_start(grammar, text, parsed)
+            if located is None:
                 continue
             # Leading whitespace is skipped before the match; the date must
             # start the text.
@@ -2105,7 +2342,7 @@ class DateParser:
             # raised IndexError for "5\tMay 2022".
             while end > 0 and expanded[end - 1].isspace():
                 end -= 1
-            yield _score, end, {"values": r, "pattern": p}
+            yield -neg_score, end, {"values": r, "pattern": p}
 
     def match(self, text: str, noprefix: bool = False, allow_no_year: bool = True, nocharsetfilter: bool = False,
              noseparatorfilter: bool = False, noyearformatfilter: bool = False,

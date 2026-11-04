@@ -74,6 +74,19 @@ running pyparsing. Such text now usually runs no grammar at all. The checks
 change no result; `tests/test_match_prefilter.py` renders every grammar and
 compares results with the checks switched off.
 
+Most candidates share these facts with others: the generated variants of a
+pattern start and need words like the pattern does. The candidates of a text
+fingerprint are therefore kept grouped by them, with the prefix filter
+already applied, and each group is checked once per text. Priorities are
+cached per fingerprint too.
+
+A generated variant also starts with a grammar of its own: the date it was
+made from (`:time_1` … `:time_4`, `:t_right`) or the time (`:time_left`).
+When the text does not start with whitespace, the variant can only match
+where that grammar matches on its own, so the parser parses the date once
+and skips all of its variants when it fails. No grammar is parsed twice for
+one text.
+
 The grammar itself is then parsed at position 0 only. Releases up to
 `1.0.17` scanned it from every position of the text and discarded a match
 that did not start at position 0.
