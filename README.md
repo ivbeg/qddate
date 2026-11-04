@@ -29,6 +29,8 @@ Full documentation is published at [ivbeg.github.io/qddate](https://ivbeg.github
 
 ## Recent updates
 
+**1.1.0** — dates inside text (`search()` / `find_all()`, after labels such as `Posted on`), times before the date, 12-hour clocks, `14h30` and time zones (`+03:00`, `Z`, `GMT+3`, `МСК`), English dates without a year (`May 5`), CJK numeric dates, Slovak and the Czech/Polish day-dot form, `cs` as an alias of `cz`. Per-call `languages=`, `date_order=`, `reference=`/`prefer=`; `match_typed()` returns `DateMatch` with `span`, `precision`, `tzinfo` and `has_year`. `match()` is 2–5× faster than 1.0.17 on scraped text, and importing qddate no longer enables pyparsing's packrat cache for the whole process.
+
 **1.0.17** — a weekday before a month-first English date is recognised: `Monday, January 31, 2022`, `Mon, Jan 31, 2022`.
 
 **1.0.16** — pyparsing snake_case API (no deprecation warnings on pyparsing 3.3), signed timezone offsets (`-0500`), whole-word language detection (Portuguese `maio` dates parse again). First PyPI release since 1.0.10.

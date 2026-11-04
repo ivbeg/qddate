@@ -2,7 +2,7 @@
 
 All notable changes to this project are tracked here.
 
-## Unreleased
+## 1.1.0 (2026-11-04)
 
 **Dates without a year, more forms** (Q9–Q13 of `dev/docs/IMPROVEMENT_PLAN_2026-10-21.md`)
 - English dates without a year, month first and day first: `May 5`, `5 May`,

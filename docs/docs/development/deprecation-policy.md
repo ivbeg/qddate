@@ -23,7 +23,7 @@ When a public name is renamed or its semantics change:
    `DeprecationWarning` raised from qddate's own code into an error, so a
    deprecated call inside the library fails CI at PR time.
 
-## Active deprecations (as of 1.0.17)
+## Active deprecations (as of 1.1.0)
 
 ### `noyear=` → `allow_no_year=`
 
